@@ -1,17 +1,26 @@
+@import 'tailwindcss';
 
-@import "tailwindcss";
+@layer base {
+  *,
+  ::before,
+  ::after {
+    box-sizing: border-box;
+  }
 
-* {
-  box-sizing: border-box;
+  html,
+  body,
+  #app {
+    min-height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: #f4f1e9;
+    color: #17312d;
+    font-family: Georgia, 'Times New Roman', serif;
+  }
+
+  a {
+    color: inherit;
+  }
 }
-
-html,
-body,
-#app {
-  min-height: 100%;
-}
-
-body {
-  margin: 0;
-}
-

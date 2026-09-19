@@ -13,3 +13,11 @@ dist-ssr
 .vinxi
 __unconfig*
 todos.json
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/extensions.json
+*.code-workspace

@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "lint": "eslint",
     "format": "prettier --write . && eslint --fix",
-    "check": "prettier --check ."
+    "check": "prettier --check .",
+    "generate": "node scripts/generate.js"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",

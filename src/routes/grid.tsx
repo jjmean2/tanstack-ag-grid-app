@@ -1,15 +1,10 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
 
-import {
-  AllEnterpriseModule,
-  ModuleRegistry,
-  themeQuartz,
-} from 'ag-grid-enterprise'
-import type { ColDef } from 'ag-grid-community'
+import type { ColDef, ColGroupDef } from 'ag-grid-community'
 import { AgGridReact } from 'ag-grid-react'
-
-ModuleRegistry.registerModules([AllEnterpriseModule])
+import { playgroundGridTheme } from '#/shared/config/ag-grid'
+import { currencyFormatter } from '#/shared/lib/formatters'
 
 export const Route = createFileRoute('/grid')({ component: GridDemo })
 
@@ -89,17 +84,22 @@ const deals: Deal[] = [
   },
 ]
 
-const currencyFormatter = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  maximumFractionDigits: 0,
-})
-
-const columnDefs: ColDef<Deal>[] = [
-  { field: 'account', headerName: 'Account', minWidth: 190, rowGroup: true },
-  { field: 'owner', headerName: 'Owner', minWidth: 140 },
-  { field: 'region', headerName: 'Region', minWidth: 125 },
-  { field: 'stage', headerName: 'Stage', minWidth: 150 },
+const columnDefs: (ColDef<Deal> | ColGroupDef<Deal>)[] = [
+  {
+    field: 'account',
+    headerName: 'Account',
+    minWidth: 190,
+    wrapText: true,
+    autoHeight: true,
+  },
+  {
+    headerName: 'Details',
+    children: [
+      { field: 'owner', headerName: 'Owner', minWidth: 140 },
+      { field: 'region', headerName: 'Region', minWidth: 125 },
+      { field: 'stage', headerName: 'Stage', minWidth: 150 },
+    ],
+  },
   {
     field: 'value',
     headerName: 'Pipeline value',
@@ -111,16 +111,6 @@ const columnDefs: ColDef<Deal>[] = [
   },
   { field: 'closeDate', headerName: 'Close date', minWidth: 145, sort: 'asc' },
 ]
-
-const gridTheme = themeQuartz.withParams({
-  accentColor: '#1f6f66',
-  backgroundColor: '#fffdf8',
-  borderColor: '#d8ded8',
-  headerBackgroundColor: '#eef3ed',
-  headerFontWeight: 700,
-  rowHoverColor: '#edf6f1',
-  selectedRowBackgroundColor: '#dcefe8',
-})
 
 function GridDemo() {
   const [selectedCount, setSelectedCount] = useState(0)
@@ -195,8 +185,9 @@ function GridDemo() {
         </div>
         <div className="h-140">
           <AgGridReact<Deal>
-            theme={gridTheme}
+            theme={playgroundGridTheme}
             rowData={deals}
+
             columnDefs={columnDefs}
             defaultColDef={{
               editable: true,
@@ -204,6 +195,10 @@ function GridDemo() {
               flex: 1,
               resizable: true,
               sortable: true,
+              floatingFilter: true,
+              headerStyle: {
+                backgroundColor: '#f5f5f5',
+              },
             }}
             autoGroupColumnDef={{
               headerName: 'Account groups',

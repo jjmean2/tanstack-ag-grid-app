@@ -10,11 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BasicGridRouteImport } from './routes/basic-grid'
 import { Route as GridRouteImport } from './routes/grid'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BasicGridRoute = BasicGridRouteImport.update({
+  id: '/basic-grid',
+  path: '/basic-grid',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GridRoute = GridRouteImport.update({
@@ -25,27 +31,31 @@ const GridRoute = GridRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/basic-grid': typeof BasicGridRoute
   '/grid': typeof GridRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/basic-grid': typeof BasicGridRoute
   '/grid': typeof GridRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/basic-grid': typeof BasicGridRoute
   '/grid': typeof GridRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/grid'
+  fullPaths: '/' | '/basic-grid' | '/grid'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/grid'
-  id: '__root__' | '/' | '/grid'
+  to: '/' | '/basic-grid' | '/grid'
+  id: '__root__' | '/' | '/basic-grid' | '/grid'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BasicGridRoute: typeof BasicGridRoute
   GridRoute: typeof GridRoute
 }
 
@@ -56,6 +66,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/basic-grid': {
+      id: '/basic-grid'
+      path: '/basic-grid'
+      fullPath: '/basic-grid'
+      preLoaderRoute: typeof BasicGridRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/grid': {
@@ -70,6 +87,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BasicGridRoute: BasicGridRoute,
   GridRoute: GridRoute,
 }
 export const routeTree = rootRouteImport

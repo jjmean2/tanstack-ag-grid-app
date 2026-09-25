@@ -22,6 +22,12 @@ function Home() {
         >
           Open the revenue cockpit <span aria-hidden="true">↗</span>
         </Link>
+        <Link
+          className="ml-6 inline-flex gap-3 border-b-2 border-[#1f6f66] pb-2 font-sans font-bold no-underline"
+          to="/basic-grid"
+        >
+          Open the basic grid <span aria-hidden="true">↗</span>
+        </Link>
       </div>
       <div className="border-t border-[#9aaba0] py-5 font-sans">
         <span className="text-xs font-extrabold text-[#b35131]">01</span>

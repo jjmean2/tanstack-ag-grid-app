@@ -10,12 +10,26 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RootLayoutRouteImport } from './routes/_rootLayout'
+import { Route as AdjustmentSheetRouteImport } from './routes/adjustment-sheet'
 import { Route as BasicGridRouteImport } from './routes/basic-grid'
 import { Route as GridRouteImport } from './routes/grid'
+import { Route as RootLayoutAboutRouteImport } from './routes/_rootLayout/about'
+import { Route as FilesSplatRouteImport } from './routes/files/$'
+import { Route as PlayGoodRouteImport } from './routes/play.good'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RootLayoutRoute = RootLayoutRouteImport.update({
+  id: '/_rootLayout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdjustmentSheetRoute = AdjustmentSheetRouteImport.update({
+  id: '/adjustment-sheet',
+  path: '/adjustment-sheet',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BasicGridRoute = BasicGridRouteImport.update({
@@ -28,35 +42,90 @@ const GridRoute = GridRouteImport.update({
   path: '/grid',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RootLayoutAboutRoute = RootLayoutAboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => RootLayoutRoute,
+} as any)
+const FilesSplatRoute = FilesSplatRouteImport.update({
+  id: '/files/$',
+  path: '/files/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlayGoodRoute = PlayGoodRouteImport.update({
+  id: '/play/good',
+  path: '/play/good',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/adjustment-sheet': typeof AdjustmentSheetRoute
   '/basic-grid': typeof BasicGridRoute
   '/grid': typeof GridRoute
+  '/about': typeof RootLayoutAboutRoute
+  '/files/$': typeof FilesSplatRoute
+  '/play/good': typeof PlayGoodRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/adjustment-sheet': typeof AdjustmentSheetRoute
   '/basic-grid': typeof BasicGridRoute
   '/grid': typeof GridRoute
+  '/about': typeof RootLayoutAboutRoute
+  '/files/$': typeof FilesSplatRoute
+  '/play/good': typeof PlayGoodRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_rootLayout': typeof RootLayoutRouteWithChildren
+  '/adjustment-sheet': typeof AdjustmentSheetRoute
   '/basic-grid': typeof BasicGridRoute
   '/grid': typeof GridRoute
+  '/_rootLayout/about': typeof RootLayoutAboutRoute
+  '/files/$': typeof FilesSplatRoute
+  '/play/good': typeof PlayGoodRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/basic-grid' | '/grid'
+  fullPaths:
+    | '/'
+    | '/adjustment-sheet'
+    | '/basic-grid'
+    | '/grid'
+    | '/about'
+    | '/files/$'
+    | '/play/good'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/basic-grid' | '/grid'
-  id: '__root__' | '/' | '/basic-grid' | '/grid'
+  to:
+    | '/'
+    | '/adjustment-sheet'
+    | '/basic-grid'
+    | '/grid'
+    | '/about'
+    | '/files/$'
+    | '/play/good'
+  id:
+    | '__root__'
+    | '/'
+    | '/_rootLayout'
+    | '/adjustment-sheet'
+    | '/basic-grid'
+    | '/grid'
+    | '/_rootLayout/about'
+    | '/files/$'
+    | '/play/good'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  RootLayoutRoute: typeof RootLayoutRouteWithChildren
+  AdjustmentSheetRoute: typeof AdjustmentSheetRoute
   BasicGridRoute: typeof BasicGridRoute
   GridRoute: typeof GridRoute
+  FilesSplatRoute: typeof FilesSplatRoute
+  PlayGoodRoute: typeof PlayGoodRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -66,6 +135,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_rootLayout': {
+      id: '/_rootLayout'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof RootLayoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/adjustment-sheet': {
+      id: '/adjustment-sheet'
+      path: '/adjustment-sheet'
+      fullPath: '/adjustment-sheet'
+      preLoaderRoute: typeof AdjustmentSheetRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/basic-grid': {
@@ -82,13 +165,50 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GridRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_rootLayout/about': {
+      id: '/_rootLayout/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof RootLayoutAboutRouteImport
+      parentRoute: typeof RootLayoutRoute
+    }
+    '/files/$': {
+      id: '/files/$'
+      path: '/files/$'
+      fullPath: '/files/$'
+      preLoaderRoute: typeof FilesSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/play/good': {
+      id: '/play/good'
+      path: '/play/good'
+      fullPath: '/play/good'
+      preLoaderRoute: typeof PlayGoodRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface RootLayoutRouteChildren {
+  RootLayoutAboutRoute: typeof RootLayoutAboutRoute
+}
+
+const RootLayoutRouteChildren: RootLayoutRouteChildren = {
+  RootLayoutAboutRoute: RootLayoutAboutRoute,
+}
+
+const RootLayoutRouteWithChildren = RootLayoutRoute._addFileChildren(
+  RootLayoutRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  RootLayoutRoute: RootLayoutRouteWithChildren,
+  AdjustmentSheetRoute: AdjustmentSheetRoute,
   BasicGridRoute: BasicGridRoute,
   GridRoute: GridRoute,
+  FilesSplatRoute: FilesSplatRoute,
+  PlayGoodRoute: PlayGoodRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

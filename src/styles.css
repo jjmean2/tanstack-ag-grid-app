@@ -24,3 +24,33 @@
     color: inherit;
   }
 }
+
+/* Worksheet classes produced by shared/lib/sheet layout nodes. */
+.ag-row.sheet-title,
+.ag-row.sheet-title .ag-cell {
+  background-color: #dfe9e2;
+  font-weight: 700;
+}
+
+.ag-row.sheet-subtotal .ag-cell {
+  background-color: #f1f5f1;
+  font-weight: 700;
+}
+
+.ag-row.sheet-total .ag-cell {
+  background-color: #e6eee8;
+  border-top: 1px solid #9aaba0;
+  font-weight: 700;
+}
+
+.ag-cell.sheet-input {
+  background-color: #fff8db;
+}
+
+.ag-cell.sheet-ok {
+  color: #1a7f4b;
+}
+
+.ag-cell.sheet-error {
+  color: #c0392b;
+}

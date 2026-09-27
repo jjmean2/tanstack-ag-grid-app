@@ -14,6 +14,8 @@ import { Route as RootLayoutRouteImport } from './routes/_rootLayout'
 import { Route as AdjustmentSheetRouteImport } from './routes/adjustment-sheet'
 import { Route as BasicGridRouteImport } from './routes/basic-grid'
 import { Route as GridRouteImport } from './routes/grid'
+import { Route as SessionSheetRouteImport } from './routes/session-sheet'
+import { Route as WorkbookSheetRouteImport } from './routes/workbook-sheet'
 import { Route as RootLayoutAboutRouteImport } from './routes/_rootLayout/about'
 import { Route as FilesSplatRouteImport } from './routes/files/$'
 import { Route as PlayGoodRouteImport } from './routes/play.good'
@@ -42,6 +44,16 @@ const GridRoute = GridRouteImport.update({
   path: '/grid',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SessionSheetRoute = SessionSheetRouteImport.update({
+  id: '/session-sheet',
+  path: '/session-sheet',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkbookSheetRoute = WorkbookSheetRouteImport.update({
+  id: '/workbook-sheet',
+  path: '/workbook-sheet',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RootLayoutAboutRoute = RootLayoutAboutRouteImport.update({
   id: '/about',
   path: '/about',
@@ -63,6 +75,8 @@ export interface FileRoutesByFullPath {
   '/adjustment-sheet': typeof AdjustmentSheetRoute
   '/basic-grid': typeof BasicGridRoute
   '/grid': typeof GridRoute
+  '/session-sheet': typeof SessionSheetRoute
+  '/workbook-sheet': typeof WorkbookSheetRoute
   '/about': typeof RootLayoutAboutRoute
   '/files/$': typeof FilesSplatRoute
   '/play/good': typeof PlayGoodRoute
@@ -72,6 +86,8 @@ export interface FileRoutesByTo {
   '/adjustment-sheet': typeof AdjustmentSheetRoute
   '/basic-grid': typeof BasicGridRoute
   '/grid': typeof GridRoute
+  '/session-sheet': typeof SessionSheetRoute
+  '/workbook-sheet': typeof WorkbookSheetRoute
   '/about': typeof RootLayoutAboutRoute
   '/files/$': typeof FilesSplatRoute
   '/play/good': typeof PlayGoodRoute
@@ -83,6 +99,8 @@ export interface FileRoutesById {
   '/adjustment-sheet': typeof AdjustmentSheetRoute
   '/basic-grid': typeof BasicGridRoute
   '/grid': typeof GridRoute
+  '/session-sheet': typeof SessionSheetRoute
+  '/workbook-sheet': typeof WorkbookSheetRoute
   '/_rootLayout/about': typeof RootLayoutAboutRoute
   '/files/$': typeof FilesSplatRoute
   '/play/good': typeof PlayGoodRoute
@@ -94,6 +112,8 @@ export interface FileRouteTypes {
     | '/adjustment-sheet'
     | '/basic-grid'
     | '/grid'
+    | '/session-sheet'
+    | '/workbook-sheet'
     | '/about'
     | '/files/$'
     | '/play/good'
@@ -103,6 +123,8 @@ export interface FileRouteTypes {
     | '/adjustment-sheet'
     | '/basic-grid'
     | '/grid'
+    | '/session-sheet'
+    | '/workbook-sheet'
     | '/about'
     | '/files/$'
     | '/play/good'
@@ -113,6 +135,8 @@ export interface FileRouteTypes {
     | '/adjustment-sheet'
     | '/basic-grid'
     | '/grid'
+    | '/session-sheet'
+    | '/workbook-sheet'
     | '/_rootLayout/about'
     | '/files/$'
     | '/play/good'
@@ -124,6 +148,8 @@ export interface RootRouteChildren {
   AdjustmentSheetRoute: typeof AdjustmentSheetRoute
   BasicGridRoute: typeof BasicGridRoute
   GridRoute: typeof GridRoute
+  SessionSheetRoute: typeof SessionSheetRoute
+  WorkbookSheetRoute: typeof WorkbookSheetRoute
   FilesSplatRoute: typeof FilesSplatRoute
   PlayGoodRoute: typeof PlayGoodRoute
 }
@@ -163,6 +189,20 @@ declare module '@tanstack/react-router' {
       path: '/grid'
       fullPath: '/grid'
       preLoaderRoute: typeof GridRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/session-sheet': {
+      id: '/session-sheet'
+      path: '/session-sheet'
+      fullPath: '/session-sheet'
+      preLoaderRoute: typeof SessionSheetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workbook-sheet': {
+      id: '/workbook-sheet'
+      path: '/workbook-sheet'
+      fullPath: '/workbook-sheet'
+      preLoaderRoute: typeof WorkbookSheetRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_rootLayout/about': {
@@ -207,6 +247,8 @@ const rootRouteChildren: RootRouteChildren = {
   AdjustmentSheetRoute: AdjustmentSheetRoute,
   BasicGridRoute: BasicGridRoute,
   GridRoute: GridRoute,
+  SessionSheetRoute: SessionSheetRoute,
+  WorkbookSheetRoute: WorkbookSheetRoute,
   FilesSplatRoute: FilesSplatRoute,
   PlayGoodRoute: PlayGoodRoute,
 }

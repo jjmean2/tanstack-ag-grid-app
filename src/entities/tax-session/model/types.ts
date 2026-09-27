@@ -11,8 +11,10 @@ export type TaxSessionResponse = {
     memo: string
   }[]
   reportedAmt: number
-  rates: { standardPct: number; localPct: number }
+  rates: { standardPct: number; localPct: number; smePct: number }
   credits: { researchAmt: number; employmentAmt: number }
+  period: { startDate: string; endDate: string } // ISO dates
+  options: { method: string; smeYn: boolean }
 }
 
 // Shape of the client session state. Designed for editing, not for the server:
@@ -31,8 +33,10 @@ export type TaxSession = {
   adds: AdjustmentItem[]
   subs: AdjustmentItem[]
   reported: number
-  rates: { standard: number; local: number } // percent
+  rates: { standard: number; local: number; sme: number } // percent
   credits: { research: number; employment: number }
+  period: { start: string; end: string } // ISO dates
+  options: { method: string; sme: boolean }
 }
 
 export type TabId = 'company' | 'adjustment' | 'tax'

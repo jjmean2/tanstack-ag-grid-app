@@ -40,11 +40,17 @@ export function toSession(res: TaxSessionResponse): TaxSession {
     adds: res.adjustments.filter((i) => i.groupCd === 'ADD').map(toItem),
     subs: res.adjustments.filter((i) => i.groupCd === 'SUB').map(toItem),
     reported: res.reportedAmt,
-    rates: { standard: res.rates.standardPct, local: res.rates.localPct },
+    rates: {
+      standard: res.rates.standardPct,
+      local: res.rates.localPct,
+      sme: res.rates.smePct,
+    },
     credits: {
       research: res.credits.researchAmt,
       employment: res.credits.employmentAmt,
     },
+    period: { start: res.period.startDate, end: res.period.endDate },
+    options: { method: res.options.method, sme: res.options.smeYn },
   }
 }
 
@@ -57,11 +63,17 @@ export function toRequest(s: TaxSession): TaxSessionResponse {
       ...s.subs.map(toServerItem('SUB')),
     ],
     reportedAmt: s.reported,
-    rates: { standardPct: s.rates.standard, localPct: s.rates.local },
+    rates: {
+      standardPct: s.rates.standard,
+      localPct: s.rates.local,
+      smePct: s.rates.sme,
+    },
     credits: {
       researchAmt: s.credits.research,
       employmentAmt: s.credits.employment,
     },
+    period: { startDate: s.period.start, endDate: s.period.end },
+    options: { method: s.options.method, smeYn: s.options.sme },
   }
 }
 

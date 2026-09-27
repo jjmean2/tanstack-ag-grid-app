@@ -50,6 +50,8 @@ export const taxSessionResponse: TaxSessionResponse = {
     },
   ],
   reportedAmt: 17_000_000,
-  rates: { standardPct: 9, localPct: 10 },
+  rates: { standardPct: 9, localPct: 10, smePct: 20 },
   credits: { researchAmt: 500_000, employmentAmt: 300_000 },
+  period: { startDate: '2025-01-01', endDate: '2025-12-31' },
+  options: { method: '일반', smeYn: true },
 }

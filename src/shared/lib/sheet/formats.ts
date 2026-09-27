@@ -18,6 +18,13 @@ export const formats = {
     editor: 'agNumberCellEditor',
     align: 'right',
   },
+  percent: {
+    format: (v: unknown) =>
+      typeof v === 'number' ? `${v}%` : v == null ? '' : String(v),
+    parse: (v: unknown): unknown => (v === '' || v == null ? null : Number(v)),
+    editor: 'agNumberCellEditor',
+    align: 'right',
+  },
 } as const
 
 export type FormatId = keyof typeof formats

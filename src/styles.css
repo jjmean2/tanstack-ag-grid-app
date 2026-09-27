@@ -54,3 +54,12 @@
 .ag-cell.sheet-error {
   color: #c0392b;
 }
+
+.ag-row.sheet-add-row .ag-cell {
+  background-color: #fbfaf5;
+}
+
+.ag-cell.sheet-action {
+  display: flex;
+  align-items: center;
+}

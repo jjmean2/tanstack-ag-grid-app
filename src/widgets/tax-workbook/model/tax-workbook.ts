@@ -174,9 +174,16 @@ export const taxWorkbook = defineWorkbook<TaxSession>([
     tab: 'tax',
     columns: valueColumns,
     layout: [
-      row('base', {}, () => ({
-        label: labelCell('과세표준 (조정 후 세법상 합계)'),
-        value: formulaCell('=[adj/total/tax]'),
+      // Read from the closing screen: only its saved export, not its sheets.
+      row('net-income', {}, () => ({
+        label: labelCell('결산서상 당기순이익 (결산 화면)'),
+        value: formulaCell('=[ext:closing/netIncome]'),
+      })),
+      row('base', { className: 'sheet-subtotal' }, () => ({
+        label: labelCell('과세표준 (당기순이익 + 익금산입 − 손금산입)'),
+        value: formulaCell(
+          '=[net-income/value]+[adj/s-add/tax]-[adj/s-sub/tax]',
+        ),
       })),
       // Row-level type: every value cell of these rows is an integer.
       row('days', { type: T.integer }, () => ({

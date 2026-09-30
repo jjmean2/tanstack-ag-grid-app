@@ -1,9 +1,11 @@
 import {
   cellAddress,
   groupAddress,
+  isExternalAddress,
   isGroupAddress,
   resolveRef,
   splitAddress,
+  splitExternal,
 } from './address'
 import { FormulaError, STRUCTURAL_ERRORS } from './formula/errors'
 import { evaluate } from './formula/evaluate'
@@ -15,6 +17,9 @@ import type {
   BuildCtx,
   Cell,
   ClassFn,
+  ExportedValue,
+  ExternalRef,
+  Externals,
   FormulaPart,
   ResolvedRow,
   SheetColumnDef,
@@ -30,17 +35,20 @@ export function flattenLeafs(defs: SheetColumnDef[]): SheetLeaf[] {
   return defs.flatMap((d) => ('children' in d ? flattenLeafs(d.children) : [d]))
 }
 
+// `exports` names the cells other screens may reference as
+// `[ext:<screen>/<name>]`, so they depend on a name rather than on the layout.
 export function defineWorkbook<TState>(
   sheets: SheetDef<TState>[],
+  opts: { exports?: Record<string, Address> } = {},
 ): WorkbookDef<TState> {
   const ids = new Set<string>()
   for (const sheet of sheets) {
-    if (sheet.id.includes('/'))
-      throw new Error(`Sheet id must not contain "/": ${sheet.id}`)
+    if (/[/:]/.test(sheet.id))
+      throw new Error(`Sheet id must not contain "/" or ":": ${sheet.id}`)
     if (ids.has(sheet.id)) throw new Error(`Duplicate sheet id: ${sheet.id}`)
     ids.add(sheet.id)
   }
-  return { sheets }
+  return { sheets, exports: opts.exports ?? {} }
 }
 
 // Splits the formula text around its references, so each reference can be shown
@@ -67,11 +75,13 @@ function toParts(
 }
 
 // Builds every sheet from the session state (no grid involved), then evaluates
-// all formulas, which may reference cells of any sheet.
+// all formulas, which may reference cells of any sheet, and values other
+// screens exported (`externals`).
 export function buildWorkbook<TState>(
   def: WorkbookDef<TState>,
   state: TState,
   update: Update<TState>,
+  externals: Externals = () => undefined,
 ): Workbook {
   const cells = new Map<Address, Cell>()
   const members = new Map<Address, Cell[]>() // group address -> its cells
@@ -178,8 +188,20 @@ export function buildWorkbook<TState>(
     return (members.get(address) ?? []).map(valueOfCell)
   }
 
+  const externalRefs = new Map<Address, ExternalRef>()
+  const readExternal = (address: Address): Scalar => {
+    const { screen, name } = splitExternal(address)
+    const value = externals(screen, name)
+    externalRefs.set(address, { address, screen, name, value })
+    if (!value) throw new FormulaError('#EXT!', `${address} is not saved`)
+    if (value.error)
+      throw new FormulaError('#EXT!', `${address} is ${value.error}`)
+    return value.value
+  }
+
   const readRef = (ref: Parameters<typeof resolveRef>[0], from: Cell): Arg => {
     const address = resolveRef(ref, from)
+    if (isExternalAddress(address)) return readExternal(address)
     if (isGroupAddress(address)) return readGroup(address)
     const target = cells.get(address)
     if (!target) throw new FormulaError('#REF!', address)
@@ -260,6 +282,12 @@ export function buildWorkbook<TState>(
     return text || '(이름 없음)'
   }
 
+  const external = (address: Address) => {
+    if (!isExternalAddress(address)) return undefined
+    const { screen, name } = splitExternal(address)
+    return externals(screen, name)
+  }
+
   const workbook: Workbook = {
     sheets,
     cell: (address) => cells.get(address),
@@ -274,6 +302,13 @@ export function buildWorkbook<TState>(
         .cells(address)
         .map(({ sheetId, rowId, colId }) => ({ sheetId, rowId, colId })),
     labelOf: (address, from) => {
+      if (isExternalAddress(address)) {
+        const value = external(address)
+        const { screen, name } = splitExternal(address)
+        return value
+          ? `${value.screenTitle} › ${value.label}`
+          : `${screen} › ${name}`
+      }
       const { sheetId, rowId, colId } = splitAddress(address)
       const header =
         leafsBySheet.get(sheetId)?.find((leaf) => leaf.colId === colId)
@@ -289,6 +324,29 @@ export function buildWorkbook<TState>(
     tabOf: (sheetId) => sheets[sheetId]?.tab,
     errors,
     structuralErrors,
+    exports: {},
+    external,
+    externalRefs: [...externalRefs.values()],
+  }
+
+  // Exports are evaluated last: their labels come from `labelOf`.
+  for (const [name, address] of Object.entries(def.exports)) {
+    const cell = cells.get(address)
+    if (!cell) {
+      const error = { address, code: '#REF!', detail: `export "${name}"` }
+      errors.push(error)
+      structuralErrors.push(error)
+    }
+    const exported: ExportedValue = cell
+      ? {
+          value: cell.error ? null : cell.type.toEval(cell.value),
+          text: cell.error ?? cell.type.format(cell.value),
+          error: cell.error,
+          label: workbook.labelOf(address),
+          address,
+        }
+      : { value: null, text: '#REF!', error: '#REF!', label: name, address }
+    workbook.exports[name] = exported
   }
   return workbook
 }

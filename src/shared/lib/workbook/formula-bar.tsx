@@ -1,16 +1,27 @@
 import { useState } from 'react'
 
 import { useStore } from '../store/use-store'
-import { cellAddress, isGroupAddress } from './address'
+import {
+  cellAddress,
+  isExternalAddress,
+  isGroupAddress,
+  splitExternal,
+} from './address'
 import { navigate } from './navigation'
 import type { Address, Cell } from './types'
 import { useWorkbook } from './workbook-context'
 
+export const savedAtText = (iso: string) =>
+  new Date(iso).toLocaleString('ko-KR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  })
+
 // Shows the formula of the focused cell (in any grid). References are links:
 // clicking one moves focus to the cell (or list) it points at, so a formula can
-// be followed step by step.
+// be followed step by step. A reference to another screen opens that screen.
 export function FormulaBar() {
-  const { wb, ui } = useWorkbook()
+  const { wb, ui, openScreen } = useWorkbook()
   const focused = useStore(ui, (s) => s.focused)
   const [showRaw, setShowRaw] = useState(false)
 
@@ -18,7 +29,19 @@ export function FormulaBar() {
     ? wb.cell(cellAddress(focused.sheetId, focused.rowId, focused.colId))
     : undefined
 
+  const follow = (address: Address) => {
+    if (!isExternalAddress(address)) return navigate(ui, wb, address)
+    const ext = wb.external(address)
+    openScreen?.(splitExternal(address).screen, ext?.address)
+  }
+
   const describe = (address: Address) => {
+    if (isExternalAddress(address)) {
+      const ext = wb.external(address)
+      return ext
+        ? `${ext.text} (${savedAtText(ext.savedAt)} 저장)`
+        : '저장된 값 없음'
+    }
     if (isGroupAddress(address)) return `${wb.cells(address).length}개 셀`
     const target = wb.cell(address)
     if (!target) return '(없는 셀)'
@@ -58,12 +81,19 @@ export function FormulaBar() {
                 <button
                   key={i}
                   type="button"
-                  className="mx-0.5 cursor-pointer rounded border border-[#1f6f66] bg-[#e4f1ee] px-1.5 py-0.5 font-sans text-xs font-bold text-[#1f6f66] hover:bg-[#cfe7e2]"
+                  className={`mx-0.5 cursor-pointer rounded border px-1.5 py-0.5 font-sans text-xs font-bold ${
+                    isExternalAddress(part.target)
+                      ? 'border-[#b35131] bg-[#f6e2d8] text-[#b35131] hover:bg-[#f0d2c3]'
+                      : 'border-[#1f6f66] bg-[#e4f1ee] text-[#1f6f66] hover:bg-[#cfe7e2]'
+                  }`}
                   title={`${wb.labelOf(part.target)} = ${describe(part.target)}`}
                   data-ref-target={part.target}
-                  onClick={() => navigate(ui, wb, part.target!)}
+                  onClick={() => follow(part.target!)}
                 >
                   {showRaw ? part.text : wb.labelOf(part.target, cell)}
+                  {isExternalAddress(part.target) && (
+                    <span aria-hidden="true"> ↗</span>
+                  )}
                 </button>
               ) : (
                 <span key={i} className="whitespace-pre-wrap">

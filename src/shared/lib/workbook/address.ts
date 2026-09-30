@@ -16,6 +16,18 @@ export const splitAddress = (address: Address) => {
 export const isGroupAddress = (address: Address) =>
   splitAddress(address).rowId.startsWith('@')
 
+const EXT = 'ext:'
+
+export const externalAddress = (screen: string, name: string) =>
+  `${EXT}${screen}/${name}`
+
+export const isExternalAddress = (address: Address) => address.startsWith(EXT)
+
+export const splitExternal = (address: Address) => {
+  const [screen = '', name = ''] = address.slice(EXT.length).split('/')
+  return { screen, name }
+}
+
 // Turns a parsed reference into an address, relative to the cell holding the
 // formula (its sheet and row supply whatever the reference leaves out).
 export function resolveRef(
@@ -23,6 +35,12 @@ export function resolveRef(
   from: { sheetId: string; rowId: string },
 ): Address {
   const { parts } = ref
+  if (parts[0].startsWith(EXT)) {
+    const screen = parts[0].slice(EXT.length)
+    if (parts.length !== 2 || screen === '')
+      throw new FormulaError('#PARSE!', `bad reference ${ref.raw}`)
+    return externalAddress(screen, parts[1])
+  }
   const at = (sheetId: string, row: string, colId: string) =>
     row.startsWith('@')
       ? groupAddress(sheetId, row.slice(1), colId)

@@ -1,7 +1,9 @@
 import type { CellType } from './cell-types'
+import type { Scalar } from './formula/functions'
 
 // Addresses: `sheet/row/col` is one cell; `sheet/@group/col` is every data row
-// of a group (a list) in that column.
+// of a group (a list) in that column; `ext:screen/name` is a value another
+// screen exports.
 export type Address = string
 
 export type CellRef = { sheetId: string; rowId: string; colId: string }
@@ -102,7 +104,50 @@ export type SheetDef<TState> = {
   layout: LayoutNode<TState>[]
 }
 
-export type WorkbookDef<TState> = { sheets: SheetDef<TState>[] }
+export type WorkbookDef<TState> = {
+  sheets: SheetDef<TState>[]
+  // Values other screens may reference as `[ext:<this screen>/<name>]`.
+  exports: Record<string, Address>
+}
+
+// --- other screens ---------------------------------------------------------
+
+// A value a screen publishes for other screens. It is saved with the screen,
+// so it can be read without loading that screen.
+export type ExportedValue = {
+  value: Scalar // as formulas see it (dates as serials)
+  text: string // as the source screen shows it
+  error?: string
+  label: string // readable name in the source screen
+  address: Address // the cell it comes from, in the source screen
+}
+
+export type ScreenExports = {
+  screen: string
+  title: string
+  savedAt: string // ISO timestamp
+  values: Record<string, ExportedValue>
+}
+
+export type ExternalValue = ExportedValue & {
+  screen: string
+  screenTitle: string
+  savedAt: string
+}
+
+// Looks up a value another screen exported; undefined when it is not saved.
+export type Externals = (
+  screen: string,
+  name: string,
+) => ExternalValue | undefined
+
+// A reference to another screen made by a formula of this workbook.
+export type ExternalRef = {
+  address: Address
+  screen: string
+  name: string
+  value?: ExternalValue // missing when that screen has not saved it
+}
 
 export type SheetView = {
   id: string
@@ -127,4 +172,9 @@ export type Workbook = {
   tabOf: (sheetId: string) => string | undefined
   errors: { address: Address; code: string; detail?: string }[]
   structuralErrors: { address: Address; code: string; detail?: string }[]
+  // What this workbook publishes (`WorkbookDef.exports`), evaluated.
+  exports: Record<string, ExportedValue>
+  // What it reads from other screens.
+  external: (address: Address) => ExternalValue | undefined
+  externalRefs: ExternalRef[]
 }

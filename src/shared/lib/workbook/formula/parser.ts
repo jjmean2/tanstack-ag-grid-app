@@ -5,6 +5,7 @@ import { FormulaError } from './errors'
 //   [row/col]         a cell in the same sheet
 //   [.col]            a cell in the same row
 //   [sheet/@group/col] / [@group/col]   every data row of a group (a list)
+//   [ext:screen/name] a value exported by another screen
 export type RefSyntax = {
   raw: string
   start: number

@@ -40,7 +40,7 @@ export function WorkbookSummary({
 
   return (
     <div className="mx-auto mb-4 flex max-w-[1500px] flex-wrap items-end gap-x-10 gap-y-4 border border-[#c5d0c7] bg-[#fffdf8] px-6 py-4">
-      <Stat label="과세표준" value={won(wb.value('adj/total/tax'))} />
+      <Stat label="과세표준" value={won(wb.value('calc/base/value'))} />
       <Stat
         label="신고서상 금액과의 차이"
         value={won(gap)}

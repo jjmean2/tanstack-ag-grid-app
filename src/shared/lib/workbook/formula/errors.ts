@@ -7,6 +7,7 @@ export type ErrorCode =
   | '#N/A'
   | '#CYCLE!'
   | '#PARSE!'
+  | '#EXT!' // another screen's value is not saved (or is an error there)
 
 // Errors caused by how a formula was written rather than by the data it runs
 // on. They are reported when the workbook is built.

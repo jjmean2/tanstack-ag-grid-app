@@ -151,7 +151,9 @@ export function buildWorkbook<TState>(
         if (cell.source.kind === 'formula') formulaCells.push(cell)
         if (spec.group) {
           const key = groupAddress(sheet.id, spec.group, colId)
-          members.set(key, [...(members.get(key) ?? []), cell])
+          const list = members.get(key)
+          if (list) list.push(cell)
+          else members.set(key, [cell])
         }
       }
       return {

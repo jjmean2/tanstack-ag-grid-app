@@ -180,22 +180,26 @@ export function buildWorkbook<TState>(
             `Unknown column "${colId}" in sheet "${sheet.id}", row "${spec.id}"`,
           )
 
-        const where = `column "${colId}" of sheet "${sheet.id}", row "${spec.id}"`
+        // Only built for an error message (this runs for every cell).
+        const where = () =>
+          `column "${colId}" of sheet "${sheet.id}", row "${spec.id}"`
         if (cellSpec.rowSpan !== undefined && !leaf.spanRows)
-          throw new Error(`rowSpan needs a spanRows column: ${where}`)
+          throw new Error(`rowSpan needs a spanRows column: ${where()}`)
         // AG Grid: a column that merges down can neither be edited nor span.
         // Nor may another cell's span cover it.
         const span = cellSpec.span ?? 1
         if (leaf.spanRows) {
           const { source } = cellSpec
           if (source.kind === 'value' ? source.write : source.override)
-            throw new Error(`A spanRows column cannot be editable: ${where}`)
+            throw new Error(`A spanRows column cannot be editable: ${where()}`)
           if (span > 1)
-            throw new Error(`A spanRows column cannot span across: ${where}`)
+            throw new Error(`A spanRows column cannot span across: ${where()}`)
         }
-        const from = indexOf.get(colId)! + 1
-        if (leafs.slice(from, from + span - 1).some((l) => l.spanRows))
-          throw new Error(`A span cannot cover a spanRows column: ${where}`)
+        if (span > 1) {
+          const from = indexOf.get(colId)! + 1
+          if (leafs.slice(from, from + span - 1).some((l) => l.spanRows))
+            throw new Error(`A span cannot cover a spanRows column: ${where()}`)
+        }
 
         const cell = register(
           cellAddress(sheet.id, spec.id, colId),

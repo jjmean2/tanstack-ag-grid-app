@@ -68,11 +68,12 @@ export function items<TState extends object, TKey extends ListKey<TState>>(
 ): RowsNode<TState> {
   return (ctx) => {
     ctx.declareGroup(key, opts.label ?? key)
+    const columns = contentColumns(ctx)
     return listOf(ctx.state, key).map((item): RowSpec => ({
       id: item.id,
       group: key,
       cells: Object.fromEntries(
-        contentColumns(ctx).map((col): [string, CellSpec] => {
+        columns.map((col): [string, CellSpec] => {
           if (col.colId === opts.removeCol) {
             return [
               col.colId,

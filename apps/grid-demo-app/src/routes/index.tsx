@@ -23,6 +23,11 @@ const workbookDemos = [
     title: '매출·매입 세액 신고서 (예시)',
     text: 'A form sheet laid out like a paper form, fed by a list grid.',
   },
+  {
+    to: '/large-workbook',
+    title: '대용량 원장',
+    text: 'Three ledgers of thousands of rows, scrolled with row virtualisation.',
+  },
 ] as const
 
 function Home() {

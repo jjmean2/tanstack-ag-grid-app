@@ -14,6 +14,7 @@ import { Route as RootLayoutRouteImport } from './routes/_rootLayout'
 import { Route as AdjustmentSheetRouteImport } from './routes/adjustment-sheet'
 import { Route as BasicGridRouteImport } from './routes/basic-grid'
 import { Route as GridRouteImport } from './routes/grid'
+import { Route as LargeWorkbookRouteImport } from './routes/large-workbook'
 import { Route as SessionSheetRouteImport } from './routes/session-sheet'
 import { Route as WorkbookClosingRouteImport } from './routes/workbook-closing'
 import { Route as WorkbookFormRouteImport } from './routes/workbook-form'
@@ -43,6 +44,11 @@ const BasicGridRoute = BasicGridRouteImport.update({
 const GridRoute = GridRouteImport.update({
   id: '/grid',
   path: '/grid',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LargeWorkbookRoute = LargeWorkbookRouteImport.update({
+  id: '/large-workbook',
+  path: '/large-workbook',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SessionSheetRoute = SessionSheetRouteImport.update({
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/adjustment-sheet': typeof AdjustmentSheetRoute
   '/basic-grid': typeof BasicGridRoute
   '/grid': typeof GridRoute
+  '/large-workbook': typeof LargeWorkbookRoute
   '/session-sheet': typeof SessionSheetRoute
   '/workbook-closing': typeof WorkbookClosingRoute
   '/workbook-form': typeof WorkbookFormRoute
@@ -93,6 +100,7 @@ export interface FileRoutesByTo {
   '/adjustment-sheet': typeof AdjustmentSheetRoute
   '/basic-grid': typeof BasicGridRoute
   '/grid': typeof GridRoute
+  '/large-workbook': typeof LargeWorkbookRoute
   '/session-sheet': typeof SessionSheetRoute
   '/workbook-closing': typeof WorkbookClosingRoute
   '/workbook-form': typeof WorkbookFormRoute
@@ -107,6 +115,7 @@ export interface FileRoutesById {
   '/adjustment-sheet': typeof AdjustmentSheetRoute
   '/basic-grid': typeof BasicGridRoute
   '/grid': typeof GridRoute
+  '/large-workbook': typeof LargeWorkbookRoute
   '/session-sheet': typeof SessionSheetRoute
   '/workbook-closing': typeof WorkbookClosingRoute
   '/workbook-form': typeof WorkbookFormRoute
@@ -121,6 +130,7 @@ export interface FileRouteTypes {
     | '/adjustment-sheet'
     | '/basic-grid'
     | '/grid'
+    | '/large-workbook'
     | '/session-sheet'
     | '/workbook-closing'
     | '/workbook-form'
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
     | '/adjustment-sheet'
     | '/basic-grid'
     | '/grid'
+    | '/large-workbook'
     | '/session-sheet'
     | '/workbook-closing'
     | '/workbook-form'
@@ -146,6 +157,7 @@ export interface FileRouteTypes {
     | '/adjustment-sheet'
     | '/basic-grid'
     | '/grid'
+    | '/large-workbook'
     | '/session-sheet'
     | '/workbook-closing'
     | '/workbook-form'
@@ -160,6 +172,7 @@ export interface RootRouteChildren {
   AdjustmentSheetRoute: typeof AdjustmentSheetRoute
   BasicGridRoute: typeof BasicGridRoute
   GridRoute: typeof GridRoute
+  LargeWorkbookRoute: typeof LargeWorkbookRoute
   SessionSheetRoute: typeof SessionSheetRoute
   WorkbookClosingRoute: typeof WorkbookClosingRoute
   WorkbookFormRoute: typeof WorkbookFormRoute
@@ -202,6 +215,13 @@ declare module '@tanstack/react-router' {
       path: '/grid'
       fullPath: '/grid'
       preLoaderRoute: typeof GridRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/large-workbook': {
+      id: '/large-workbook'
+      path: '/large-workbook'
+      fullPath: '/large-workbook'
+      preLoaderRoute: typeof LargeWorkbookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/session-sheet': {
@@ -267,6 +287,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdjustmentSheetRoute: AdjustmentSheetRoute,
   BasicGridRoute: BasicGridRoute,
   GridRoute: GridRoute,
+  LargeWorkbookRoute: LargeWorkbookRoute,
   SessionSheetRoute: SessionSheetRoute,
   WorkbookClosingRoute: WorkbookClosingRoute,
   WorkbookFormRoute: WorkbookFormRoute,

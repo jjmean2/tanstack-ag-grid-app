@@ -14,6 +14,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../react/use-store'
 import { createGridColumns } from './columns'
 import { contextMenuItems } from './context-menu'
+import { useStableRows } from './stable-rows'
 import { gridViewsOf } from './views'
 import { FullWidthRow } from './full-width-row'
 import { rowMarks } from '../core/marks'
@@ -58,13 +59,21 @@ function focusCells(api: GridApi<Row>, targets: CellRef[]) {
 }
 
 // AG Grid props for one sheet of the workbook.
-export function useSheetGrid(sheetId: string): AgGridReactProps<Row> {
+//
+// `height`: without one the grid is as tall as its rows and draws them all
+// (fine for forms of tens or hundreds of rows). With one it scrolls, and only
+// the rows in view are drawn: use it for long lists.
+export function useSheetGrid(
+  sheetId: string,
+  { height }: { height?: number | string } = {},
+): AgGridReactProps<Row> {
   const { wb, ui, views } = useWorkbook()
   const { present } = views
   const { theme, editors, displays, texts } = gridViewsOf(views)
   const sheet = wb.sheets[sheetId]
   const sheetColumns = sheet?.columns
-  const rows = sheet?.rows
+  // Unchanged rows keep their object, so AG Grid updates only changed ones.
+  const rows = useStableRows(sheet?.rows)
 
   const columnDefs = useMemo(
     () =>
@@ -96,7 +105,9 @@ export function useSheetGrid(sheetId: string): AgGridReactProps<Row> {
   const props = useMemo<AgGridReactProps<Row>>(
     () => ({
       theme,
-      domLayout: 'autoHeight',
+      ...(height === undefined
+        ? { domLayout: 'autoHeight' as const }
+        : { domLayout: 'normal' as const, containerStyle: { height } }),
       rowData: rows,
       columnDefs,
       defaultColDef,
@@ -125,7 +136,7 @@ export function useSheetGrid(sheetId: string): AgGridReactProps<Row> {
         reportFocus(ui, { sheetId, rowId: node.data.id, colId })
       },
     }),
-    [theme, rows, columnDefs, enableCellSpan, sheetId, ui, texts],
+    [theme, rows, columnDefs, enableCellSpan, sheetId, ui, texts, height],
   )
 
   if (!sheet) throw new Error(`Unknown sheet: ${sheetId}`)

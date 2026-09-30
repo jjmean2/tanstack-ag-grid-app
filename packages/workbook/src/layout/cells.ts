@@ -20,7 +20,10 @@ export const literalCell = (
 export const labelCell = (text: string, extra: CellExtras = {}): CellSpec =>
   literalCell(text, { type: T.text, ...extra })
 
-// An editable cell; `write` receives the parsed value.
+// An editable cell; `write` receives the parsed value. It must compute the
+// next state from the state it is given, `update((s) => …)`, never from state
+// captured when the rows were built: grids reuse unchanged rows (and their
+// `write`) across builds.
 export const inputCell = (
   value: unknown,
   write: (value: unknown) => void,

@@ -6,6 +6,7 @@ export const SCREENS = {
   closing: { title: '결산', path: '/workbook-closing' },
   vat: { title: '매출·매입 세액 신고서', path: '/workbook-form' },
   adjustment: { title: '소득금액조정', path: '/adjustment-sheet' },
+  large: { title: '대용량 원장', path: '/large-workbook' },
 } as const
 
 export type ScreenId = keyof typeof SCREENS

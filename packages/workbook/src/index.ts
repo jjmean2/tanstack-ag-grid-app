@@ -48,6 +48,12 @@ export { createStore } from './store/create-store'
 export type { UiState } from './core/navigation'
 export { navigate } from './core/navigation'
 export { commitInput } from './core/edit'
+export type { Highlights } from './core/highlight'
+export {
+  HIGHLIGHT_COLORS,
+  highlightMarks,
+  referenceHighlights,
+} from './core/highlight'
 export { screenExports } from './core/external'
 
 // --- presentation: how views show cells (rules; see defineCellViews) ----------

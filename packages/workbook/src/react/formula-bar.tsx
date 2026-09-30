@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { highlightMarks } from '../core/highlight'
 import { useFormulaBar } from './use-formula-bar'
 import type { FormulaBarRef } from './use-formula-bar'
 
@@ -64,7 +65,13 @@ export function FormulaBar({
               <button
                 key={i}
                 type="button"
-                className={`wb-ref ${ref.kind === 'external' ? 'wb-ref-external' : ''}`}
+                className={[
+                  'wb-ref',
+                  ref.kind === 'external' && 'wb-ref-external',
+                  ...highlightMarks(ref.highlight),
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
                 title={`${ref.fullLabel} = ${describe(ref)}`}
                 data-ref-target={ref.address}
                 onClick={ref.follow}

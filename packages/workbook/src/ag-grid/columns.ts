@@ -3,12 +3,15 @@ import type { ColDef, ColGroupDef } from 'ag-grid-community'
 import { commitInput } from '../core/edit'
 import { defaultPresenter } from '../core/presentation'
 import type { Presenter } from '../core/presentation'
-import type { Row, ColumnDef, LeafColumnDef } from '../core/types'
+import type { Cell, Row, ColumnDef, LeafColumnDef } from '../core/types'
 import { defaultGridDisplays, defaultGridEditors } from './views'
 import type { GridDisplay, GridEditor } from './views'
 
 export type GridColumnsOptions = {
   present?: Presenter
+  // Marks that depend on UI state rather than the cell (the reference
+  // highlight): read at the time AG Grid draws the cell.
+  extraMarks?: (cell: Cell) => string[]
   editors?: Record<string, GridEditor>
   displays?: Record<string, GridDisplay>
 }
@@ -18,7 +21,7 @@ export type GridColumnsOptions = {
 // rules were all settled before, so nothing here branches on them.
 function createLeafColDef(
   col: LeafColumnDef,
-  { present, editors, displays }: Required<GridColumnsOptions>,
+  { present, editors, displays, extraMarks }: Required<GridColumnsOptions>,
 ): ColDef<Row> {
   const cellOf = (data: Row | undefined) => data?.cells[col.colId]
   const typeOf = (data: Row | undefined) => cellOf(data)?.type ?? col.type
@@ -76,7 +79,10 @@ function createLeafColDef(
           colSpan: ({ data }) => cellOf(data)?.span ?? 1,
         }),
     // The same marks every view uses.
-    cellClass: ({ data }) => presented(data)?.marks,
+    cellClass: ({ data }) => {
+      const cell = cellOf(data)
+      return cell ? [...present(cell).marks, ...extraMarks(cell)] : undefined
+    },
   }
 }
 
@@ -86,6 +92,7 @@ export function createGridColumns(
 ): (ColDef<Row> | ColGroupDef<Row>)[] {
   const resolved: Required<GridColumnsOptions> = {
     present: options.present ?? defaultPresenter,
+    extraMarks: options.extraMarks ?? (() => []),
     editors: { ...defaultGridEditors, ...options.editors },
     displays: { ...defaultGridDisplays, ...options.displays },
   }

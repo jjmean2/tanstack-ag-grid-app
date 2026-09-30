@@ -19,7 +19,9 @@ import { gridViewsOf } from './views'
 import { FullWidthRow } from './full-width-row'
 import { rowMarks } from '../core/marks'
 import { leafColumns } from '../core/workbook'
+import { highlightMarks, referenceHighlights } from '../core/highlight'
 import { claimPending, reportFocus } from '../core/navigation'
+import { splitAddress } from '../core/address'
 import type { CellRef, Row } from '../core/types'
 import { useWorkbook } from '../react/workbook-context'
 
@@ -108,10 +110,23 @@ export function useSheetGrid(
     }
   }, [rows, pinnedIds])
 
+  // The focused formula's references, highlighted. AG Grid reads them when it
+  // draws a cell (`cellClass`); when they change, the cells that gained or
+  // lost a highlight are redrawn (below).
+  const highlights = useStore(ui, (s) => referenceHighlights(wb, s.focused))
+  const highlightsRef = useRef(highlights)
+  highlightsRef.current = highlights
+
   const columnDefs = useMemo(
     () =>
       sheetColumns
-        ? createGridColumns(sheetColumns, { present, editors, displays })
+        ? createGridColumns(sheetColumns, {
+            present,
+            editors,
+            displays,
+            extraMarks: (cell) =>
+              highlightMarks(highlightsRef.current.byCell.get(cell.address)),
+          })
         : [],
     [sheetColumns, present, editors, displays],
   )
@@ -134,6 +149,31 @@ export function useSheetGrid(
     if (mine.length === 0 || !claimPending(ui, pending.nonce)) return
     focusCells(api, mine, pinnedIds)
   }, [ready, pending, sheetId, ui, pinnedIds])
+
+  // Redraw the cells of this sheet whose highlight changed. AG Grid only
+  // re-evaluates `cellClass` when a cell is refreshed, and would skip cells
+  // whose value did not change, hence `force`.
+  const drawn = useRef(highlights)
+  useEffect(() => {
+    const api = apiRef.current
+    const before = drawn.current
+    drawn.current = highlights
+    if (!ready || !api || before === highlights) return
+    const changed = new Set<string>()
+    for (const [address, n] of highlights.byCell)
+      if (before.byCell.get(address) !== n) changed.add(address)
+    for (const address of before.byCell.keys())
+      if (!highlights.byCell.has(address)) changed.add(address)
+    const mine = [...changed]
+      .map(splitAddress)
+      .filter((a) => a.sheetId === sheetId)
+    if (mine.length === 0) return
+    const rowNodes = [...new Set(mine.map((a) => a.rowId))]
+      .map((rowId) => nodeOf(api, rowId, pinnedIds).node)
+      .filter((n): n is IRowNode<Row> => n !== undefined)
+    const columns = [...new Set(mine.map((a) => a.colId))]
+    api.refreshCells({ rowNodes, columns, force: true })
+  }, [highlights, ready, sheetId, pinnedIds])
 
   const props = useMemo<AgGridReactProps<Row>>(
     () => ({

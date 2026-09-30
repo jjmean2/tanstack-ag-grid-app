@@ -5,6 +5,7 @@ import {
   isRangeAddress,
   splitExternal,
 } from '../core/address'
+import { referenceHighlights } from '../core/highlight'
 import { navigate } from '../core/navigation'
 import type { Address, Cell } from '../core/types'
 import { useStore } from './use-store'
@@ -20,6 +21,9 @@ export type FormulaBarRef = {
   kind: 'cell' | 'group' | 'range' | 'external'
   label: string // named from the focused cell ("금액" in the same row, …)
   fullLabel: string // "신고 내용 › (1) 세금계산서 발급분 › 금액"
+  // Its number among the formula's references (1..6), shared with the cells
+  // it covers so both can be drawn in one colour; none for another screen.
+  highlight?: number
   // The referenced value as shown (or its error code); undefined for a list
   // column, a missing cell, or another screen that has not saved it.
   value?: string
@@ -62,10 +66,12 @@ export function useFormulaBar(): FormulaBarState {
     ? wb.cell(cellAddress(focused.sheetId, focused.rowId, focused.colId))
     : undefined
   if (!cell) return { cell: undefined }
+  const highlights = referenceHighlights(wb, focused)
 
   const resolve = (address: Address): FormulaBarRef => {
     const common = {
       address,
+      highlight: highlights.byTarget.get(address),
       label: wb.labelOf(address, cell),
       fullLabel: wb.labelOf(address),
     }

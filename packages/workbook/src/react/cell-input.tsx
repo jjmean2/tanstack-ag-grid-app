@@ -3,9 +3,19 @@ import { useEffect, useRef, useState } from 'react'
 import { useStore } from './use-store'
 import { cellAddress } from '../core/address'
 import { commitInput } from '../core/edit'
+import { highlightMarks, referenceHighlights } from '../core/highlight'
 import { claimPending, reportFocus } from '../core/navigation'
 import type { Address } from '../core/types'
 import { useWorkbook } from './workbook-context'
+
+// The reference number of this cell in the focused cell's formula, if any
+// (see `referenceHighlights`). Re-renders only when it changes.
+export function useHighlight(address: Address): number | undefined {
+  const { wb, ui } = useWorkbook()
+  return useStore(ui, (s) =>
+    referenceHighlights(wb, s.focused).byCell.get(address),
+  )
+}
 
 // One cell of the workbook as a form control: the same cell a grid would show,
 // so it can be referenced by formulas, followed from the formula bar, and it
@@ -63,11 +73,13 @@ export function CellInput({
   const { cell, ref, text, commit, onFocus } = useCell(address)
   const [invalid, setInvalid] = useState(false)
   const { editor, marks: cellMarks } = views.present(cell)
+  const highlight = useHighlight(address)
 
   const marks = [
     'wb-input',
     `wb-input-${variant}`,
     ...cellMarks,
+    ...highlightMarks(highlight),
     invalid && 'wb-invalid',
   ]
     .filter(Boolean)

@@ -16,7 +16,7 @@ export { defineInputViews } from './views'
 export type { InputEditor, InputEditorProps } from './input-editors'
 
 // Views.
-export { CellInput, useCell } from './cell-input'
+export { CellInput, useCell, useHighlight } from './cell-input'
 export type { Box, Place } from './form-layout'
 export { FormSheet } from './form-sheet'
 export { textBox, cellBox, checkBoxes } from './form-layout'

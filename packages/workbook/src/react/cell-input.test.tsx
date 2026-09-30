@@ -56,6 +56,15 @@ function setup() {
 }
 
 describe('CellInput', () => {
+  it('highlights the cells the focused formula references', async () => {
+    const { name, year, next } = setup()
+    await userEvent.click(next) // =[basic.year/value]+1
+    expect(year).toHaveClass('wb-referenced', 'wb-hl-1')
+    expect(name).not.toHaveClass('wb-referenced')
+    await userEvent.click(name) // not a formula: nothing highlighted
+    expect(year).not.toHaveClass('wb-referenced')
+  })
+
   it('commits a parsed value on Enter and formulas follow', async () => {
     const { store, year, next } = setup()
     await userEvent.click(year)

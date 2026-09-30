@@ -21,6 +21,7 @@
  * app's components (wb-status) ·
  * wb-row · wb-input(-field|-form) · wb-invalid · wb-form · wb-box(-text|-cell|
  * -tall) · wb-button · wb-full-width · wb-formula-bar(-…) · wb-ref(-external) ·
+ * wb-referenced · wb-hl-1…6 (the focused formula's references) ·
  * wb-external-ref(s-…) · wb-error-boundary(-…). See
  * packages/workbook/src/core/marks.ts.
  *
@@ -55,6 +56,13 @@
   --wb-external-line: #e2b9a4;
   --wb-external-panel-bg: #fbf1ea;
   --wb-overridden: #c26a1b;
+  /* The focused formula's references, one colour each (wb-hl-1..6). */
+  --wb-hl-1: #2563eb;
+  --wb-hl-2: #dc2626;
+  --wb-hl-3: #7c3aed;
+  --wb-hl-4: #059669;
+  --wb-hl-5: #d97706;
+  --wb-hl-6: #db2777;
   --wb-sans: ui-sans-serif, system-ui, sans-serif;
   --wb-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
@@ -101,6 +109,37 @@
 .wb-cell.wb-error {
   color: var(--wb-error);
   font-weight: 700;
+}
+
+/* The cells the focused formula references, and the matching reference in
+   the formula bar, in the same colour (wb-hl-<n> picks it). */
+.wb-hl-1 {
+  --wb-hl: var(--wb-hl-1);
+}
+.wb-hl-2 {
+  --wb-hl: var(--wb-hl-2);
+}
+.wb-hl-3 {
+  --wb-hl: var(--wb-hl-3);
+}
+.wb-hl-4 {
+  --wb-hl: var(--wb-hl-4);
+}
+.wb-hl-5 {
+  --wb-hl: var(--wb-hl-5);
+}
+.wb-hl-6 {
+  --wb-hl: var(--wb-hl-6);
+}
+
+.wb-cell.wb-referenced {
+  box-shadow: inset 0 0 0 2px var(--wb-hl);
+}
+
+.wb-ref.wb-referenced {
+  border-color: var(--wb-hl);
+  background-color: color-mix(in srgb, var(--wb-hl) 12%, white);
+  color: var(--wb-hl);
 }
 
 .wb-input.wb-invalid {

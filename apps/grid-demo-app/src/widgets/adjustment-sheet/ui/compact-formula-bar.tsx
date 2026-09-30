@@ -1,6 +1,10 @@
 import { useFormulaBar } from '@lab/workbook/react'
 import type { FormulaBarRef } from '@lab/workbook/react'
 
+// The theme's colour for a reference (the cells it covers share it).
+const colorOf = (ref: FormulaBarRef) =>
+  ref.highlight === undefined ? undefined : `var(--wb-hl-${ref.highlight})`
+
 const SOURCE = {
   formula: '수식',
   override: '수동',
@@ -50,6 +54,7 @@ export function CompactFormulaBar() {
                   <mark
                     key={i}
                     className="bg-transparent font-bold text-[#1f6f66]"
+                    style={{ color: colorOf(ref) }}
                     title={`${ref.fullLabel} = ${refValue(ref)}`}
                   >
                     {text}
@@ -69,6 +74,7 @@ export function CompactFormulaBar() {
                     className="cursor-pointer border border-[#c5d0c7] bg-white px-2 py-0.5 text-xs hover:border-[#1f6f66]"
                     onClick={ref.follow}
                     data-ref-target={ref.address}
+                    style={{ borderColor: colorOf(ref), color: colorOf(ref) }}
                   >
                     {ref.label}
                     <b className="ml-2 font-mono">{refValue(ref)}</b>

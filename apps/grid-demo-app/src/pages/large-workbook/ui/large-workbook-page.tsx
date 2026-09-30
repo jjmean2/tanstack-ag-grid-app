@@ -33,8 +33,10 @@ const tabs: ScreenTab[] = [
     label: l.title,
     sheets: [l.id],
     // Thousands of rows: a fixed height, so the grid scrolls and draws only
-    // the rows in view.
-    render: () => <SheetGrid sheetId={l.id} height={600} />,
+    // the rows in view; the total stays in sight below them.
+    render: () => (
+      <SheetGrid sheetId={l.id} height={600} pinnedBottom={['total']} />
+    ),
   })),
 ]
 

@@ -55,7 +55,8 @@ src/
 │  ├─ input-editors.tsx     input 편집기 부품과 기본값
 │  ├─ form-layout.ts        서식 배치: textBox · cellBox · checkBoxes
 │  ├─ form-sheet.tsx        FormSheet (CSS grid)
-│  ├─ formula-bar.tsx       FormulaBar
+│  ├─ use-formula-bar.ts    useFormulaBar · useExternalRefs (수식 바·외부 참조의 데이터와 동작)
+│  ├─ formula-bar.tsx       FormulaBar (useFormulaBar의 기본 화면)
 │  ├─ external-refs.tsx     ExternalRefs
 │  └─ error-boundary.tsx    WorkbookErrorBoundary
 └─ ag-grid/            AG Grid 어댑터
@@ -244,6 +245,37 @@ textBox([3, 1, 9, 1], '과세표준 및 매출세액', 'head')
 
 규칙과 테마를 각각 앱 한 파일에 모으고, **정의·배치가 쓰는 모든 태그와 규칙이 추가하는 모든 표식이 테마에 있는지 테스트로 확인**하는 방식을 권합니다(데모 앱의 `shared/ui/workbook-view/view.test.ts`). 태그는 자유 문자열이라, 이 검사가 없으면 오타나 스타일 누락이 조용히 지나갑니다.
 
+## 수식 바를 바꾸려면
+
+단계가 셋입니다. 필요한 만큼만 내려가세요.
+
+1. **모양**: 테마 CSS에서 `wb-formula-bar-*`, `wb-ref`를 꾸밉니다.
+2. **문구**: `<FormulaBar texts={{ noCell: 'No cell', raw: 'Raw' }} />`. 기본값은 `formulaBarTexts`입니다.
+3. **구성**: `useFormulaBar()`로 직접 그립니다. 포커스된 셀, 이름표, 출처(수식·입력·고정), 값, 그리고 수식 조각을 줍니다. 참조 조각에는 대상의 이름표·값과 `follow()`가 들어 있습니다(이 workbook의 셀·목록으로 이동하거나, 다른 화면을 엽니다). 따라가기 로직은 라이브러리에 남고, 앱은 화면만 그립니다.
+
+```tsx
+function MyFormulaBar() {
+  const bar = useFormulaBar()
+  if (!bar.cell) return null
+  return (
+    <div>
+      <b>{bar.label}</b> = {bar.value}
+      {bar.parts.map((p, i) =>
+        p.ref ? (
+          <button key={i} onClick={p.ref.follow}>
+            {p.ref.label}
+          </button>
+        ) : (
+          p.text
+        ),
+      )}
+    </div>
+  )
+}
+```
+
+외부 참조 패널도 같습니다: `ExternalRefs`(`texts`) 또는 `useExternalRefs()`. 데모 앱의 소득금액조정 화면이 3단계의 예입니다(`widgets/adjustment-sheet/ui/compact-formula-bar.tsx`).
+
 ## 앱이 맡는 일
 
 - **AG Grid 모듈 등록**: `ModuleRegistry.registerModules([...])`. grid sheet에는 client-side row model, 행 병합(`CellSpanModule`), 편집기 모듈이 필요합니다.
@@ -259,7 +291,7 @@ textBox([3, 1, 9, 1], '과세표준 및 매출세액', 'head')
 - **재계산은 통째로 합니다.** 편집할 때마다 workbook 전체를 다시 계산합니다. 셀 수만 개까지는 수십 ms 수준입니다. 대용량 원천 데이터는 셀 밖에 두고 집계만 셀로 두세요.
 - **grid sheet의 병합**: 병합 열(`spanRows`)은 편집할 수 없고, 다른 셀의 가로 병합(`span`)이 병합 열을 덮을 수 없습니다(AG Grid 제약). 임의의 직사각형 병합이 필요하면 `FormSheet` 배치를 쓰세요.
 - **서식 배치는 고정입니다.** 늘어나는 목록은 grid로 두고 참조하세요.
-- **뷰 컴포넌트의 문구**(한국어 라벨)는 지금은 고정입니다. 색과 글꼴은 테마가 정합니다.
+- **뷰 컴포넌트의 문구**는 한국어가 기본입니다. `FormulaBar`와 `ExternalRefs`는 `texts` prop으로 바꿀 수 있고, 나머지는 고정입니다. 색과 글꼴은 테마가 정합니다.
 
 ## 개발
 

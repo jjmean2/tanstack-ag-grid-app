@@ -20,6 +20,16 @@ export { CellInput, useCell } from './cell-input'
 export type { Box, Place } from './form-layout'
 export { FormSheet } from './form-sheet'
 export { textBox, cellBox, checkBoxes } from './form-layout'
-export { FormulaBar, savedAtText } from './formula-bar'
-export { ExternalRefs } from './external-refs'
+export { FormulaBar, formulaBarTexts, savedAtText } from './formula-bar'
+export { ExternalRefs, externalRefsTexts } from './external-refs'
+
+// The data behind the formula bar and the external refs panel, for an app
+// that draws its own.
+export type {
+  ExternalRefItem,
+  FormulaBarPart,
+  FormulaBarRef,
+  FormulaBarState,
+} from './use-formula-bar'
+export { useExternalRefs, useFormulaBar } from './use-formula-bar'
 export { WorkbookErrorBoundary } from './error-boundary'

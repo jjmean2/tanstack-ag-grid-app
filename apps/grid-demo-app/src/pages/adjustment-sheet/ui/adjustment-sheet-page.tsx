@@ -9,6 +9,7 @@ import { ScreenLayout } from '#/shared/ui/screen-layout'
 import type { ScreenTab } from '#/shared/ui/screen-layout'
 import { Stat } from '#/shared/ui/stat'
 import { adjustmentWorkbook } from '#/widgets/adjustment-sheet/model/adjustment-workbook'
+import { CompactFormulaBar } from '#/widgets/adjustment-sheet/ui/compact-formula-bar'
 
 const tabs: ScreenTab[] = [
   {
@@ -45,7 +46,13 @@ export function AdjustmentSheetPage() {
         title="Adjustment sheet"
         description="An Excel-style worksheet as one workbook sheet: column groups, section titles, subtotals, an input cell and a difference check, all as formulas over the client state."
       />
-      <ScreenLayout session={session} tabs={tabs} toolbar={<Gap />} />
+      <ScreenLayout
+        session={session}
+        tabs={tabs}
+        toolbar={<Gap />}
+        // This screen draws its own formula bar from useFormulaBar.
+        formulaBar={<CompactFormulaBar />}
+      />
     </main>
   )
 }

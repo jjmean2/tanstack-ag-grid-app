@@ -35,6 +35,8 @@ type Props<TState> = {
   toolbar?: ReactNode
   // Issues per tab to add to its formula errors (badge on the tab).
   issues?: (wb: Workbook, state: TState) => Record<string, number>
+  // Replaces the library's formula bar (e.g. one drawn with `useFormulaBar`).
+  formulaBar?: ReactNode
 }
 
 // The frame every screen shares: the workbook and its error boundary, the
@@ -61,6 +63,7 @@ function Screen<TState extends object>({
   tab: firstTab,
   toolbar,
   issues,
+  formulaBar = <FormulaBar />,
 }: Props<TState>) {
   const { wb, ui } = useWorkbook()
   const state = useStore(session.workbook.store, (s) => s)
@@ -94,7 +97,7 @@ function Screen<TState extends object>({
     <>
       <StatusBar session={session} state={state} toolbar={toolbar} />
       <ExternalRefs />
-      <FormulaBar />
+      {formulaBar}
       <section className="mx-auto max-w-375 border border-[#c5d0c7] bg-[#fffdf8] shadow-[0_1rem_3rem_rgb(38_65_55/8%)]">
         {tabs.length > 1 && (
           <nav

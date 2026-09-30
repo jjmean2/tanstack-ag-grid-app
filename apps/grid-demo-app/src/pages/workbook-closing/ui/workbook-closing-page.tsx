@@ -17,7 +17,7 @@ const tabs: ScreenTab[] = [
     sheets: ['is'],
     render: () => (
       <div className="p-6">
-        <div className="max-w-2xl border border-[#c5d0c7]">
+        <div className="max-w-2xl">
           <SheetGrid sheetId="is" />
         </div>
       </div>

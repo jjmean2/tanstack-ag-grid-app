@@ -7,7 +7,7 @@ export function TaxTab() {
         <h2 className="font-sans text-sm font-bold uppercase tracking-[0.05em] text-[#536863]">
           Rates, period, options and credits (editable)
         </h2>
-        <div className="border border-[#c5d0c7]">
+        <div>
           <SheetGrid sheetId="inputs" />
         </div>
       </section>
@@ -15,7 +15,7 @@ export function TaxTab() {
         <h2 className="font-sans text-sm font-bold uppercase tracking-[0.05em] text-[#536863]">
           Calculation (formulas over this and the adjustment sheet)
         </h2>
-        <div className="border border-[#c5d0c7]">
+        <div>
           <SheetGrid sheetId="calc" />
         </div>
       </section>

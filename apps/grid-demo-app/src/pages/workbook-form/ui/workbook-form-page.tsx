@@ -23,7 +23,7 @@ const tabs: ScreenTab[] = [
     sheets: ['ret'],
     render: () => (
       <div className="p-6">
-        <div className="max-w-3xl border border-[#c5d0c7]">
+        <div className="max-w-3xl">
           <SheetGrid sheetId="ret" />
         </div>
       </div>
@@ -36,7 +36,7 @@ const tabs: ScreenTab[] = [
     render: () => (
       <div className="grid gap-3 p-6">
         <PurchaseToolbar />
-        <div className="border border-[#c5d0c7]">
+        <div>
           <SheetGrid sheetId="purchases" />
         </div>
       </div>

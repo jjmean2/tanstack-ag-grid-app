@@ -226,6 +226,13 @@ textBox([3, 1, 9, 1], '과세표준 및 매출세액', 'head')
 
 ### 테마
 
+**grid와 서식을 같은 모양으로**: AG Grid 테마 값에는 CSS `var()`를 쓸 수 있습니다. 그래서 선 색, 글꼴, 글자 크기, 행 높이, 셀 여백, 머리글 색, 모서리 둥글기를 앱 테마 CSS에 토큰(`--wb-grid-line`, `--wb-row-height` …)으로 한 번 정의하고, 두 곳이 같은 토큰을 읽게 합니다.
+
+- AG Grid: `themeQuartz.withParams({ borderColor: 'var(--wb-grid-line)', rowHeight: 'var(--wb-row-height)', … })`
+- 서식 칸(`.wb-form`, `.wb-box`, `.wb-input-form`): 같은 토큰을 씁니다.
+
+토큰 하나를 바꾸면 grid와 서식이 함께 바뀌고, AG Grid의 테마 방식(Theming API)도 그대로 씁니다. 데모 앱의 `shared/ui/workbook-view/theme.css`와 `shared/config/ag-grid.ts`를 보세요.
+
 테마 예:
 
 ```css

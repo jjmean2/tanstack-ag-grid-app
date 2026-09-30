@@ -38,7 +38,7 @@ export function CompanyTab() {
         <h2 className="font-sans text-sm font-bold uppercase tracking-wider text-[#536863]">
           Same cells in a grid
         </h2>
-        <div className="border border-[#c5d0c7]">
+        <div>
           <SheetGrid sheetId="company" />
         </div>
       </section>

@@ -35,6 +35,15 @@
 :root {
   --wb-ink: #17312d;
   --wb-muted: #536863;
+  /* Shared by the grids and the form sheets: AG Grid's theme takes these
+     (shared/config/ag-grid.ts), and the form rules below use them, so a
+     change here restyles both. */
+  --wb-grid-line: #d8ded8; /* lines between cells, and round the outside */
+  --wb-font-size: 14px;
+  --wb-row-height: 42px;
+  --wb-cell-padding: 16px; /* left and right in a cell */
+  --wb-head-weight: 700;
+  --wb-radius: 8px; /* outer corners */
   --wb-line: #9aaba0;
   --wb-line-soft: #c5d0c7;
   --wb-accent: #1f6f66;
@@ -271,10 +280,11 @@
 }
 
 /* Form sheet boxes. */
+/* Like the grid's header cells. */
 .wb-tag-head {
   justify-content: center;
   background-color: var(--wb-head-bg);
-  font-weight: 700;
+  font-weight: var(--wb-head-weight);
   text-align: center;
 }
 
@@ -331,9 +341,13 @@
   color: var(--wb-error);
 }
 
+/* A form's cell: the height, padding and type of a grid cell (whose row
+   height counts the line below it, as the box's border does here). */
 .wb-input-form {
+  min-height: calc(var(--wb-row-height) - 1px);
+  padding: 0 var(--wb-cell-padding);
   font-family: var(--wb-sans);
-  font-size: 0.875rem;
+  font-size: var(--wb-font-size);
 }
 
 .wb-input-form:focus {
@@ -349,16 +363,25 @@ input[type='checkbox'].wb-input {
   accent-color: var(--wb-accent);
 }
 
+/* A form sheet looks like a grid: its lines, rounded outer corners, row
+   height, cell padding and type (tokens above, shared with AG Grid). */
 .wb-form {
-  border-color: var(--wb-line);
-  background-color: white;
+  overflow: hidden;
+  border-color: var(--wb-grid-line);
+  border-radius: var(--wb-radius);
+  background-color: var(--wb-fixed-bg);
   color: var(--wb-ink);
   font-family: var(--wb-sans);
+  font-size: var(--wb-font-size);
 }
 
 .wb-box {
-  border-color: var(--wb-line);
-  font-size: 0.875rem;
+  min-height: var(--wb-row-height); /* with its bottom line */
+  border-color: var(--wb-grid-line);
+}
+
+.wb-box-text {
+  padding: 0 var(--wb-cell-padding);
 }
 
 .wb-full-width {

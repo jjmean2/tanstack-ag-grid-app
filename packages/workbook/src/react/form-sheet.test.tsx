@@ -1,86 +1,86 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-import { createStore } from '../store/create-store'
-import { T } from '../core/cell-types'
-import { FormSheet } from './form-sheet'
-import { boundCell, cellBox, formulaCell, textBox } from '../index'
-import { createUiStore } from '../core/navigation'
-import type { FormNode } from '../core/types'
-import { buildWorkbook, defineWorkbook } from '../core/workbook'
-import { WorkbookProvider } from './workbook-context'
+import {
+  boundCell,
+  buildWorkbook,
+  createSession,
+  defineWorkbook,
+  formulaCell,
+  row,
+  T,
+} from '../index'
+import {
+  cellBox,
+  checkBoxes,
+  FormSheet,
+  textBox,
+  WorkbookProvider,
+} from './index'
 
 type S = { v: { a: number } }
 const state: S = { v: { a: 2 } }
-const noop = () => {}
 
-const form = (layout: FormNode<S>[], tracks = ['1fr', '1fr', '1fr']) =>
-  defineWorkbook<S>([
-    { kind: 'form', id: 'f', title: '서식', tab: 't', tracks, layout },
-  ])
+// The cells: rows × columns, like any sheet. Row labels name them.
+const def = defineWorkbook<S>([
+  {
+    id: 'f',
+    title: '서식',
+    columns: [{ colId: 'v', headerName: '금액', type: T.money }],
+    rows: [
+      row('a', { label: '입력' }, (ctx) => ({ v: boundCell(ctx, 'v', 'a') })),
+      row('b', { label: '결과' }, () => ({ v: formulaCell('=[a/v]*10') })),
+    ],
+  },
+])
 
+// The layout: the view's. "금액" is merged down two rows.
 // ┌──────┬──────┐
 // │ 금액 │  a   │
 // │      ├──────┤
-// │      │ a×10 │   "금액" is merged down two rows
+// │      │ a×10 │
 // └──────┴──────┘
-const layout: FormNode<S> = (ctx) => [
+const boxes = [
   textBox([1, 1, 2, 1], '금액', 'head'),
-  cellBox([1, 2], 'a/v', boundCell(ctx, 'v', 'a', { type: T.money }), {
-    name: '입력',
-  }),
-  cellBox([2, 2], 'b/v', formulaCell('=[a/v]*10', { type: T.money }), {
-    name: '결과',
-  }),
+  cellBox([1, 2], 'a/v'),
+  cellBox([2, 2], 'b/v'),
 ]
 
-describe('form sheet definition', () => {
-  it('builds cells that formulas and lookups see', () => {
-    const wb = buildWorkbook(form([layout], ['1fr', '1fr']), state, noop)
+describe('form sheet cells', () => {
+  it('are ordinary cells, named by row label and column', () => {
+    const wb = buildWorkbook(def, state)
     expect(wb.value('f/b/v')).toBe(20)
-    expect(wb.labelOf('f/b/v')).toBe('서식 › 결과 › v')
-    expect(wb.sheets.f?.form?.items.map((i) => i.address ?? i.text)).toEqual([
-      '금액',
-      'f/a/v',
-      'f/b/v',
+    expect(wb.labelOf('f/b/v')).toBe('서식 › 결과 › 금액')
+  })
+})
+
+describe('checkBoxes', () => {
+  it('accepts a layout without overlaps', () => {
+    expect(checkBoxes(2, boxes)).toEqual([])
+  })
+
+  it('reports overlapping boxes, boxes outside the columns, bad refs', () => {
+    expect(
+      checkBoxes(3, [
+        textBox([1, 1, 2, 2], 'A'),
+        textBox([2, 2], 'B'),
+        textBox([1, 2, 1, 3], 'C'),
+        cellBox([3, 1], 'a'),
+      ]),
+    ).toEqual([
+      'text "B" overlaps text "A"',
+      'text "C" is outside the 3 columns',
+      'cell "a": a cell is "row/col"',
     ])
-  })
-
-  it('rejects overlapping boxes', () => {
-    const overlap: FormNode<S> = () => [
-      textBox([1, 1, 2, 2], 'A'),
-      textBox([2, 2], 'B'),
-    ]
-    expect(() => buildWorkbook(form([overlap]), state, noop)).toThrow(
-      /text "B" of form "f" overlaps text "A"/,
-    )
-  })
-
-  it('rejects a box outside the columns', () => {
-    const wide: FormNode<S> = () => [textBox([1, 2, 1, 3], 'A')]
-    expect(() => buildWorkbook(form([wide]), state, noop)).toThrow(
-      /outside its 3 columns/,
-    )
-  })
-
-  it('rejects a malformed ref', () => {
-    const bad: FormNode<S> = () => [cellBox([1, 1], 'a', formulaCell('=1'))]
-    expect(() => buildWorkbook(form([bad]), state, noop)).toThrow(
-      /ref must be "row\/col"/,
-    )
   })
 })
 
 describe('FormSheet', () => {
-  it('draws boxes on a grid and edits cells in place', async () => {
-    const store = createStore(state)
+  it('places boxes on a grid and edits cells in place', async () => {
+    const session = createSession(def, state)
     render(
-      <WorkbookProvider
-        store={store}
-        def={form([layout], ['1fr', '1fr'])}
-        ui={createUiStore('t')}
-      >
-        <FormSheet sheetId="f" />
+      <WorkbookProvider session={session}>
+        <FormSheet sheet="f" tracks={['1fr', '1fr']} boxes={boxes} />
       </WorkbookProvider>,
     )
     expect(screen.getByText('금액')).toHaveStyle({
@@ -91,7 +91,22 @@ describe('FormSheet', () => {
     expect(result).toHaveAttribute('readonly')
     await userEvent.click(input)
     await userEvent.keyboard('7{Enter}')
-    expect(store.get().v.a).toBe(7)
+    expect(session.store.get().v.a).toBe(7)
     expect(result).toHaveValue('70')
+  })
+
+  it('refuses a layout with problems', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    expect(() =>
+      render(
+        <WorkbookProvider session={createSession(def, state)}>
+          <FormSheet
+            sheet="f"
+            tracks={['1fr']}
+            boxes={[textBox([1, 1, 1, 2], 'wide')]}
+          />
+        </WorkbookProvider>,
+      ),
+    ).toThrow(/outside the 1 columns/)
   })
 })

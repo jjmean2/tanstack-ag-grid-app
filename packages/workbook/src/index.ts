@@ -1,7 +1,8 @@
 // @lab/workbook — the core. Framework-free: nothing here imports React or
 // AG Grid, so a workbook can be defined, built and tested anywhere.
 //
-//   state ──(definition)──▶ buildWorkbook ──▶ Workbook (cells, values, errors)
+//   defineWorkbook ─▶ createSession(def, initial) ─▶ buildWorkbook (per state)
+//   sheets of columns and row nodes         state + UI stores       cells, values, errors
 //
 // Views live in `@lab/workbook/react` and `@lab/workbook/ag-grid`.
 
@@ -10,35 +11,14 @@ export type * from './core/types'
 export type { CellType, EditorKind } from './core/cell-types'
 export type { ErrorCode } from './core/formula/errors'
 export type { Scalar } from './core/formula/functions'
-
 export { T, INVALID } from './core/cell-types'
 export { FormulaError } from './core/formula/errors'
-export {
-  cellAddress,
-  groupAddress,
-  externalAddress,
-  splitAddress,
-  splitExternal,
-  isGroupAddress,
-  isExternalAddress,
-} from './core/address'
 
-// --- presentation: editor, display, alignment and marks, by rules --------
-export { factMarks, rowMarks, tagClass, toTags } from './core/marks'
-export type {
-  Align,
-  CellFacts,
-  Presentation,
-  PresentationRule,
-  Presenter,
-} from './core/presentation'
-export { definePresentation, defaultPresenter } from './core/presentation'
-
-// --- defining and building a workbook -------------------------------------
-export { defineWorkbook, buildWorkbook, flattenLeafs } from './core/workbook'
+// --- defining, building, checking -------------------------------------------
+export { defineWorkbook, buildWorkbook } from './core/workbook'
 export { checkWorkbook } from './core/check'
 
-// --- layout: turning state into rows (grid sheets) and boxes (form sheets) --
+// --- row nodes and cell specs: turning state into rows ------------------------
 export type { CellExtras } from './layout/cells'
 export {
   literalCell,
@@ -47,7 +27,7 @@ export {
   boundCell,
   formulaCell,
 } from './layout/cells'
-export type { FieldDef, FieldsSpec } from './layout/grid'
+export type { FieldConfig, FieldsConfig } from './layout/grid'
 export {
   title,
   items,
@@ -58,19 +38,21 @@ export {
   spanned,
 } from './layout/grid'
 export type { ListKey, ObjectKey } from './layout/state'
-export { textBox, cellBox } from './layout/form'
 
-// --- state: the session store and the UI state (focus, navigation) --------
+// --- session: state, UI state, other screens' exports ------------------------
+export type { WorkbookSession } from './core/session'
+export { createSession } from './core/session'
 export type { Store } from './store/create-store'
 export { createStore } from './store/create-store'
 export type { UiState } from './core/navigation'
-export {
-  createUiStore,
-  navigate,
-  claimPending,
-  reportFocus,
-} from './core/navigation'
+export { navigate } from './core/navigation'
+export { screenExports } from './core/external'
 
-// --- other screens and persistence ----------------------------------------
-export { screenExports, externalsFrom } from './core/external'
-export { screenStorage } from './persistence/screen-storage'
+// --- presentation: how views show cells (rules; see defineCellViews) ----------
+export type {
+  Align,
+  BuiltInDisplay,
+  CellFacts,
+  Presentation,
+  PresentationRule,
+} from './core/presentation'

@@ -50,31 +50,24 @@ export function useCell(address: Address) {
   }
 }
 
-// Layout only; colours and states come from the app's theme through the marks
-// (`wb-input`, `wb-input-<variant>`, the cell's marks, `wb-invalid`).
-// `field`: a standalone form field. `form`: fills a box of a form sheet, whose
-// borders the form draws.
-const layouts = {
-  field: 'w-full border px-3 py-2 font-sans text-base font-normal outline-none',
-  form: 'block min-h-8 w-full self-stretch bg-transparent px-2 py-1 font-sans text-sm outline-none',
-}
-
-// One cell as a form control. The presentation chooses the editor id, the
-// input editor registry (`WorkbookProvider`'s `inputEditors` over the
-// defaults) turns it into a component; read-only cells use `text`.
+// One cell as a form control. The presentation chooses the editor id; the
+// views' input components (`CellViews.input`) turn it into a component;
+// read-only cells use `text`. Its marks (`wb-input`, `wb-input-<variant>`,
+// the cell's marks, `wb-invalid`) carry layout (styles.css) and looks (theme).
 export function CellInput({
   address,
   variant = 'field',
   className = '',
 }: {
   address: Address
-  variant?: keyof typeof layouts
+  // `field`: a standalone form field. `form`: fills a box of a form sheet.
+  variant?: 'field' | 'form'
   className?: string
 }) {
-  const { present, inputEditors } = useWorkbook()
+  const { views } = useWorkbook()
   const { cell, ref, text, commit, onFocus } = useCell(address)
   const [invalid, setInvalid] = useState(false)
-  const { editor, marks: cellMarks } = present(cell)
+  const { editor, marks: cellMarks } = views.present(cell)
 
   const marks = [
     'wb-input',
@@ -85,7 +78,7 @@ export function CellInput({
     .filter(Boolean)
     .join(' ')
   const Editor =
-    (editor === null ? undefined : inputEditors[editor]) ?? inputEditors.text
+    (editor === null ? undefined : views.input[editor]) ?? views.input.text
 
   return (
     <Editor
@@ -94,8 +87,7 @@ export function CellInput({
       readOnly={editor === null}
       commit={commit}
       setInvalid={setInvalid}
-      marks={`${marks} ${className}`}
-      className={`${layouts[variant]} ${marks} ${className}`}
+      className={`${marks} ${className}`}
       control={{
         ref,
         onFocus,

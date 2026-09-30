@@ -6,13 +6,15 @@ import type { AdjustmentState } from '#/entities/adjustment/model/types'
 import { useScreenSession } from '#/shared/lib/screen/use-screen-session'
 import { PageHeader } from '#/shared/ui/page-header'
 import { ScreenLayout } from '#/shared/ui/screen-layout'
+import type { ScreenTab } from '#/shared/ui/screen-layout'
 import { Stat } from '#/shared/ui/stat'
 import { adjustmentWorkbook } from '#/widgets/adjustment-sheet/model/adjustment-workbook'
 
-const tabs = [
+const tabs: ScreenTab[] = [
   {
     id: 'adj',
     label: '소득금액조정',
+    sheets: ['adj'],
     render: () => <SheetGrid sheetId="adj" />,
   },
 ]
@@ -32,8 +34,8 @@ function Gap() {
 export function AdjustmentSheetPage() {
   const session = useScreenSession<AdjustmentState>({
     id: 'adjustment',
+    def: adjustmentWorkbook,
     initial: () => toAdjustmentState(adjustmentResponse),
-    tab: 'adj',
   })
 
   return (
@@ -43,12 +45,7 @@ export function AdjustmentSheetPage() {
         title="Adjustment sheet"
         description="An Excel-style worksheet as one workbook sheet: column groups, section titles, subtotals, an input cell and a difference check, all as formulas over the client state."
       />
-      <ScreenLayout
-        session={session}
-        def={adjustmentWorkbook}
-        tabs={tabs}
-        toolbar={<Gap />}
-      />
+      <ScreenLayout session={session} tabs={tabs} toolbar={<Gap />} />
     </main>
   )
 }

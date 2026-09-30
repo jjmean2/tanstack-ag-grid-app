@@ -13,17 +13,17 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { useStore } from '../react/use-store'
 import { createGridColumns } from './columns'
-import { useSheetGridConfig } from './grid-config'
+import { gridViewsOf } from './views'
 import { FullWidthRow } from './full-width-row'
 import { rowMarks } from '../core/marks'
-import { flattenLeafs } from '../core/workbook'
+import { leafColumns } from '../core/workbook'
 import { claimPending, reportFocus } from '../core/navigation'
-import type { CellRef, ResolvedRow } from '../core/types'
+import type { CellRef, Row } from '../core/types'
 import { useWorkbook } from '../react/workbook-context'
 
 // A worksheet's layout is positional, so sorting/filtering/moving columns
 // would break it (and the column menu would have nothing left to offer).
-const defaultColDef: ColDef<ResolvedRow> = {
+const defaultColDef: ColDef<Row> = {
   sortable: false,
   filter: false,
   suppressMovable: true,
@@ -32,14 +32,14 @@ const defaultColDef: ColDef<ResolvedRow> = {
   headerClass: '[&_.ag-header-cell-label]:justify-center',
 }
 
-const getRowId = (p: GetRowIdParams<ResolvedRow>) => p.data.id
-const getRowClass = (p: RowClassParams<ResolvedRow>) =>
+const getRowId = (p: GetRowIdParams<Row>) => p.data.id
+const getRowClass = (p: RowClassParams<Row>) =>
   p.data ? rowMarks(p.data) : undefined
-const isFullWidthRow = (p: IsFullWidthRowParams<ResolvedRow>) =>
+const isFullWidthRow = (p: IsFullWidthRowParams<Row>) =>
   p.rowNode.data?.fullWidth !== undefined
 
 // Moves focus to the first target and flashes all of them.
-function focusCells(api: GridApi<ResolvedRow>, targets: CellRef[]) {
+function focusCells(api: GridApi<Row>, targets: CellRef[]) {
   const first = targets[0]
   const node = api.getRowNode(first.rowId)
   if (!node || node.rowIndex == null) return
@@ -47,7 +47,7 @@ function focusCells(api: GridApi<ResolvedRow>, targets: CellRef[]) {
   api.setFocusedCell(node.rowIndex, first.colId)
   const rowNodes = targets
     .map((t) => api.getRowNode(t.rowId))
-    .filter((n): n is IRowNode<ResolvedRow> => n !== undefined)
+    .filter((n): n is IRowNode<Row> => n !== undefined)
   api.flashCells({
     rowNodes,
     columns: [first.colId],
@@ -57,9 +57,10 @@ function focusCells(api: GridApi<ResolvedRow>, targets: CellRef[]) {
 }
 
 // AG Grid props for one sheet of the workbook.
-export function useSheetGrid(sheetId: string): AgGridReactProps<ResolvedRow> {
-  const { wb, ui, present } = useWorkbook()
-  const { theme, editors, displays } = useSheetGridConfig()
+export function useSheetGrid(sheetId: string): AgGridReactProps<Row> {
+  const { wb, ui, views } = useWorkbook()
+  const { present } = views
+  const { theme, editors, displays } = gridViewsOf(views)
   const sheet = wb.sheets[sheetId]
   const sheetColumns = sheet?.columns
   const rows = sheet?.rows
@@ -73,11 +74,11 @@ export function useSheetGrid(sheetId: string): AgGridReactProps<ResolvedRow> {
   )
   // An initial-only grid option; the columns of a sheet never change.
   const enableCellSpan = useMemo(
-    () => flattenLeafs(sheetColumns ?? []).some((leaf) => leaf.spanRows),
+    () => leafColumns(sheetColumns ?? []).some((leaf) => leaf.spanRows),
     [sheetColumns],
   )
 
-  const apiRef = useRef<GridApi<ResolvedRow> | null>(null)
+  const apiRef = useRef<GridApi<Row> | null>(null)
   const [ready, setReady] = useState(false)
   const pending = useStore(ui, (s) => s.pending)
 
@@ -91,7 +92,7 @@ export function useSheetGrid(sheetId: string): AgGridReactProps<ResolvedRow> {
     focusCells(api, mine)
   }, [ready, pending, sheetId, ui])
 
-  const props = useMemo<AgGridReactProps<ResolvedRow>>(
+  const props = useMemo<AgGridReactProps<Row>>(
     () => ({
       theme,
       domLayout: 'autoHeight',
@@ -106,12 +107,12 @@ export function useSheetGrid(sheetId: string): AgGridReactProps<ResolvedRow> {
       embedFullWidthRows: true, // scroll horizontally with the other rows
       enableCellSpan,
       stopEditingWhenCellsLoseFocus: true,
-      onFirstDataRendered: (event: FirstDataRenderedEvent<ResolvedRow>) => {
+      onFirstDataRendered: (event: FirstDataRenderedEvent<Row>) => {
         apiRef.current = event.api
         setReady(true)
       },
       // Report focus (click or keyboard) so the formula bar can follow it.
-      onCellFocused: (event: CellFocusedEvent<ResolvedRow>) => {
+      onCellFocused: (event: CellFocusedEvent<Row>) => {
         if (event.rowIndex == null || !event.column) return
         const node = event.api.getDisplayedRowAtIndex(event.rowIndex)
         if (!node?.data) return

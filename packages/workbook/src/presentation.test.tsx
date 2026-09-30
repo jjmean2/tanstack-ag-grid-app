@@ -9,12 +9,11 @@ import type {
 } from 'ag-grid-community'
 
 import { createGridColumns } from './ag-grid/columns'
+import { defineCellViews } from './ag-grid/views'
+import { defaultPresenter, definePresentation } from './core/presentation'
 import {
   buildWorkbook,
-  createStore,
-  createUiStore,
-  definePresentation,
-  defaultPresenter,
+  createSession,
   defineWorkbook,
   fields,
   formulaCell,
@@ -22,16 +21,16 @@ import {
   row,
   T,
 } from './index'
-import type { ResolvedRow, SheetColumnDef } from './index'
-import { CellInput, WorkbookProvider } from './react'
-import type { InputEditor } from './react'
+import type { Row, ColumnDef } from './index'
+import { CellInput, defineInputViews, WorkbookProvider } from './react'
+import type { CellViews, InputEditor } from './react'
 
 type S = {
   info: { amount: number; start: string; note: string }
 }
 const state: S = { info: { amount: -5, start: '2026-01-01', note: '' } }
 
-const columns: SheetColumnDef[] = [
+const columns: ColumnDef[] = [
   { colId: 'label', headerName: '항목', type: T.text },
   { colId: 'value', headerName: '값', type: T.money },
 ]
@@ -40,9 +39,8 @@ const def = defineWorkbook<S>([
   {
     id: 's',
     title: 's',
-    tab: 't',
     columns,
-    layout: [
+    rows: [
       fields('info', {
         amount: '금액',
         start: { label: '시작일', type: T.date },
@@ -56,8 +54,7 @@ const def = defineWorkbook<S>([
   },
 ])
 
-const noop = () => {}
-const wb = buildWorkbook(def, state, noop)
+const wb = buildWorkbook(def, state)
 const amount = wb.cell('s/info.amount/value')!
 const start = wb.cell('s/info.start/value')!
 const note = wb.cell('s/info.note/value')!
@@ -132,7 +129,7 @@ describe('presentation rules', () => {
     const [, value] = createGridColumns(columns, {
       present: custom,
       displays: { badge: Badge },
-    }) as ColDef<ResolvedRow>[]
+    }) as ColDef<Row>[]
     const params = (rowId: string) =>
       ({ data: wb.sheets.s!.rows.find((r) => r.id === rowId) }) as never
     const editorOf = value.cellEditorSelector as CellEditorSelectorFunc
@@ -153,20 +150,15 @@ describe('presentation rules', () => {
 })
 
 describe('CellInput and the presentation', () => {
-  const renderInputs = (presentation = defaultPresenter) => {
-    const store = createStore(state)
+  const renderInputs = (views?: CellViews) => {
+    const session = createSession(def, state)
     render(
-      <WorkbookProvider
-        store={store}
-        def={def}
-        ui={createUiStore('t')}
-        presentation={presentation}
-      >
+      <WorkbookProvider session={session} views={views}>
         <CellInput address="s/info.start/value" />
         <CellInput address="s/info.amount/value" />
       </WorkbookProvider>,
     )
-    return store
+    return session.store
   }
 
   it('offers a date picker for the date editor and commits its value', async () => {
@@ -188,13 +180,11 @@ describe('CellInput and the presentation', () => {
     )
     render(
       <WorkbookProvider
-        store={createStore(state)}
-        def={def}
-        ui={createUiStore('t')}
-        presentation={definePresentation([
-          { when: (f) => f.type === 'text', then: { editor: 'memo' } },
-        ])}
-        inputEditors={{ memo: Memo }}
+        session={createSession(def, state)}
+        views={defineInputViews({
+          editors: { memo: Memo },
+          rules: [{ when: (f) => f.type === 'text', then: { editor: 'memo' } }],
+        })}
       >
         <CellInput address="s/info.note/value" />
         <CellInput address="s/info.amount/value" />
@@ -210,12 +200,39 @@ describe('CellInput and the presentation', () => {
 
   it('follows rules that make a cell read-only', () => {
     renderInputs(
-      definePresentation([
-        { when: (f) => f.type === 'money', then: { editor: null } },
-      ]),
+      defineInputViews({
+        rules: [{ when: (f) => f.type === 'money', then: { editor: null } }],
+      }),
     )
     const input = screen.getByDisplayValue('-5')
     expect(input).toHaveAttribute('readonly')
     expect(input).not.toHaveClass('wb-editable')
+  })
+})
+
+describe('defineCellViews', () => {
+  const Input: InputEditor = () => null
+  const grid = { component: 'agTextCellEditor' }
+
+  it('builds grid and input registries from one list of editors', () => {
+    const views = defineCellViews({
+      editors: { year: { grid, input: Input } },
+      rules: [{ when: (f) => f.type === 'year', then: { editor: 'year' } }],
+    })
+    expect(views.input.year).toBe(Input)
+    expect(views.input.date).toBeDefined() // defaults kept
+  })
+
+  it('makes a missing component or an unknown id a type error', () => {
+    defineCellViews({
+      // @ts-expect-error an editor needs a component for every view
+      editors: { year: { grid } },
+    })
+    defineCellViews({
+      editors: { year: { grid, input: Input } },
+      // @ts-expect-error 'yaer' is neither built in nor registered
+      rules: [{ when: () => true, then: { editor: 'yaer' } }],
+    })
+    expect(true).toBe(true)
   })
 })

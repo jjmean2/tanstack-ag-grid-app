@@ -2,7 +2,7 @@ import { buildWorkbook, checkWorkbook } from '@lab/workbook'
 import { initialVat, vatWorkbook } from './vat-form'
 import type { VatState } from './vat-form'
 
-const build = (state: VatState) => buildWorkbook(vatWorkbook, state, () => {})
+const build = (state: VatState) => buildWorkbook(vatWorkbook, state)
 
 describe('vat form definition', () => {
   it('builds without definition errors', () => {

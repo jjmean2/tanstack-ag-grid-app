@@ -5,6 +5,7 @@ import { SheetGrid } from '@lab/workbook/ag-grid'
 import { useScreenSession } from '#/shared/lib/screen/use-screen-session'
 import { PageHeader } from '#/shared/ui/page-header'
 import { ScreenLayout } from '#/shared/ui/screen-layout'
+import type { ScreenTab } from '#/shared/ui/screen-layout'
 import {
   issueCounts,
   taxWorkbook,
@@ -14,14 +15,25 @@ import { SessionDebug } from '#/widgets/tax-workbook/ui/session-debug'
 import { TaxTab } from '#/widgets/tax-workbook/ui/tax-tab'
 import { WorkbookSummary } from '#/widgets/tax-workbook/ui/workbook-summary'
 
-const tabs = [
-  { id: 'company', label: '기본정보', render: () => <CompanyTab /> },
+const tabs: ScreenTab[] = [
+  {
+    id: 'company',
+    label: '기본정보',
+    sheets: ['company'],
+    render: () => <CompanyTab />,
+  },
   {
     id: 'adjustment',
     label: '소득금액조정',
+    sheets: ['adj'],
     render: () => <SheetGrid sheetId="adj" />,
   },
-  { id: 'tax', label: '세액계산', render: () => <TaxTab /> },
+  {
+    id: 'tax',
+    label: '세액계산',
+    sheets: ['inputs', 'calc'],
+    render: () => <TaxTab />,
+  },
 ]
 
 export function WorkbookSheetPage() {
@@ -29,8 +41,8 @@ export function WorkbookSheetPage() {
   // Other screens are not loaded: only the values they exported are read.
   const session = useScreenSession<TaxSession>({
     id: 'tax',
+    def: taxWorkbook,
     initial: () => toSession(taxSessionResponse),
-    tab: 'adjustment',
     imports: ['closing'],
   })
 
@@ -43,12 +55,12 @@ export function WorkbookSheetPage() {
       />
       <ScreenLayout
         session={session}
-        def={taxWorkbook}
+        tab="adjustment"
         tabs={tabs}
         toolbar={<WorkbookSummary />}
         issues={issueCounts}
       />
-      <SessionDebug store={session.store} />
+      <SessionDebug store={session.workbook.store} />
     </main>
   )
 }

@@ -1,4 +1,4 @@
-import type { Cell, ResolvedRow, Tags } from './types'
+import type { Cell, Row, Tags } from './types'
 
 // Marks: the classes every view puts on a cell or a row, so one theme styles a
 // cell the same way whether a grid, an input or a form box shows it. They say
@@ -40,7 +40,7 @@ export function factMarks(cell: Cell): string[] {
   return marks
 }
 
-export const rowMarks = (row: Pick<ResolvedRow, 'tags'>): string[] => [
+export const rowMarks = (row: Pick<Row, 'tags'>): string[] => [
   'wb-row',
   ...row.tags.map(tagClass),
 ]

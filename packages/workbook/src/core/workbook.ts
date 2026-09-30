@@ -7,7 +7,6 @@ import {
   splitAddress,
   splitExternal,
 } from './address'
-import { T } from './cell-types'
 import { toTags } from './marks'
 import type { CellType } from './cell-types'
 import { FormulaError, STRUCTURAL_ERRORS } from './formula/errors'
@@ -17,27 +16,28 @@ import { parseFormula } from './formula/parser'
 import type { Parsed } from './formula/parser'
 import type {
   Address,
-  BuildCtx,
   Cell,
   CellSpec,
-  TagFn,
+  ColumnDef,
   ExportedValue,
   ExternalRef,
-  Externals,
-  FormSheetDef,
+  ExternalValue,
   FormulaPart,
-  ResolvedRow,
-  SheetColumnDef,
+  LeafColumnDef,
+  Row,
+  RowsCtx,
+  SavedExports,
+  Sheet,
   SheetDef,
-  SheetLeaf,
-  SheetView,
+  TagFn,
   Update,
   Workbook,
   WorkbookDef,
 } from './types'
 
-export function flattenLeafs(defs: SheetColumnDef[]): SheetLeaf[] {
-  return defs.flatMap((d) => ('children' in d ? flattenLeafs(d.children) : [d]))
+// The columns that hold cells, column groups flattened.
+export function leafColumns(defs: ColumnDef[]): LeafColumnDef[] {
+  return defs.flatMap((d) => ('children' in d ? leafColumns(d.children) : [d]))
 }
 
 // `exports` names the cells other screens may reference as
@@ -79,26 +79,24 @@ function toParts(
   return parts
 }
 
-// Builds every sheet from the session state (no grid involved), then evaluates
+// Builds every sheet from the session state (no view involved), then evaluates
 // all formulas, which may reference cells of any sheet, and values other
-// screens exported (`externals`).
+// screens saved (`externals`). `update` is what editable cells write through.
 export function buildWorkbook<TState>(
   def: WorkbookDef<TState>,
   state: TState,
-  update: Update<TState>,
-  externals: Externals = () => undefined,
+  opts: { update?: Update<TState>; externals?: SavedExports } = {},
 ): Workbook {
+  const update: Update<TState> = opts.update ?? (() => {})
+  const saved = opts.externals ?? {}
   const cells = new Map<Address, Cell>()
   const members = new Map<Address, Cell[]>() // group address -> its cells
   const declaredGroups = new Map<string, string>() // `sheet/@group` -> label
-  const leafsBySheet = new Map<string, SheetLeaf[]>()
-  const sheets: Record<string, SheetView | undefined> = {}
+  const leafsBySheet = new Map<string, LeafColumnDef[]>()
+  const rowLabels = new Map<string, string>() // `sheet/row` -> RowSpec.label
+  const sheets: Record<string, Sheet | undefined> = {}
   const formulaCells: Cell[] = []
   const tagFns: { cell: Cell; fn: TagFn }[] = []
-  const formNames = new Map<
-    string,
-    { rows: Map<string, string>; cols: Record<string, string> }
-  >()
 
   // Makes a cell findable by formulas, lookups and views.
   const register = (
@@ -129,69 +127,14 @@ export function buildWorkbook<TState>(
     return cell
   }
 
-  // A form sheet: boxes on a grid. Checks that every box fits the columns and
-  // that no two boxes overlap, then registers its cells.
-  const buildForm = (sheet: FormSheetDef<TState>): SheetView => {
-    const items = sheet.layout.flatMap((node) =>
-      node({ state, sheetId: sheet.id, update }),
-    )
-    const taken = new Map<string, string>() // "row,col" -> the box covering it
-    const rowNames = new Map<string, string>()
-    const view = items.map((item) => {
-      const [row, col, rowSpan = 1, colSpan = 1] = item.at
-      const what = 'ref' in item ? `cell "${item.ref}"` : `text "${item.text}"`
-      const where = `${what} of form "${sheet.id}"`
-      if (row < 1 || col < 1 || col + colSpan - 1 > sheet.tracks.length)
-        throw new Error(
-          `${where} is outside its ${sheet.tracks.length} columns`,
-        )
-      for (let r = row; r < row + rowSpan; r++) {
-        for (let c = col; c < col + colSpan; c++) {
-          const other = taken.get(`${r},${c}`)
-          if (other) throw new Error(`${where} overlaps ${other}`)
-          taken.set(`${r},${c}`, what)
-        }
-      }
-      if (!('ref' in item))
-        return { at: item.at, text: item.text, tags: toTags(item.tags) }
-
-      const parts = item.ref.split('/')
-      if (parts.length !== 2 || parts.some((p) => p === ''))
-        throw new Error(`${where}: ref must be "row/col"`)
-      const [rowId, colId] = parts
-      const address = cellAddress(sheet.id, rowId, colId)
-      register(
-        address,
-        { sheetId: sheet.id, rowId, colId },
-        item.cell.type ?? T.text,
-        item.cell,
-      )
-      if (item.name && !rowNames.has(rowId)) rowNames.set(rowId, item.name)
-      return { at: item.at, address, tags: toTags(item.tags) }
-    })
-    formNames.set(sheet.id, { rows: rowNames, cols: sheet.colNames ?? {} })
-    return {
-      id: sheet.id,
-      title: sheet.title,
-      tab: sheet.tab,
-      columns: [],
-      rows: [],
-      form: { tracks: sheet.tracks, items: view },
-    }
-  }
-
   // 1) Build the rows of every sheet and resolve each cell's type.
   for (const sheet of def.sheets) {
-    if (sheet.kind === 'form') {
-      sheets[sheet.id] = buildForm(sheet)
-      continue
-    }
-    const leafs = flattenLeafs(sheet.columns)
+    const leafs = leafColumns(sheet.columns)
     leafsBySheet.set(sheet.id, leafs)
     const leafById = new Map(leafs.map((leaf) => [leaf.colId, leaf]))
     const indexOf = new Map(leafs.map((leaf, i) => [leaf.colId, i]))
 
-    const ctx: BuildCtx<TState> = {
+    const ctx: RowsCtx<TState> = {
       state,
       sheetId: sheet.id,
       columns: leafs,
@@ -200,10 +143,10 @@ export function buildWorkbook<TState>(
         declaredGroups.set(`${sheet.id}/@${id}`, label)
       },
     }
-    const specs = sheet.layout.flatMap((node) => node(ctx))
+    const specs = sheet.rows.flatMap((node) => node(ctx))
 
     const seen = new Set<string>()
-    const rows = specs.map((spec): ResolvedRow => {
+    const rows = specs.map((spec): Row => {
       if (spec.id.includes('/'))
         throw new Error(`Row id must not contain "/": ${spec.id}`)
       if (seen.has(spec.id)) {
@@ -215,6 +158,7 @@ export function buildWorkbook<TState>(
           `A full width row has no cells: row "${spec.id}" of sheet "${sheet.id}"`,
         )
 
+      if (spec.label) rowLabels.set(`${sheet.id}/${spec.id}`, spec.label)
       const rowTags = toTags(spec.tags)
       const rowCells: Record<string, Cell> = {}
       for (const [colId, cellSpec] of Object.entries(spec.cells)) {
@@ -258,7 +202,7 @@ export function buildWorkbook<TState>(
       }
       return {
         id: spec.id,
-        kind: spec.kind,
+        label: spec.label,
         tags: rowTags,
         group: spec.group,
         cells: rowCells,
@@ -269,7 +213,6 @@ export function buildWorkbook<TState>(
     sheets[sheet.id] = {
       id: sheet.id,
       title: sheet.title,
-      tab: sheet.tab,
       columns: sheet.columns,
       rows,
     }
@@ -291,10 +234,25 @@ export function buildWorkbook<TState>(
     return (members.get(address) ?? []).map(valueOfCell)
   }
 
+  // Another screen's exported value, as it saved it.
+  const external = (address: Address): ExternalValue | undefined => {
+    if (!isExternalAddress(address)) return undefined
+    const { screen, name } = splitExternal(address)
+    const snapshot = saved[screen]
+    const value = snapshot?.values[name]
+    if (!snapshot || !value) return undefined
+    return {
+      ...value,
+      screen,
+      screenTitle: snapshot.title,
+      savedAt: snapshot.savedAt,
+    }
+  }
+
   const externalRefs = new Map<Address, ExternalRef>()
   const readExternal = (address: Address): Scalar => {
     const { screen, name } = splitExternal(address)
-    const value = externals(screen, name)
+    const value = external(address)
     externalRefs.set(address, { address, screen, name, value })
     if (!value) throw new FormulaError('#EXT!', `${address} is not saved`)
     if (value.error)
@@ -378,19 +336,15 @@ export function buildWorkbook<TState>(
     (STRUCTURAL_ERRORS as readonly string[]).includes(e.code),
   )
 
-  // A row is named by its first column, past merged section labels (which
-  // are the same for every row of a block).
+  // A row is named by its label, else by its first column past merged section
+  // labels (which are the same for every row of a block).
   const rowLabelOf = (sheetId: string, rowId: string) => {
+    const label = rowLabels.get(`${sheetId}/${rowId}`)
+    if (label) return label
     const first = leafsBySheet.get(sheetId)?.find((leaf) => !leaf.spanRows)
     const cell = first && cells.get(cellAddress(sheetId, rowId, first.colId))
     const text = cell ? cell.type.format(cell.value) : ''
     return text || '(이름 없음)'
-  }
-
-  const external = (address: Address) => {
-    if (!isExternalAddress(address)) return undefined
-    const { screen, name } = splitExternal(address)
-    return externals(screen, name)
   }
 
   const workbook: Workbook = {
@@ -415,23 +369,17 @@ export function buildWorkbook<TState>(
           : `${screen} › ${name}`
       }
       const { sheetId, rowId, colId } = splitAddress(address)
-      const form = formNames.get(sheetId)
       const header =
-        form?.cols[colId] ??
-        (leafsBySheet.get(sheetId)?.find((leaf) => leaf.colId === colId)
-          ?.headerName ||
-          colId)
+        leafsBySheet.get(sheetId)?.find((leaf) => leaf.colId === colId)
+          ?.headerName || colId
       const sameSheet = from?.sheetId === sheetId
       if (sameSheet && from.rowId === rowId) return header
-      const rowLabel = form
-        ? (form.rows.get(rowId) ?? rowId)
-        : rowId.startsWith('@')
-          ? (declaredGroups.get(`${sheetId}/${rowId}`) ?? rowId.slice(1))
-          : rowLabelOf(sheetId, rowId)
+      const rowLabel = rowId.startsWith('@')
+        ? (declaredGroups.get(`${sheetId}/${rowId}`) ?? rowId.slice(1))
+        : rowLabelOf(sheetId, rowId)
       const sheetPart = sameSheet ? [] : [sheets[sheetId]?.title ?? sheetId]
       return [...sheetPart, rowLabel, header].join(' › ')
     },
-    tabOf: (sheetId) => sheets[sheetId]?.tab,
     errors,
     structuralErrors,
     exports: {},

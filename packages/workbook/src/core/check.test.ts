@@ -7,11 +7,11 @@ import {
   row,
   T,
 } from '../index'
-import type { SheetColumnDef } from '../index'
+import type { ColumnDef } from '../index'
 
 type S = { list: { id: string }[] }
 
-const columns: SheetColumnDef[] = [
+const columns: ColumnDef[] = [
   { colId: 'label', headerName: '항목', type: T.text },
   { colId: 'value', headerName: '값', type: T.money },
 ]
@@ -20,9 +20,8 @@ const def = defineWorkbook<S>([
   {
     id: 's',
     title: 's',
-    tab: 's',
     columns,
-    layout: [
+    rows: [
       items('list'),
       // A fixed row whose id collides with an item id `x`.
       row('x', {}, () => ({ label: labelCell('x') })),

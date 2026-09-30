@@ -10,15 +10,14 @@ import {
   labelCell,
   row,
   spanned,
-  splitAddress,
   subtotal,
   T,
   title,
 } from '@lab/workbook'
-import type { CellType, SheetColumnDef, Workbook } from '@lab/workbook'
+import type { CellType, ColumnDef, Workbook } from '@lab/workbook'
 
 // A workbook is a set of sheets (one per grid). Each sheet has columns (which
-// give a default cell type) and a layout (the rows, top to bottom). Formulas
+// give a default cell type) and rows (top to bottom). Formulas
 // reference cells by address: `[sheet/row/col]`, `[row/col]` in the same sheet,
 // `[.col]` in the same row, and `[@list/col]` for every row of a list.
 
@@ -32,14 +31,14 @@ const year: CellType<number> = {
   format: (v) => (typeof v === 'number' ? String(v) : ''),
 }
 
-const companyColumns: SheetColumnDef[] = [
+const companyColumns: ColumnDef[] = [
   { colId: 'label', headerName: '항목', type: T.text },
   { colId: 'value', headerName: '값', type: T.text, flex: 2 },
 ]
 
 // --- 소득금액조정 -----------------------------------------------------------
 
-const adjustmentColumns: SheetColumnDef[] = [
+const adjustmentColumns: ColumnDef[] = [
   // Merged down per block (see `spanned` below).
   {
     colId: 'section',
@@ -87,7 +86,7 @@ const amountCols = ['book', 'tax', 'diff']
 
 // --- 세율·공제 입력 / 세액 계산 -----------------------------------------------
 
-const valueColumns: SheetColumnDef[] = [
+const valueColumns: ColumnDef[] = [
   { colId: 'label', headerName: '항목', type: T.text, flex: 2 },
   { colId: 'value', headerName: '값', type: T.money },
 ]
@@ -96,9 +95,8 @@ export const taxWorkbook = defineWorkbook<TaxSession>([
   {
     id: 'company',
     title: '기본정보',
-    tab: 'company',
     columns: companyColumns,
-    layout: [
+    rows: [
       fields('company', {
         name: '회사명',
         ceo: '대표자',
@@ -110,9 +108,8 @@ export const taxWorkbook = defineWorkbook<TaxSession>([
   {
     id: 'adj',
     title: '소득금액조정',
-    tab: 'adjustment',
     columns: adjustmentColumns,
-    layout: [
+    rows: [
       // Add buttons are full width rows: kept outside the merged blocks, which
       // they would otherwise cut in two.
       addRow('a-add', 'adds', newAdjustmentItem, '+ 익금산입 항목 추가'),
@@ -159,9 +156,8 @@ export const taxWorkbook = defineWorkbook<TaxSession>([
   {
     id: 'inputs',
     title: '세율·공제 입력',
-    tab: 'tax',
     columns: valueColumns,
-    layout: [
+    rows: [
       title('t-rates', '세율'),
       fields('rates', {
         standard: { label: '법인세율', type: T.percent },
@@ -198,9 +194,8 @@ export const taxWorkbook = defineWorkbook<TaxSession>([
   {
     id: 'calc',
     title: '세액 계산',
-    tab: 'tax',
     columns: valueColumns,
-    layout: [
+    rows: [
       // Read from the closing screen: only its saved export, not its sheets.
       row('net-income', {}, () => ({
         label: labelCell('결산서상 당기순이익 (결산 화면)'),
@@ -267,23 +262,18 @@ export const taxWorkbook = defineWorkbook<TaxSession>([
   },
 ])
 
-// Open issues per tab, shown as badges on the tab bar.
+// Open issues per tab, beyond formula errors (the screen counts those): shown
+// as badges on the tab bar.
 export function issueCounts(
   wb: Workbook,
   state: TaxSession,
 ): Record<TabId, number> {
-  const errorsOn = (tab: TabId) =>
-    wb.errors.filter((e) => wb.tabOf(splitAddress(e.address).sheetId) === tab)
-      .length
   const emptyAccounts = [...state.adds, ...state.subs].filter(
     (i) => i.account.trim() === '',
   ).length
   return {
-    company: (state.company.name.trim() === '' ? 1 : 0) + errorsOn('company'),
-    adjustment:
-      (wb.value('adj/gap/tax') === 0 ? 0 : 1) +
-      emptyAccounts +
-      errorsOn('adjustment'),
-    tax: (state.rates.standard > 0 ? 0 : 1) + errorsOn('tax'),
+    company: state.company.name.trim() === '' ? 1 : 0,
+    adjustment: (wb.value('adj/gap/tax') === 0 ? 0 : 1) + emptyAccounts,
+    tax: state.rates.standard > 0 ? 0 : 1,
   }
 }

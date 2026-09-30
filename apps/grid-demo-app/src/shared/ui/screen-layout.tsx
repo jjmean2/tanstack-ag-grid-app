@@ -1,9 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
-import { screenExports, screenStorage, splitAddress } from '@lab/workbook'
-import type { Workbook, WorkbookDef } from '@lab/workbook'
-import { SheetGridProvider } from '@lab/workbook/ag-grid'
+import { screenExports } from '@lab/workbook'
+import type { Workbook } from '@lab/workbook'
 import {
   ExternalRefs,
   FormulaBar,
@@ -14,79 +13,74 @@ import {
   WorkbookErrorBoundary,
   WorkbookProvider,
 } from '@lab/workbook/react'
-import { playgroundGridTheme } from '#/shared/config/ag-grid'
-import {
-  gridDisplays,
-  gridEditors,
-  inputEditors,
-  presentation,
-} from '#/shared/ui/workbook-view'
 import { useCellSearch, useOpenScreen } from '#/shared/lib/screen/router'
+import { screenStorage } from '#/shared/lib/screen/storage'
 import type { ScreenSession } from '#/shared/lib/screen/use-screen-session'
+import { cellViews } from '#/shared/ui/workbook-view'
 
-export type ScreenTab = { id: string; label: string; render: () => ReactNode }
+// A tab of a screen: what it shows (`render`) and which sheets that includes,
+// so following a reference to one of them opens this tab.
+export type ScreenTab = {
+  id: string
+  label: string
+  sheets: readonly string[]
+  render: () => ReactNode
+}
 
 type Props<TState> = {
   session: ScreenSession<TState>
-  def: WorkbookDef<TState>
   tabs: ScreenTab[] // one tab: no tab bar
+  tab?: string // shown first; the first tab by default
   // Left of the status bar, inside the workbook (may use `useWorkbook`).
   toolbar?: ReactNode
-  // Badge per tab; by default the formula errors on the tab's sheets.
+  // Issues per tab to add to its formula errors (badge on the tab).
   issues?: (wb: Workbook, state: TState) => Record<string, number>
 }
 
 // The frame every screen shares: the workbook and its error boundary, the
 // status bar (changed / save / reset), references to other screens, the
-// formula bar, the tab bar, and focusing a cell named in the URL.
+// formula bar, the tabs, and focusing a cell named in the URL.
 export function ScreenLayout<TState extends object>(props: Props<TState>) {
-  const { session, def } = props
   const openScreen = useOpenScreen()
   return (
-    <SheetGridProvider
-      theme={playgroundGridTheme}
-      editors={gridEditors}
-      displays={gridDisplays}
-    >
-      <WorkbookErrorBoundary>
-        <WorkbookProvider
-          store={session.store}
-          def={def}
-          ui={session.ui}
-          externals={session.externals}
-          openScreen={openScreen}
-          presentation={presentation}
-          inputEditors={inputEditors}
-        >
-          <Screen {...props} />
-        </WorkbookProvider>
-      </WorkbookErrorBoundary>
-    </SheetGridProvider>
+    <WorkbookErrorBoundary>
+      <WorkbookProvider
+        session={props.session.workbook}
+        views={cellViews}
+        openScreen={openScreen}
+      >
+        <Screen {...props} />
+      </WorkbookProvider>
+    </WorkbookErrorBoundary>
   )
 }
 
 function Screen<TState extends object>({
   session,
   tabs,
+  tab: firstTab,
   toolbar,
   issues,
 }: Props<TState>) {
-  const { wb } = useWorkbook()
-  const state = useStore(session.store, (s) => s)
-  const tab = useStore(session.ui, (s) => s.tab)
+  const { wb, ui } = useWorkbook()
+  const state = useStore(session.workbook.store, (s) => s)
+  const [tab, setTab] = useState(firstTab ?? tabs[0].id)
   const [cell, clearCell] = useCellSearch()
   useFocusAddress(cell, clearCell)
 
-  const badges = issues
-    ? issues(wb, state)
-    : Object.fromEntries(
-        tabs.map((t) => [
-          t.id,
-          wb.errors.filter(
-            (e) => wb.tabOf(splitAddress(e.address).sheetId) === t.id,
-          ).length,
-        ]),
-      )
+  // Following a reference to a sheet of another tab opens that tab; the view
+  // there takes the request once it has mounted.
+  const pending = useStore(ui, (s) => s.pending)
+  useEffect(() => {
+    const sheet = pending?.targets[0]?.sheetId
+    const target = tabs.find((t) => sheet && t.sheets.includes(sheet))
+    if (target) setTab(target.id)
+  }, [pending, tabs])
+
+  const extra = issues?.(wb, state) ?? {}
+  const badge = (t: ScreenTab) =>
+    wb.errors.filter((e) => t.sheets.includes(e.address.split('/')[0])).length +
+    (extra[t.id] ?? 0)
   const current = tabs.find((t) => t.id === tab) ?? tabs[0]
 
   return (
@@ -107,12 +101,12 @@ function Screen<TState extends object>({
                 role="tab"
                 aria-selected={current.id === t.id}
                 className={`flex cursor-pointer items-center gap-2 border-r border-[#c5d0c7] px-5 py-3 text-sm font-bold ${current.id === t.id ? 'bg-[#fffdf8] text-[#17312d]' : 'bg-[#eef3ed] text-[#536863]'}`}
-                onClick={() => session.ui.set((s) => ({ ...s, tab: t.id }))}
+                onClick={() => setTab(t.id)}
               >
                 {t.label}
-                {(badges[t.id] ?? 0) > 0 && (
+                {badge(t) > 0 && (
                   <span className="rounded-full bg-[#c0392b] px-1.5 text-xs text-white">
-                    {badges[t.id]}
+                    {badge(t)}
                   </span>
                 )}
               </button>

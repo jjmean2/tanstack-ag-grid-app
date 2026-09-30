@@ -1,5 +1,4 @@
-import type { Store } from '../store/create-store'
-import type { ScreenExports } from '../core/types'
+import type { SavedExports, ScreenExports, Store } from '@lab/workbook'
 
 // Saves each screen's state and, separately, what it exports, so a screen that
 // references another one reads only a few values, not that screen's state.
@@ -40,19 +39,16 @@ export const screenStorage = {
   save: <TState>(screen: string, state: TState, exports: ScreenExports) =>
     write(stateKey(screen), state) && write(exportsKey(screen), exports),
 
-  loadExports: (screens: readonly string[]) =>
+  loadExports: (screens: readonly string[]): SavedExports =>
     Object.fromEntries(
       screens.map((screen) => [
         screen,
         read<ScreenExports>(exportsKey(screen)),
       ]),
-    ) as Record<string, ScreenExports | undefined>,
+    ),
 
   // Keeps `store` up to date when another browser tab saves one of `screens`.
-  watchExports: (
-    screens: readonly string[],
-    store: Store<Record<string, ScreenExports | undefined>>,
-  ) => {
+  watchExports: (screens: readonly string[], store: Store<SavedExports>) => {
     const onStorage = (event: StorageEvent) => {
       const screen = screens.find((s) => event.key === exportsKey(s))
       if (!screen) return

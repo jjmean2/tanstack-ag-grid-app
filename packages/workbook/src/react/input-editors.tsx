@@ -13,8 +13,7 @@ export type InputEditorProps = {
   // Parses like a grid editor and writes the cell; false when rejected.
   commit: (input: unknown) => boolean
   setInvalid: (invalid: boolean) => void // shows `wb-invalid`
-  marks: string // the cell's marks and the input's state, as classes
-  className: string // layout + marks: put it on the control
+  className: string // the marks: put them on the control
   // Spread on the focusable element: focus reporting (formula bar), reference
   // navigation (`ref`), and accessibility.
   control: {
@@ -119,14 +118,14 @@ function SelectInput({
   )
 }
 
-function CheckboxInput({ cell, commit, marks, control }: InputEditorProps) {
+function CheckboxInput({ cell, commit, className, control }: InputEditorProps) {
   const { ref, ...attrs } = control
   return (
     <input
       {...attrs}
       ref={ref as Ref<HTMLInputElement>}
       type="checkbox"
-      className={`size-5 ${marks}`}
+      className={className}
       checked={Boolean(cell.value)}
       onChange={(e) => commit(e.target.checked)}
     />

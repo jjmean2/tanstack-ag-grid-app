@@ -12,27 +12,23 @@ import {
   subtotal,
   title,
 } from '../index'
-import type { GridSheetDef, ResolvedRow, SheetColumnDef } from '../core/types'
+import type { SheetDef, Row, ColumnDef } from '../core/types'
 import { buildWorkbook, defineWorkbook } from '../core/workbook'
 
 type Item = { id: string; name: string; amount: number }
 type S = { list: Item[] }
 
-const columns: SheetColumnDef[] = [
+const columns: ColumnDef[] = [
   { colId: 'section', headerName: '구분', type: T.text, spanRows: true },
   { colId: 'name', headerName: '항목', type: T.text, editable: true },
   { colId: 'amount', headerName: '금액', type: T.money, editable: true },
 ]
 
-const sheet = (
-  layout: GridSheetDef<S>['layout'],
-  cols = columns,
-): GridSheetDef<S> => ({
+const sheet = (rows: SheetDef<S>['rows'], cols = columns): SheetDef<S> => ({
   id: 's',
   title: 's',
-  tab: 's',
   columns: cols,
-  layout,
+  rows,
 })
 
 const state: S = {
@@ -56,7 +52,6 @@ describe('layout with a spanRows column', () => {
       ]),
     ]),
     state,
-    noop,
   )
   const rows = wb.sheets.s!.rows
   const byId = (id: string) => rows.find((r) => r.id === id)!
@@ -94,8 +89,8 @@ describe('layout with a spanRows column', () => {
 })
 
 describe('definition checks', () => {
-  const build = (def: GridSheetDef<S>) =>
-    buildWorkbook(defineWorkbook<S>([def]), state, noop)
+  const build = (def: SheetDef<S>) =>
+    buildWorkbook(defineWorkbook<S>([def]), state)
 
   const middle = [columns[1], columns[0], columns[2]] // 항목 | 구분 | 금액
 
@@ -127,7 +122,6 @@ describe('definition checks', () => {
           () => [
             {
               id: 'r',
-              kind: 'title',
               cells: { name: labelCell('x') },
               fullWidth: { kind: 'title', text: 'x' },
             },
@@ -169,7 +163,7 @@ describe('definition checks', () => {
 })
 
 describe('grid adapter', () => {
-  const [section, name] = createGridColumns(columns) as ColDef<ResolvedRow>[]
+  const [section, name] = createGridColumns(columns) as ColDef<Row>[]
   const rows = buildWorkbook(
     defineWorkbook<S>([
       sheet([
@@ -178,14 +172,13 @@ describe('grid adapter', () => {
       ]),
     ]),
     state,
-    noop,
   ).sheets.s!.rows
-  const node = (data: ResolvedRow) => ({ data }) as IRowNode<ResolvedRow>
-  const spans = (a: ResolvedRow, b: ResolvedRow) =>
-    (section.spanRows as (p: SpanRowsParams<ResolvedRow>) => boolean)({
+  const node = (data: Row) => ({ data }) as IRowNode<Row>
+  const spans = (a: Row, b: Row) =>
+    (section.spanRows as (p: SpanRowsParams<Row>) => boolean)({
       nodeA: node(a),
       nodeB: node(b),
-    } as SpanRowsParams<ResolvedRow>)
+    } as SpanRowsParams<Row>)
 
   it('uses spanRows instead of colSpan on a spanRows column', () => {
     expect(section.colSpan).toBeUndefined()

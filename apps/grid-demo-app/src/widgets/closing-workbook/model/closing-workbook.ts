@@ -7,7 +7,7 @@ import {
   T,
   title,
 } from '@lab/workbook'
-import type { SheetColumnDef } from '@lab/workbook'
+import type { ColumnDef } from '@lab/workbook'
 
 // The closing screen: an income statement whose net income the tax screen
 // reads as `[ext:closing/netIncome]`.
@@ -32,7 +32,7 @@ export const initialClosing: ClosingState = {
   },
 }
 
-const columns: SheetColumnDef[] = [
+const columns: ColumnDef[] = [
   { colId: 'label', headerName: '과목', type: T.text, flex: 2 },
   { colId: 'value', headerName: '금액', type: T.money },
 ]
@@ -42,9 +42,8 @@ export const closingWorkbook = defineWorkbook<ClosingState>(
     {
       id: 'is',
       title: '손익계산서',
-      tab: 'is',
       columns,
-      layout: [
+      rows: [
         title('t-op', 'Ⅰ. 영업손익'),
         fields('pl', {
           revenue: '매출액',

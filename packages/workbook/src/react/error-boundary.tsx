@@ -22,22 +22,17 @@ export class WorkbookErrorBoundary extends Component<
     const { error } = this.state
     if (!error) return this.props.children
     return (
-      <div
-        role="alert"
-        className="mx-auto grid max-w-375 gap-3 border border-[#e2b9a4] bg-[#fbf1ea] px-6 py-5 font-sans text-sm text-[#17312d]"
-      >
-        <strong className="text-base text-[#c0392b]">
+      <div role="alert" className="wb-error-boundary">
+        <strong className="wb-error-boundary-title">
           양식을 표시할 수 없습니다
         </strong>
-        <p className="text-[#536863]">
+        <p className="wb-error-boundary-text">
           양식 정의에 오류가 있습니다. 입력한 데이터는 그대로 남아 있습니다.
         </p>
-        <code className="whitespace-pre-wrap bg-white px-3 py-2 text-xs">
-          {error.message}
-        </code>
+        <code className="wb-error-boundary-detail">{error.message}</code>
         <button
           type="button"
-          className="w-fit cursor-pointer border border-[#9aaba0] bg-white px-3 py-1.5 font-bold hover:bg-[#eef3ed]"
+          className="wb-button"
           onClick={() => this.setState({ error: null })}
         >
           다시 시도

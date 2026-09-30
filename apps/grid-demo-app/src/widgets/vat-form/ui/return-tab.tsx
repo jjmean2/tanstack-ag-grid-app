@@ -1,7 +1,8 @@
 import { FormSheet } from '@lab/workbook/react'
+import { infoLayout, returnLayout } from './return-layout'
 
-// The return: two form sheets stacked, with page text around them (headings
-// and notes are plain JSX, not part of the workbook definition).
+// The return: two form sheets stacked, placed by ./return-layout, with page
+// text around them (headings and notes are plain JSX).
 export function ReturnTab() {
   return (
     <div className="grid gap-6 p-6">
@@ -14,8 +15,8 @@ export function ReturnTab() {
           아닙니다.
         </p>
       </header>
-      <FormSheet sheetId="info" />
-      <FormSheet sheetId="ret" />
+      <FormSheet sheet="info" {...infoLayout} />
+      <FormSheet sheet="ret" {...returnLayout} />
       <p className="font-sans text-xs text-[#536863]">
         (10)·(11)란은 「매입 명세」 탭의 목록을 구분별로 합산합니다. 빗금 칸은
         해당 줄에서 쓰지 않는 칸입니다.

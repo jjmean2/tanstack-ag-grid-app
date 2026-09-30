@@ -1,4 +1,4 @@
-import type { Externals, WorkbookDef } from './types'
+import type { SavedExports, WorkbookDef } from './types'
 import { buildWorkbook } from './workbook'
 
 // A layout is a function of the state, so some definition bugs (a duplicate
@@ -9,12 +9,12 @@ import { buildWorkbook } from './workbook'
 export function checkWorkbook<TState>(
   def: WorkbookDef<TState>,
   samples: Record<string, TState>,
-  externals?: Externals,
+  externals?: SavedExports,
 ): string[] {
   const problems: string[] = []
   for (const [name, state] of Object.entries(samples)) {
     try {
-      const wb = buildWorkbook(def, state, () => {}, externals)
+      const wb = buildWorkbook(def, state, { externals })
       for (const e of wb.structuralErrors) {
         problems.push(
           `${name}: ${e.address} ${e.code}${e.detail ? ` (${e.detail})` : ''}`,

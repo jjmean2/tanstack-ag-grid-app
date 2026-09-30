@@ -8,19 +8,14 @@ export function ExternalRefs() {
   if (wb.externalRefs.length === 0) return null
 
   return (
-    <div
-      className="mx-auto mb-4 grid max-w-375 gap-2 border border-[#e2b9a4] bg-[#fbf1ea] px-4 py-3 font-sans text-sm"
-      data-external-refs
-    >
-      <span className="text-xs font-bold uppercase tracking-[0.05em] text-[#b35131]">
-        다른 화면에서 가져온 값
-      </span>
-      <ul className="grid gap-1.5">
+    <div className="wb-external-refs" data-external-refs>
+      <span className="wb-external-refs-title">다른 화면에서 가져온 값</span>
+      <ul className="wb-external-refs-list">
         {wb.externalRefs.map((ref) => (
-          <li key={ref.address} className="flex flex-wrap items-center gap-x-3">
+          <li key={ref.address} className="wb-external-ref">
             <button
               type="button"
-              className="cursor-pointer font-bold text-[#b35131] underline decoration-dotted underline-offset-4 hover:decoration-solid"
+              className="wb-external-ref-link"
               onClick={() => openScreen?.(ref.screen, ref.value?.address)}
             >
               {wb.labelOf(ref.address)} ↗
@@ -28,16 +23,16 @@ export function ExternalRefs() {
             {ref.value ? (
               <>
                 <span
-                  className={`font-mono font-bold ${ref.value.error ? 'text-[#c0392b]' : ''}`}
+                  className={`wb-external-ref-value ${ref.value.error ? 'wb-error' : ''}`}
                 >
                   {ref.value.text}
                 </span>
-                <span className="text-xs text-[#536863]">
+                <span className="wb-external-ref-meta">
                   {savedAtText(ref.value.savedAt)} 저장
                 </span>
               </>
             ) : (
-              <span className="text-xs font-bold text-[#c0392b]">
+              <span className="wb-external-ref-missing">
                 저장된 값이 없습니다. 해당 화면을 열어 저장하세요.
               </span>
             )}

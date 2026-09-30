@@ -2,27 +2,30 @@ import { render, screen } from '@testing-library/react'
 import type { ColDef, CellClassParams } from 'ag-grid-community'
 
 import { createGridColumns } from './ag-grid/columns'
+import { rowMarks } from './core/marks'
+import { defaultPresenter } from './core/presentation'
 import {
   buildWorkbook,
-  cellBox,
-  defaultPresenter,
-  createStore,
-  createUiStore,
+  createSession,
   defineWorkbook,
   formulaCell,
   inputCell,
   labelCell,
   row,
-  rowMarks,
   T,
-  textBox,
 } from './index'
-import type { ResolvedRow, SheetColumnDef } from './index'
-import { CellInput, FormSheet, WorkbookProvider } from './react'
+import type { Row, ColumnDef } from './index'
+import {
+  CellInput,
+  cellBox,
+  FormSheet,
+  textBox,
+  WorkbookProvider,
+} from './react'
 
 type S = { amount: number }
 
-const columns: SheetColumnDef[] = [
+const columns: ColumnDef[] = [
   { colId: 'label', headerName: '항목', type: T.text },
   { colId: 'value', headerName: '값', type: T.money },
 ]
@@ -31,9 +34,8 @@ const def = defineWorkbook<S>([
   {
     id: 'g',
     title: 'grid',
-    tab: 't',
     columns,
-    layout: [
+    rows: [
       row('amount', { tags: 'subtotal' }, (ctx) => ({
         label: labelCell('금액'),
         value: inputCell(ctx.state.amount, () => {}, { tags: 'input' }),
@@ -46,31 +48,24 @@ const def = defineWorkbook<S>([
     ],
   },
   {
-    kind: 'form',
     id: 'f',
     title: 'form',
-    tab: 't',
-    tracks: ['1fr', '1fr'],
-    layout: [
-      () => [
-        textBox([1, 1], '합계', 'head'),
-        cellBox(
-          [1, 2],
-          'x/y',
-          formulaCell('=[g/amount/value]*2', { type: T.money }),
-          {
-            tags: 'strong',
-          },
-        ),
-      ],
-    ],
+    columns: [{ colId: 'y', headerName: 'y', type: T.money }],
+    rows: [row('x', {}, () => ({ y: formulaCell('=[g/amount/value]*2') }))],
   },
 ])
 
-const noop = () => {}
+const form = (
+  <FormSheet
+    sheet="f"
+    tracks={['1fr', '1fr']}
+    boxes={[textBox([1, 1], '합계', 'head'), cellBox([1, 2], 'x/y', 'strong')]}
+  />
+)
+const session = () => createSession(def, { amount: 100 })
 
 describe('marks', () => {
-  const wb = buildWorkbook(def, { amount: 100 }, noop)
+  const wb = buildWorkbook(def, { amount: 100 })
   const amount = wb.cell('g/amount/value')!
 
   it('say what a cell is: type, source, tags (its row’s and its own), then editable and alignment', () => {
@@ -87,7 +82,7 @@ describe('marks', () => {
 
   it('choose value-dependent tags after evaluation', () => {
     expect(wb.cell('g/check/value')?.tags).toEqual(['pass'])
-    const failing = buildWorkbook(def, { amount: 99 }, noop)
+    const failing = buildWorkbook(def, { amount: 99 })
     expect(failing.cell('g/check/value')?.tags).toEqual(['fail'])
   })
 
@@ -99,22 +94,16 @@ describe('marks', () => {
   })
 
   it('are the same on a grid cell and on an input', () => {
-    const [, value] = createGridColumns(columns) as ColDef<ResolvedRow>[]
-    const cellClass = value.cellClass as (
-      p: CellClassParams<ResolvedRow>,
-    ) => string[]
+    const [, value] = createGridColumns(columns) as ColDef<Row>[]
+    const cellClass = value.cellClass as (p: CellClassParams<Row>) => string[]
     const gridMarks = cellClass({
       data: wb.sheets.g!.rows[0],
-    } as CellClassParams<ResolvedRow>)
+    } as CellClassParams<Row>)
 
     render(
-      <WorkbookProvider
-        store={createStore({ amount: 100 })}
-        def={def}
-        ui={createUiStore('t')}
-      >
+      <WorkbookProvider session={session()}>
         <CellInput address="g/amount/value" />
-        <FormSheet sheetId="f" />
+        {form}
       </WorkbookProvider>,
     )
     const input = screen.getAllByRole('textbox')[0]
@@ -123,15 +112,7 @@ describe('marks', () => {
   })
 
   it('put a form box’s tags on the box and the cell’s marks on its input', () => {
-    render(
-      <WorkbookProvider
-        store={createStore({ amount: 100 })}
-        def={def}
-        ui={createUiStore('t')}
-      >
-        <FormSheet sheetId="f" />
-      </WorkbookProvider>,
-    )
+    render(<WorkbookProvider session={session()}>{form}</WorkbookProvider>)
     expect(screen.getByText('합계')).toHaveClass(
       'wb-box',
       'wb-box-text',

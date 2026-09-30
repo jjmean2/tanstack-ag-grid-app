@@ -2,15 +2,22 @@ import { SheetGrid } from '@lab/workbook/ag-grid'
 import { useScreenSession } from '#/shared/lib/screen/use-screen-session'
 import { PageHeader } from '#/shared/ui/page-header'
 import { ScreenLayout } from '#/shared/ui/screen-layout'
+import type { ScreenTab } from '#/shared/ui/screen-layout'
 import { initialVat, vatWorkbook } from '#/widgets/vat-form/model/vat-form'
 import type { VatState } from '#/widgets/vat-form/model/vat-form'
 import { ReturnTab } from '#/widgets/vat-form/ui/return-tab'
 
-const tabs = [
-  { id: 'return', label: '신고서', render: () => <ReturnTab /> },
+const tabs: ScreenTab[] = [
+  {
+    id: 'return',
+    label: '신고서',
+    sheets: ['info', 'ret'],
+    render: () => <ReturnTab />,
+  },
   {
     id: 'purchases',
     label: '매입 명세',
+    sheets: ['purchases'],
     render: () => (
       <div className="p-6">
         <div className="border border-[#c5d0c7]">
@@ -24,8 +31,8 @@ const tabs = [
 export function WorkbookFormPage() {
   const session = useScreenSession<VatState>({
     id: 'vat',
+    def: vatWorkbook,
     initial: () => initialVat,
-    tab: 'return',
     persist: true,
   })
 
@@ -36,7 +43,7 @@ export function WorkbookFormPage() {
         title="Form sheet"
         description="Boxes placed on a grid like a paper form, with merges in any direction. Its boxes are workbook cells: select one to see its formula, and follow a reference into the purchase list grid."
       />
-      <ScreenLayout session={session} def={vatWorkbook} tabs={tabs} />
+      <ScreenLayout session={session} tabs={tabs} />
     </main>
   )
 }

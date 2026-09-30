@@ -9,13 +9,13 @@ import {
   T,
   title,
 } from '@lab/workbook'
-import type { SheetColumnDef } from '@lab/workbook'
+import type { ColumnDef } from '@lab/workbook'
 import type { AdjustmentState } from '#/entities/adjustment/model/types'
 
 // The smallest workbook: one sheet. Column groups, section titles, lists with
 // subtotals, one input cell, and a check that compares two cells.
 
-const columns: SheetColumnDef[] = [
+const columns: ColumnDef[] = [
   { colId: 'account', headerName: '계정과목', type: T.text, flex: 2 },
   {
     headerName: '금액',
@@ -50,9 +50,8 @@ export const adjustmentWorkbook = defineWorkbook<AdjustmentState>([
   {
     id: 'adj',
     title: '소득금액조정',
-    tab: 'adj',
     columns,
-    layout: [
+    rows: [
       title('t-add', 'Ⅰ. 익금산입'),
       items('adds', { label: '익금산입 항목' }),
       subtotal('s-add', '소 계', 'adds', amounts),

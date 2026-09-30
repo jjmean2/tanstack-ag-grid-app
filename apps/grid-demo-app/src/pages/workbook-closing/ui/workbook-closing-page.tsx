@@ -2,6 +2,7 @@ import { SheetGrid } from '@lab/workbook/ag-grid'
 import { useScreenSession } from '#/shared/lib/screen/use-screen-session'
 import { PageHeader } from '#/shared/ui/page-header'
 import { ScreenLayout } from '#/shared/ui/screen-layout'
+import type { ScreenTab } from '#/shared/ui/screen-layout'
 import {
   closingWorkbook,
   initialClosing,
@@ -9,10 +10,11 @@ import {
 import type { ClosingState } from '#/widgets/closing-workbook/model/closing-workbook'
 import { ClosingExports } from '#/widgets/closing-workbook/ui/closing-exports'
 
-const tabs = [
+const tabs: ScreenTab[] = [
   {
     id: 'is',
     label: '손익계산서',
+    sheets: ['is'],
     render: () => (
       <div className="p-6">
         <div className="max-w-2xl border border-[#c5d0c7]">
@@ -26,8 +28,8 @@ const tabs = [
 export function WorkbookClosingPage() {
   const session = useScreenSession<ClosingState>({
     id: 'closing',
+    def: closingWorkbook,
     initial: () => initialClosing,
-    tab: 'is',
     persist: true,
   })
 
@@ -40,7 +42,6 @@ export function WorkbookClosingPage() {
       />
       <ScreenLayout
         session={session}
-        def={closingWorkbook}
         tabs={tabs}
         toolbar={<ClosingExports />}
       />

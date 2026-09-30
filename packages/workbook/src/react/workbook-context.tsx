@@ -1,23 +1,15 @@
 import { createContext, useContext, useEffect, useMemo, useRef } from 'react'
 import type { ReactNode } from 'react'
 
-import { createStore } from '../store/create-store'
 import type { Store } from '../store/create-store'
 import { useStore } from './use-store'
-import { externalsFrom } from '../core/external'
 import { navigate } from '../core/navigation'
-import { defaultPresenter } from '../core/presentation'
-import type { Presenter } from '../core/presentation'
-import { defaultInputEditors } from './input-editors'
-import type { InputEditor } from './input-editors'
 import type { UiState } from '../core/navigation'
-import type {
-  Address,
-  ScreenExports,
-  Workbook,
-  WorkbookDef,
-} from '../core/types'
+import type { WorkbookSession } from '../core/session'
+import type { Address, Workbook } from '../core/types'
 import { buildWorkbook } from '../core/workbook'
+import { defaultViews } from './views'
+import type { CellViews } from './views'
 
 // Opens another screen, focusing `address` there when given.
 export type OpenScreen = (screen: string, address?: Address) => void
@@ -25,47 +17,37 @@ export type OpenScreen = (screen: string, address?: Address) => void
 type WorkbookContextValue = {
   wb: Workbook
   ui: Store<UiState>
+  views: CellViews
   openScreen?: OpenScreen
-  present: Presenter
-  inputEditors: Record<string, InputEditor>
 }
 
 const WorkbookContext = createContext<WorkbookContextValue | null>(null)
 
-const noExternals = createStore<Record<string, ScreenExports | undefined>>({})
-
 // Evaluates the whole workbook whenever the session state (or a saved export
-// of another screen) changes, and shares the result with every grid, the
-// formula bar and any other consumer.
+// of another screen) changes, and shares it with every view inside: grids,
+// form sheets, inputs, the formula bar.
+//
+//   session     createSession(def, initial): the state and UI stores
+//   views       how cells are shown (defineCellViews / defineInputViews);
+//               a module-level constant
+//   openScreen  how to open another screen (the app's router)
 export function WorkbookProvider<TState extends object>({
-  store,
-  def,
-  ui,
-  externals = noExternals,
+  session,
+  views = defaultViews,
   openScreen,
-  presentation = defaultPresenter,
-  inputEditors,
   children,
 }: {
-  store: Store<TState>
-  def: WorkbookDef<TState>
-  ui: Store<UiState>
-  externals?: Store<Record<string, ScreenExports | undefined>>
+  session: WorkbookSession<TState>
+  views?: CellViews
   openScreen?: OpenScreen
-  // How views show cells (editor, display, alignment, marks); the library's
-  // defaults unless the app defines its rules (`definePresentation`).
-  presentation?: Presenter
-  // Components for editor ids in `CellInput`, added to or replacing the
-  // defaults (`defaultInputEditors`). Pass a module-level constant.
-  inputEditors?: Record<string, InputEditor>
   children: ReactNode
 }) {
+  const { def, store, ui, externals } = session
   const state = useStore(store, (s) => s)
   const saved = useStore(externals, (s) => s)
-  const lookup = useMemo(() => externalsFrom(saved), [saved])
   const wb = useMemo(
-    () => buildWorkbook(def, state, store.set, lookup),
-    [def, state, store, lookup],
+    () => buildWorkbook(def, state, { update: store.set, externals: saved }),
+    [def, state, store, saved],
   )
 
   // Formulas are fixed, so a structural error (unknown reference, cycle, ...)
@@ -81,19 +63,9 @@ export function WorkbookProvider<TState extends object>({
     console.error(`Workbook has formula errors:\n${message}`)
   }, [wb])
 
-  const editors = useMemo(
-    () => ({ ...defaultInputEditors, ...inputEditors }),
-    [inputEditors],
-  )
   const value = useMemo(
-    () => ({
-      wb,
-      ui,
-      openScreen,
-      present: presentation,
-      inputEditors: editors,
-    }),
-    [wb, ui, openScreen, presentation, editors],
+    () => ({ wb, ui, views, openScreen }),
+    [wb, ui, views, openScreen],
   )
   return <WorkbookContext value={value}>{children}</WorkbookContext>
 }

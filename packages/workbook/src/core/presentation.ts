@@ -13,12 +13,20 @@ import type { Cell } from './types'
 
 export type Align = 'left' | 'right' | 'center'
 
-export type Presentation = {
+// Built-in display ids; editor ids built in are the `EditorKind`s.
+export type BuiltInDisplay = 'text' | 'button'
+
+// `TEditor` / `TDisplay`: the editor / display ids a set of rules may use, so
+// a typo is a type error (see `defineCellViews`).
+export type Presentation<
+  TEditor extends string = string,
+  TDisplay extends string = string,
+> = {
   // An editor id ('text', 'number', 'select', 'checkbox', 'date', or one the
   // app registers); null: shown read-only.
-  editor: string | null
+  editor: TEditor | null
   // How the value shows when not editing: 'text', 'button', or an app id.
-  display: string
+  display: TDisplay
   align: Align
   // Classes for the theme: the cell's facts (marks.ts), `wb-editable` when an
   // editor is set, `wb-align-<align>` unless left, and what rules add.
@@ -36,12 +44,18 @@ export type CellFacts = {
   value: unknown
 }
 
-export type PresentationRule = {
+export type PresentationRule<
+  TEditor extends string = string,
+  TDisplay extends string = string,
+> = {
   when: (facts: CellFacts) => boolean
   // Fields replace what earlier rules decided; `marks` are added to them.
   then:
-    | Partial<Presentation>
-    | ((current: Presentation, facts: CellFacts) => Partial<Presentation>)
+    | Partial<Presentation<TEditor, TDisplay>>
+    | ((
+        current: Presentation,
+        facts: CellFacts,
+      ) => Partial<Presentation<TEditor, TDisplay>>)
 }
 
 export type Presenter = (cell: Cell) => Presentation
@@ -65,9 +79,10 @@ const defaultsOf = (facts: CellFacts): Presentation => ({
   marks: [],
 })
 
-export function definePresentation(
-  rules: readonly PresentationRule[] = [],
-): Presenter {
+export function definePresentation<
+  TEditor extends string = string,
+  TDisplay extends string = string,
+>(rules: readonly PresentationRule<TEditor, TDisplay>[] = []): Presenter {
   // A built cell never changes, so its presentation is computed once.
   const cache = new WeakMap<Cell, Presentation>()
   return (cell) => {

@@ -1,18 +1,18 @@
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-import { createStore } from '../store/create-store'
 import { T } from '../core/cell-types'
 import { CellInput } from './cell-input'
 import { fields, formulaCell, labelCell, row } from '../index'
-import { createUiStore, navigate } from '../core/navigation'
-import type { SheetColumnDef, Workbook } from '../core/types'
+import { navigate } from '../core/navigation'
+import { createSession } from '../core/session'
+import type { ColumnDef, Workbook } from '../core/types'
 import { defineWorkbook } from '../core/workbook'
 import { useWorkbook, WorkbookProvider } from './workbook-context'
 
 type S = { basic: { name: string; year: number } }
 
-const columns: SheetColumnDef[] = [
+const columns: ColumnDef[] = [
   { colId: 'label', headerName: '항목', type: T.text },
   { colId: 'value', headerName: '값', type: T.text },
 ]
@@ -21,9 +21,8 @@ const def = defineWorkbook<S>([
   {
     id: 'form',
     title: '양식',
-    tab: 'main',
     columns,
-    layout: [
+    rows: [
       fields('basic', {
         name: '이름',
         year: { label: '연도', type: T.integer },
@@ -37,15 +36,15 @@ const def = defineWorkbook<S>([
 ])
 
 function setup() {
-  const store = createStore<S>({ basic: { name: '가', year: 2025 } })
-  const ui = createUiStore('main')
+  const session = createSession(def, { basic: { name: '가', year: 2025 } })
+  const { store, ui } = session
   let wb!: Workbook
   function Probe() {
     wb = useWorkbook().wb
     return null
   }
   render(
-    <WorkbookProvider store={store} def={def} ui={ui}>
+    <WorkbookProvider session={session}>
       <CellInput address="form/basic.name/value" />
       <CellInput address="form/basic.year/value" />
       <CellInput address="form/next/value" />

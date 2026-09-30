@@ -3,9 +3,9 @@ import type { ColDef, ColGroupDef } from 'ag-grid-community'
 import { INVALID } from '../core/cell-types'
 import { defaultPresenter } from '../core/presentation'
 import type { Presenter } from '../core/presentation'
-import type { ResolvedRow, SheetColumnDef, SheetLeaf } from '../core/types'
-import { defaultGridDisplays, defaultGridEditors } from './grid-config'
-import type { GridDisplay, GridEditor } from './grid-config'
+import type { Row, ColumnDef, LeafColumnDef } from '../core/types'
+import { defaultGridDisplays, defaultGridEditors } from './views'
+import type { GridDisplay, GridEditor } from './views'
 
 export type GridColumnsOptions = {
   present?: Presenter
@@ -17,13 +17,12 @@ export type GridColumnsOptions = {
 // and its presentation. Row kinds, types, formulas and the app's presentation
 // rules were all settled before, so nothing here branches on them.
 function createLeafColDef(
-  col: SheetLeaf,
+  col: LeafColumnDef,
   { present, editors, displays }: Required<GridColumnsOptions>,
-): ColDef<ResolvedRow> {
-  const cellOf = (data: ResolvedRow | undefined) => data?.cells[col.colId]
-  const typeOf = (data: ResolvedRow | undefined) =>
-    cellOf(data)?.type ?? col.type
-  const presented = (data: ResolvedRow | undefined) => {
+): ColDef<Row> {
+  const cellOf = (data: Row | undefined) => data?.cells[col.colId]
+  const typeOf = (data: Row | undefined) => cellOf(data)?.type ?? col.type
+  const presented = (data: Row | undefined) => {
     const cell = cellOf(data)
     return cell ? present(cell) : undefined
   }
@@ -84,9 +83,9 @@ function createLeafColDef(
 }
 
 export function createGridColumns(
-  defs: SheetColumnDef[],
+  defs: ColumnDef[],
   options: GridColumnsOptions = {},
-): (ColDef<ResolvedRow> | ColGroupDef<ResolvedRow>)[] {
+): (ColDef<Row> | ColGroupDef<Row>)[] {
   const resolved: Required<GridColumnsOptions> = {
     present: options.present ?? defaultPresenter,
     editors: { ...defaultGridEditors, ...options.editors },
@@ -94,7 +93,7 @@ export function createGridColumns(
   }
   return defs.map((def) => {
     if ('children' in def) {
-      const group: ColGroupDef<ResolvedRow> = {
+      const group: ColGroupDef<Row> = {
         headerName: def.headerName,
         children: createGridColumns(def.children, resolved),
       }

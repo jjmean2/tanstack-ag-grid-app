@@ -1,18 +1,18 @@
 import { useEffect, useState } from 'react'
 
-import { createStore, createUiStore, screenStorage } from '@lab/workbook'
-import type { ScreenExports, Store, UiState } from '@lab/workbook'
+import { createSession } from '@lab/workbook'
+import type { WorkbookDef, WorkbookSession } from '@lab/workbook'
 import { SCREENS } from '#/shared/config/screens'
 import type { ScreenId } from '#/shared/config/screens'
+import { screenStorage } from './storage'
 
-// Everything a screen keeps while it is open: its editing session (the state
-// store), its UI state, and the saved exports of the screens it references.
+// A screen's workbook session (the library's: state, UI state, other screens'
+// exports), plus what this app adds: where it is stored, and whether it
+// changed since it was loaded or saved.
 export type ScreenSession<TState> = {
   id: ScreenId
   title: string
-  store: Store<TState>
-  ui: Store<UiState>
-  externals: Store<Record<string, ScreenExports | undefined>>
+  workbook: WorkbookSession<TState>
   persist: boolean
   // JSON of the state last loaded or saved, which "changed" compares with;
   // null when a persisted screen has never been saved.
@@ -24,12 +24,12 @@ export type ScreenSession<TState> = {
 
 export function useScreenSession<TState>(opts: {
   id: ScreenId
+  def: WorkbookDef<TState>
   initial: () => TState // a fresh state: from the server, an import, ...
-  tab: string // the tab shown first
   persist?: boolean // start from the saved state, and allow saving
   imports?: readonly ScreenId[] // screens this one reads with `[ext:...]`
 }): ScreenSession<TState> {
-  const [session] = useState(() => {
+  const [started] = useState(() => {
     const saved = opts.persist
       ? screenStorage.loadState<TState>(opts.id)
       : undefined
@@ -38,9 +38,9 @@ export function useScreenSession<TState>(opts: {
     return {
       initial: opts.initial,
       imports,
-      store: createStore(state),
-      ui: createUiStore(opts.tab),
-      externals: createStore(screenStorage.loadExports(imports)),
+      workbook: createSession(opts.def, state, {
+        externals: screenStorage.loadExports(imports),
+      }),
       baseline: opts.persist
         ? saved === undefined
           ? null
@@ -52,26 +52,25 @@ export function useScreenSession<TState>(opts: {
     }
   })
   const [saved, setSaved] = useState({
-    baseline: session.baseline,
-    savedAt: session.savedAt,
+    baseline: started.baseline,
+    savedAt: started.savedAt,
   })
 
   // Another browser tab may save a screen this one references.
   useEffect(
-    () => screenStorage.watchExports(session.imports, session.externals),
-    [session],
+    () =>
+      screenStorage.watchExports(started.imports, started.workbook.externals),
+    [started],
   )
 
   return {
     id: opts.id,
     title: SCREENS[opts.id].title,
-    store: session.store,
-    ui: session.ui,
-    externals: session.externals,
+    workbook: started.workbook,
     persist: opts.persist ?? false,
     baseline: saved.baseline,
     savedAt: saved.savedAt,
-    reset: () => session.store.set(() => session.initial()),
+    reset: () => started.workbook.store.set(() => started.initial()),
     markSaved: (json, at) => setSaved({ baseline: json, savedAt: at }),
   }
 }

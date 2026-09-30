@@ -1,9 +1,10 @@
-/* @lab/workbook — structure only. Everything a user would call "the look"
-   (colours, weights, backgrounds, markers) belongs to the app's theme, which
-   styles the marks (see src/core/marks.ts). Import this once, before the
-   theme. */
+/* @lab/workbook — structure only: layout, spacing, border widths. Everything a
+   user would call "the look" (colours, fonts, weights, backgrounds, markers)
+   is the app's theme, which styles the same classes. Import this once, before
+   the theme. The views use no other CSS (no utility framework needed). */
 
-/* Alignment the presentation chose, in any view. */
+/* --- cells (every view) --------------------------------------------------- */
+
 .wb-align-right {
   text-align: right;
 }
@@ -12,7 +13,8 @@
   text-align: center;
 }
 
-/* Grid: a cell holding a button, and a full width row's content. */
+/* --- grid (AG Grid) --------------------------------------------------------- */
+
 .ag-cell.wb-action {
   display: flex;
   align-items: center;
@@ -25,8 +27,53 @@
   padding: 0 1rem;
 }
 
-/* Form sheets: text boxes are padded; a cell box is filled by its input; a
-   label down several rows is centred. */
+/* --- inputs (CellInput) ------------------------------------------------------ */
+
+.wb-input {
+  outline: none;
+  font: inherit;
+}
+
+.wb-input-field {
+  width: 100%;
+  border: 1px solid;
+  padding: 0.5rem 0.75rem;
+}
+
+.wb-input-form {
+  display: block;
+  width: 100%;
+  min-height: 2rem;
+  align-self: stretch;
+  border: 0;
+  background: transparent;
+  padding: 0.25rem 0.5rem;
+}
+
+input[type='checkbox'].wb-input {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* --- form sheets (FormSheet) ------------------------------------------------ */
+
+/* Each box draws its right and bottom edge, the form its top and left, so a
+   shared edge is drawn once. */
+.wb-form {
+  display: grid;
+  border-top: 1px solid;
+  border-left: 1px solid;
+}
+
+.wb-box {
+  display: flex;
+  min-height: 2rem;
+  align-items: center;
+  border-right: 1px solid;
+  border-bottom: 1px solid;
+  word-break: keep-all;
+}
+
 .wb-box-text {
   padding: 0 0.5rem;
 }
@@ -38,4 +85,100 @@
 .wb-box-tall {
   justify-content: center;
   text-align: center;
+}
+
+/* --- formula bar (FormulaBar) ---------------------------------------------- */
+
+.wb-formula-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.5rem 1rem;
+}
+
+.wb-formula-bar-label {
+  width: 16rem;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wb-formula-bar-content {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.wb-formula-bar-text {
+  white-space: pre-wrap;
+}
+
+.wb-formula-bar-value,
+.wb-formula-bar-toggle {
+  flex-shrink: 0;
+}
+
+.wb-formula-bar-toggle {
+  display: flex;
+  cursor: pointer;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.wb-ref {
+  margin: 0 0.125rem;
+  cursor: pointer;
+  border: 1px solid;
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.375rem;
+}
+
+/* --- references to other screens (ExternalRefs) ----------------------------- */
+
+.wb-external-refs {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+}
+
+.wb-external-refs-list {
+  display: grid;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wb-external-ref {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 0.75rem;
+}
+
+.wb-external-ref-link {
+  cursor: pointer;
+  border: 0;
+  background: none;
+  padding: 0;
+}
+
+/* --- errors (WorkbookErrorBoundary) ------------------------------------------ */
+
+.wb-error-boundary {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1.25rem 1.5rem;
+}
+
+.wb-error-boundary-detail {
+  white-space: pre-wrap;
+  padding: 0.5rem 0.75rem;
+}
+
+.wb-button {
+  width: fit-content;
+  cursor: pointer;
 }

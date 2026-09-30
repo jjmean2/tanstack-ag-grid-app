@@ -2,10 +2,6 @@
 @import '@lab/workbook/styles.css';
 @import './shared/ui/workbook-view/theme.css';
 
-/* The workbook's React and AG Grid views use Tailwind classes; Tailwind skips
-   node_modules unless a source is registered. */
-@source '../node_modules/@lab/workbook/src';
-
 @layer base {
   *,
   ::before,

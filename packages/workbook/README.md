@@ -1,9 +1,9 @@
 # @lab/workbook
 
-클라이언트 state 위에 **스프레드시트 같은 양식**을 만드는 라이브러리입니다. 타입이 있는 셀, 고정 수식, 여러 sheet와 탭, 화면 간 참조를 다룹니다. 세무조서처럼 "여러 grid와 input으로 이루어진, 서로 연결된 큰 양식"을 위해 만들었습니다.
+클라이언트 state 위에 **스프레드시트 같은 양식**을 만드는 라이브러리입니다. 타입이 있는 셀, 고정 수식, 여러 sheet, 화면 간 참조를 다룹니다. 세무조서처럼 "여러 grid와 input으로 이루어진, 서로 연결된 큰 양식"을 위해 만들었습니다.
 
 ```
-store (입력값만) ──(정의: sheets · layout · 수식)──▶ buildWorkbook ──▶ Workbook (셀 · 값 · 오류)
+store (입력값만) ──(정의: sheets · rows · 수식)──▶ buildWorkbook ──▶ Workbook (셀 · 값 · 오류)
       ▲                                                                   │
       └──────────────── 편집: cell.write(value) ◀── 뷰 (grid · input · 서식) ◀┘
 ```
@@ -11,15 +11,16 @@ store (입력값만) ──(정의: sheets · layout · 수식)──▶ buildWo
 - **state가 원본**입니다. 합계나 수식 결과는 state에 두지 않습니다.
 - **Workbook은 파생값**입니다. state가 바뀔 때마다 순수 함수 `buildWorkbook`이 통째로 다시 만듭니다.
 - **뷰는 셀만 봅니다.** AG Grid, input, 서식은 모두 같은 셀을 보여주고, 편집은 셀의 `write`로 state에 돌아갑니다.
+- **정의는 셀만 말합니다.** 어느 셀이 어느 탭·어느 칸에 놓이는지는 뷰(앱의 JSX와 서식 배치)가 정합니다.
 
 ## 진입점
 
-| import                     | 내용                                                                                  | 의존           |
-| -------------------------- | ------------------------------------------------------------------------------------- | -------------- |
-| `@lab/workbook`            | 모델, 수식, 정의·계산, layout 헬퍼, store, 저장소                                     | 없음 (순수 TS) |
-| `@lab/workbook/react`      | Provider, `useCell`/`CellInput`, `FormSheet`, 수식 바, 외부 참조 패널, error boundary | React          |
-| `@lab/workbook/ag-grid`    | `SheetGrid`, `SheetGridProvider`                                                      | React, AG Grid |
-| `@lab/workbook/styles.css` | 구조 스타일만 (정렬, 배치). 색과 모양은 앱 테마가 표식으로 정함                       | —              |
+| import                     | 내용                                                                                         | 의존           |
+| -------------------------- | -------------------------------------------------------------------------------------------- | -------------- |
+| `@lab/workbook`            | 모델, 수식, 정의·계산, 행 헬퍼, 세션(`createSession`), export 스냅샷                         | 없음 (순수 TS) |
+| `@lab/workbook/react`      | Provider, `useCell`/`CellInput`, `FormSheet`와 배치(`textBox`/`cellBox`), 수식 바, 외부 참조 | React          |
+| `@lab/workbook/ag-grid`    | `SheetGrid`, `defineCellViews` (편집기·표시 부품과 표시 규칙을 한 값으로)                    | React, AG Grid |
+| `@lab/workbook/styles.css` | 구조 스타일만 (배치, 간격). 색과 글꼴은 앱 테마가 표식으로 정함. 유틸리티 CSS 불필요         | —              |
 
 의존 방향은 **core ← react ← ag-grid** 한 방향입니다. 패키지는 앱 코드를 import하지 않습니다. 둘 다 [boundaries.test.ts](src/boundaries.test.ts)가 검사합니다.
 
@@ -30,51 +31,58 @@ src/
 ├─ index.ts            @lab/workbook 공개 API
 ├─ styles.css          구조 스타일 (@lab/workbook/styles.css)
 ├─ core/               모델과 계산 (React·AG Grid 없음)
-│  ├─ types.ts           WorkbookDef · SheetDef(grid | form) · CellSpec · Cell · Workbook …
+│  ├─ types.ts           정의(…Def) → 명세(…Spec) → 결과(Cell · Row · Sheet · Workbook)
 │  ├─ address.ts         주소: sheet/row/col · sheet/@group/col · ext:screen/name
 │  ├─ cell-types.ts      T.text · T.money · T.date · T.select … (표시·파싱·수식 변환)
 │  ├─ workbook.ts        defineWorkbook · buildWorkbook (행 전개 → 수식 평가 → 조회 함수)
+│  ├─ session.ts         createSession: state · UI · 다른 화면 export, 세 store
 │  ├─ check.ts           checkWorkbook: 대표 state로 정의 오류 점검 (테스트용)
-│  ├─ external.ts        화면 간: export 스냅샷 만들기, 외부 값 조회
-│  ├─ navigation.ts      UI state: 탭 · 포커스 · 셀 이동 요청
+│  ├─ external.ts        screenExports: 이 화면이 내보내는 값의 스냅샷
+│  ├─ navigation.ts      UI state: 포커스 · 셀 이동 요청(pending)
 │  ├─ marks.ts           표식: 셀의 사실에서 나오는 wb-* 클래스
 │  ├─ presentation.ts    표시 규칙: 셀 → 편집기·표시·정렬·표식 (모든 뷰 공통)
 │  └─ formula/           파서 · 평가기 · 함수 (SUM, IF, SUMIF, ROUND, DAYS …)
-├─ layout/             state → 행(grid sheet) · 칸(form sheet)
+├─ layout/             state → 행
 │  ├─ cells.ts           literalCell · labelCell · inputCell · boundCell · formulaCell
 │  ├─ grid.ts            title · items · fields · subtotal · addRow · row · spanned
-│  ├─ form.ts            textBox · cellBox
 │  └─ state.ts           (내부) state 조각 읽기·쓰기
 ├─ store/              createStore: 가장 작은 외부 store
-├─ persistence/        screenStorage: 화면 state와 export 저장 (지금은 localStorage)
 ├─ react/              React 바인딩과 grid에 묶이지 않은 뷰
 │  ├─ workbook-context.tsx  WorkbookProvider · useWorkbook · useFocusAddress
+│  ├─ views.ts              CellViews (표시 규칙 + input 부품) · defineInputViews
 │  ├─ use-store.ts          useStore (useSyncExternalStore)
-│  ├─ cell-input.tsx        useCell · CellInput (편집기 ID → 등록된 부품)
-│  ├─ input-editors.tsx     input 편집기 부품과 기본 등록표
+│  ├─ cell-input.tsx        useCell · CellInput
+│  ├─ input-editors.tsx     input 편집기 부품과 기본값
+│  ├─ form-layout.ts        서식 배치: textBox · cellBox · checkBoxes
 │  ├─ form-sheet.tsx        FormSheet (CSS grid)
 │  ├─ formula-bar.tsx       FormulaBar
 │  ├─ external-refs.tsx     ExternalRefs
 │  └─ error-boundary.tsx    WorkbookErrorBoundary
 └─ ag-grid/            AG Grid 어댑터
-   ├─ use-sheet-grid.ts     SheetView → AG Grid props
+   ├─ views.ts              defineCellViews · grid 편집기·표시 기본값
+   ├─ use-sheet-grid.ts     Sheet → AG Grid props
    ├─ columns.ts            Cell → ColDef (콜백은 셀만 읽음)
-   ├─ full-width-row.tsx    제목·추가 버튼 행
-   └─ grid-config.tsx       SheetGridProvider (테마 주입)
+   └─ full-width-row.tsx    제목·추가 버튼 행
 ```
 
 ## 양식 하나 만들기
 
 ```ts
-import { defineWorkbook, items, subtotal, title, T } from '@lab/workbook'
+import {
+  defineWorkbook,
+  formulaCell,
+  items,
+  row,
+  subtotal,
+  title,
+  T,
+} from '@lab/workbook'
 
 export const def = defineWorkbook<MyState>(
   [
     {
-      // grid sheet (AG Grid)
       id: 'adj',
       title: '소득금액조정',
-      tab: 'adjustment',
       columns: [
         {
           colId: 'account',
@@ -84,24 +92,21 @@ export const def = defineWorkbook<MyState>(
         },
         { colId: 'tax', headerName: '세법상', type: T.money, editable: true },
       ],
-      layout: [
+      rows: [
         title('t', 'Ⅰ. 익금산입'),
         items('adds'), // state.adds → 행, 그룹 @adds
         subtotal('sum', '소 계', 'adds', ['tax']), // =SUM([@adds/tax])
       ],
     },
     {
-      // form sheet (종이 서식처럼 칸 배치)
-      kind: 'form',
+      // 종이 서식에 놓일 sheet도 같은 행 정의입니다. 칸 배치는 뷰가 합니다.
       id: 'ret',
       title: '신고서',
-      tab: 'return',
-      tracks: ['6rem', '1fr', '10rem'],
-      layout: [
-        (ctx) => [
-          textBox([1, 1, 2, 1], '과세표준', 'head'), // [행, 열, 행병합, 열병합]
-          cellBox([1, 3], 'base/amount', formulaCell('=[adj/sum/tax]')),
-        ],
+      columns: [{ colId: 'amount', headerName: '금액', type: T.money }],
+      rows: [
+        row('base', { label: '과세표준' }, () => ({
+          amount: formulaCell('=[adj/sum/tax]'),
+        })),
       ],
     },
   ],
@@ -109,25 +114,36 @@ export const def = defineWorkbook<MyState>(
 )
 ```
 
-뷰에서는 이렇게 씁니다.
+뷰에서는 세션 하나와 뷰 설정 하나를 Provider에 주고, 그 안에 원하는 뷰를 놓습니다.
 
 ```tsx
-<WorkbookProvider store={store} def={def} ui={ui}>
+const session = createSession(def, initialState, { externals }) // 컴포넌트 밖, 또는 useState로 한 번
+
+<WorkbookProvider session={session} views={cellViews} openScreen={openScreen}>
   <FormulaBar />
   <SheetGrid sheetId="adj" />
-  <FormSheet sheetId="ret" />
+  <FormSheet
+    sheet="ret"
+    tracks={['6rem', '1fr']}
+    boxes={[
+      textBox([1, 1], '과세표준', 'head'), // [행, 열, 행병합?, 열병합?]
+      cellBox([1, 2], 'base/amount'), // 이 sheet의 "row/col"
+    ]}
+  />
   <CellInput address="adj/sum/tax" />
 </WorkbookProvider>
 ```
 
-양식마다 테스트에 `checkWorkbook(def, { 샘플들 })`을 두세요. layout은 state의 함수라서, 특정 데이터에서만 생기는 정의 오류(행 ID 충돌, 없는 행을 가리키는 수식)는 그 데이터를 넣어 봐야 드러납니다.
+탭은 라이브러리가 모릅니다. 앱이 탭마다 담는 sheet를 알고, `ui`의 `pending`(셀 이동 요청)이 다른 탭의 sheet를 가리키면 그 탭으로 바꾸면 됩니다. 요청은 대상 뷰가 마운트될 때 가져갑니다.
+
+양식마다 테스트에 `checkWorkbook(def, { 샘플들 })`을 두세요. 행은 state의 함수라서, 특정 데이터에서만 생기는 정의 오류(행 ID 충돌, 없는 행을 가리키는 수식)는 그 데이터를 넣어 봐야 드러납니다. 서식 배치는 `checkBoxes(열 수, boxes)`로 겹침과 범위를 검사할 수 있습니다(`FormSheet`도 개발 모드에서 검사합니다).
 
 ## 무엇을 어디에 두나
 
 | 여기에 둔다              | 예                                                                         |
 | ------------------------ | -------------------------------------------------------------------------- |
 | **정의** (`WorkbookDef`) | 셀이어야 하는 것: 수식이 참조하는 값, 수식 바·셀 이동의 대상, grid 안의 행 |
-| **JSX** (앱)             | 그 밖의 화면: 섹션 제목, 각주, 설명, 탭 구성, grid·input 배치              |
+| **뷰** (앱)              | 그 밖의 화면: 섹션 제목, 각주, 설명, 탭 구성, grid·input·서식 칸 배치      |
 
 계산값에 따라 달라지는 문구는 JSX에서 `useWorkbook().wb.value(address)`로 읽으면 됩니다.
 
@@ -140,7 +156,7 @@ export const def = defineWorkbook<MyState>(
                        type: T.money, write 유무, 수식 여부      (셀의 사실)
         │
 ② 표시 규칙 (JS)       cell → { editor, display, align, marks }   기본 규칙: 라이브러리 (core/presentation.ts)
-        │              editor: 'date' | 'select' | … | null       덮어쓰기: 앱 규칙 한 파일 (definePresentation)
+        │              editor: 'date' | 'select' | … | null       덮어쓰기: 앱 한 파일 (defineCellViews의 rules)
         │              marks: wb-cell wb-type-money wb-editable wb-tag-subtotal …
         ├──▶ 렌더러 등록표   'date' → AG Grid agDateStringCellEditor / <input type="date">
         ▼
@@ -149,30 +165,34 @@ export const def = defineWorkbook<MyState>(
 
 grid 칸, `CellInput`, 서식 칸은 모두 **같은 표시 결과**를 씁니다. 그래서 한 셀은 어느 뷰에서나 같은 편집기, 같은 정렬, 같은 표식을 갖습니다.
 
-### 표시 규칙
+### 표시 규칙과 부품: `defineCellViews`
 
-```ts
-// 앱: 한 파일에서 (예: shared/config/workbook-presentation.ts)
-export const presentation = definePresentation([
-  { when: (f) => typeof f.value === 'number' && f.value < 0, then: { marks: ['wb-negative'] } },
-  { when: (f) => f.type === 'year', then: { align: 'center' } },
-  { when: (f) => f.tags.includes('code'), then: { editor: 'code-search' } }, // 앱의 편집기 ID
-])
+앱은 셀 표시를 **한 값**으로 정합니다. 규칙, 그리고 규칙이 쓰는 앱 고유 ID 뒤의 부품입니다.
 
-<WorkbookProvider presentation={presentation} …>
-<SheetGridProvider editors={{ 'code-search': { component: CodeSearchGridEditor } }}>
-<WorkbookProvider inputEditors={{ 'code-search': CodeSearchInput }} …>
+```tsx
+// 앱: 한 파일에서 (데모 앱의 shared/ui/workbook-view/cell-views.tsx)
+export const cellViews = defineCellViews({
+  gridTheme: myGridTheme,
+  editors: {
+    // 편집기 ID마다 grid 부품과 input 부품이 모두 필요합니다 (타입이 검사)
+    'code-search': { grid: { component: CodeSearchGridEditor }, input: CodeSearchInput },
+  },
+  displays: { status: { grid: StatusCell } },
+  rules: [
+    { when: (f) => typeof f.value === 'number' && f.value < 0, then: { marks: ['wb-negative'] } },
+    { when: (f) => f.tags.includes('code'), then: { editor: 'code-search' } }, // 오타면 타입 오류
+  ],
+})
+
+<WorkbookProvider session={session} views={cellViews} …>
 ```
 
 - 규칙은 셀의 사실(`type`, `writable`, `formula`, `error`, `tags`, `value`)을 보고 `editor`, `display`, `align`, `marks`를 정합니다. **순서대로 적용되고, 뒤의 규칙이 이기며, `marks`는 누적**됩니다.
 - 기본값(라이브러리): 쓸 수 있는 셀이면 타입의 편집기(`T.date` → 날짜 선택기, `T.select` → 드롭다운), `action`이 있으면 버튼, 타입의 정렬.
 - 규칙은 셀을 **읽기 전용으로 만들 수는 있지만 편집 가능하게 만들 수는 없습니다.** 쓸 수 있는지는 정의(`write`)가 정합니다.
 - **표시 형식(`format`)은 규칙이 아니라 셀 타입이 정합니다.** 형식은 입력 해석, 수식 변환과 짝을 이뤄야 하므로, 형식이 다르면 다른 타입을 씁니다.
-- 편집기·표시 ID는 렌더러와 무관한 이름입니다. **뷰마다 등록표가 ID를 부품으로 바꿉니다.**
-  - grid: `SheetGridProvider`의 `editors`(→ AG Grid 편집기), `displays`(→ 셀 렌더러). 기본값 `defaultGridEditors`, `defaultGridDisplays`.
-  - input(`CellInput`, 서식 칸): `WorkbookProvider`의 `inputEditors`(→ `InputEditor` 컴포넌트). 기본값 `defaultInputEditors`.
-  - 등록되지 않은 ID는 텍스트 편집기, 일반 텍스트로 처리됩니다. 조용히 떨어지므로, 앱에서 "규칙이 쓰는 ID마다 모든 뷰에 부품이 있는지" 테스트하기를 권합니다.
-- 앱은 규칙, 부품 등록표, 테마를 **한 폴더에** 두고 서로 맞는지 테스트로 묶는 것을 권합니다(데모 앱의 `shared/ui/workbook-view/`).
+- 규칙이 쓰는 ID는 내장(`text`, `number`, `select`, `checkbox`, `date` / `text`, `button`)이거나 위에 등록된 것이어야 하고, 편집기는 grid와 input 부품이 둘 다 있어야 합니다. **둘 다 타입이 검사합니다.**
+- AG Grid 없이 input과 서식만 쓰는 앱은 `@lab/workbook/react`의 `defineInputViews`를 씁니다.
 
 ### 표식
 
@@ -188,8 +208,10 @@ export const presentation = definePresentation([
 | `wb-input`, `wb-input-field` / `-form`, `wb-invalid`   | `CellInput`과 그 상태 (형식이 틀린 입력)               |
 | `wb-form`, `wb-box`, `wb-box-text` / `-cell` / `-tall` | 서식형 sheet와 칸                                      |
 | `wb-button`, `wb-full-width`                           | 라이브러리가 그리는 버튼, 전체 폭 행                   |
+| `wb-formula-bar-*`, `wb-ref`, `wb-ref-external`        | 수식 바와 그 안의 참조 (다른 화면이면 `-external`)     |
+| `wb-external-refs-*`, `wb-error-boundary-*`            | 외부 참조 패널, 오류 화면                              |
 
-태그는 셀·행·서식 칸에 붙입니다. 값에 따라 달라지면 함수로 줍니다.
+태그는 셀·행에, 그리고 서식 배치의 칸에 붙입니다. 값에 따라 달라지면 함수로 줍니다.
 
 ```ts
 row('gap', { tags: 'total' }, () => ({
@@ -220,23 +242,24 @@ textBox([3, 1, 9, 1], '과세표준 및 매출세액', 'head')
 } /* 조합 */
 ```
 
-규칙과 테마를 각각 앱 한 파일에 모으고, **정의가 쓰는 모든 태그와 규칙이 추가하는 모든 표식이 테마에 있는지 테스트로 확인**하는 방식을 권합니다(데모 앱의 `workbook-theme.test.ts`). 태그는 자유 문자열이라, 이 검사가 없으면 오타나 스타일 누락이 조용히 지나갑니다.
+규칙과 테마를 각각 앱 한 파일에 모으고, **정의·배치가 쓰는 모든 태그와 규칙이 추가하는 모든 표식이 테마에 있는지 테스트로 확인**하는 방식을 권합니다(데모 앱의 `shared/ui/workbook-view/view.test.ts`). 태그는 자유 문자열이라, 이 검사가 없으면 오타나 스타일 누락이 조용히 지나갑니다.
 
 ## 앱이 맡는 일
 
 - **AG Grid 모듈 등록**: `ModuleRegistry.registerModules([...])`. grid sheet에는 client-side row model, 행 병합(`CellSpanModule`), 편집기 모듈이 필요합니다.
-- **테마**: `<SheetGridProvider theme={...}>`로 감쌉니다. 없으면 AG Grid 기본 테마입니다.
-- **CSS**: `@lab/workbook/styles.css`(구조)를 import하고, 그 뒤에 앱의 **테마**(표식 → 모양)를 둡니다. 아래 "모양: 태그, 표식, 테마"를 보세요.
-- **Tailwind**: `react/`와 `ag-grid/`의 컴포넌트는 Tailwind 클래스를 씁니다. Tailwind는 `node_modules`를 스캔하지 않으므로, 앱 CSS에 `@source '../node_modules/@lab/workbook/src';`처럼 등록해야 합니다.
+- **AG Grid 테마**: `defineCellViews`의 `gridTheme`. 없으면 AG Grid 기본 테마입니다.
+- **CSS**: `@lab/workbook/styles.css`(구조)를 import하고, 그 뒤에 앱의 **테마**(표식 → 모양)를 둡니다. 위의 "테마"를 보세요. 라이브러리 뷰는 다른 CSS 프레임워크를 쓰지 않습니다.
+- **저장**: 라이브러리는 저장하지 않습니다. 앱이 state와 `screenExports(wb, 화면, 제목)`를 저장하고, 다른 화면의 저장된 export를 `createSession`의 `externals`로 넘깁니다(바뀌면 `session.externals.set`).
+- **탭**: 위의 "양식 하나 만들기" 끝을 보세요.
 - **React와 AG Grid는 한 벌**: 둘 다 peer dependency입니다. AG Grid는 모듈 등록이 사본마다 따로라서, 두 벌이면 등록한 기능이 보이지 않습니다. 앱의 Vite 설정에 `resolve.dedupe`를 두는 것을 권합니다.
 - **라우팅**: 라이브러리는 route를 모릅니다. 다른 화면을 여는 방법은 `WorkbookProvider`의 `openScreen`으로 주입합니다.
 
 ## 알려진 제약
 
 - **재계산은 통째로 합니다.** 편집할 때마다 workbook 전체를 다시 계산합니다. 셀 수만 개까지는 수십 ms 수준입니다. 대용량 원천 데이터는 셀 밖에 두고 집계만 셀로 두세요.
-- **grid sheet의 병합**: 병합 열(`spanRows`)은 편집할 수 없고, 다른 셀의 가로 병합(`span`)이 병합 열을 덮을 수 없습니다(AG Grid 제약). 임의의 직사각형 병합이 필요하면 form sheet를 쓰세요.
-- **form sheet에는 그룹 참조(`[@group/col]`)가 없습니다.** 늘어나는 목록은 grid sheet로 두고 참조하세요.
-- **뷰 컴포넌트의 색과 문구**(한국어 라벨)는 지금은 고정입니다.
+- **grid sheet의 병합**: 병합 열(`spanRows`)은 편집할 수 없고, 다른 셀의 가로 병합(`span`)이 병합 열을 덮을 수 없습니다(AG Grid 제약). 임의의 직사각형 병합이 필요하면 `FormSheet` 배치를 쓰세요.
+- **서식 배치는 고정입니다.** 늘어나는 목록은 grid로 두고 참조하세요.
+- **뷰 컴포넌트의 문구**(한국어 라벨)는 지금은 고정입니다. 색과 글꼴은 테마가 정합니다.
 
 ## 개발
 
@@ -251,4 +274,4 @@ pnpm --filter @lab/workbook typecheck
 
 - 빌드 단계를 추가합니다(예: tsup으로 `dist/`를 만들고 `exports`를 `dist`로 변경).
 - `private: false`로 바꾸고 버전을 관리합니다.
-- CSS와 Tailwind 클래스 처리(위의 `@source`)를 사용하는 앱에 안내합니다.
+- `styles.css`와 표식 목록을 사용하는 앱에 안내합니다.

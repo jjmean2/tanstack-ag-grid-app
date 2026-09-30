@@ -1,12 +1,7 @@
 import { toSession } from '#/entities/tax-session/model/adapter'
 import { taxSessionResponse } from '#/entities/tax-session/model/data'
 import type { TaxSession } from '#/entities/tax-session/model/types'
-import {
-  buildWorkbook,
-  checkWorkbook,
-  externalsFrom,
-  screenExports,
-} from '@lab/workbook'
+import { buildWorkbook, checkWorkbook, screenExports } from '@lab/workbook'
 import {
   closingWorkbook,
   initialClosing,
@@ -39,13 +34,13 @@ const samples: Record<string, TaxSession> = {
   },
 }
 
-const closingSaved = externalsFrom({
+const closingSaved = {
   closing: screenExports(
-    buildWorkbook(closingWorkbook, initialClosing, () => {}),
+    buildWorkbook(closingWorkbook, initialClosing),
     'closing',
     '결산',
   ),
-})
+}
 
 describe('tax workbook definition', () => {
   it('builds without definition errors', () => {

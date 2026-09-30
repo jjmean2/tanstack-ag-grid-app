@@ -51,26 +51,15 @@ export function FormulaBar() {
   const shown = (c: Cell) => (c.error ?? c.type.format(c.value)) || '(빈 값)'
 
   return (
-    <div
-      className="mx-auto mb-4 flex max-w-[1500px] flex-wrap items-center gap-x-4 gap-y-2 border border-[#c5d0c7] bg-[#fffdf8] px-4 py-2 font-sans text-sm"
-      data-formula-bar
-    >
-      <span
-        className="w-64 shrink-0 truncate font-bold text-[#536863]"
-        data-formula-bar-label
-      >
+    <div className="wb-formula-bar" data-formula-bar>
+      <span className="wb-formula-bar-label" data-formula-bar-label>
         {cell ? wb.labelOf(cell.address) : '선택한 셀 없음'}
       </span>
-      <span className="font-mono text-base font-bold italic text-[#b35131]">
-        fx
-      </span>
+      <span className="wb-formula-bar-fx">fx</span>
 
-      <div
-        className="min-w-0 flex-1 break-words font-mono text-[0.85rem]"
-        data-formula-bar-content
-      >
+      <div className="wb-formula-bar-content" data-formula-bar-content>
         {!cell && (
-          <span className="font-sans text-[#536863]">
+          <span className="wb-formula-bar-note">
             셀을 선택하면 값의 출처와 수식이 표시됩니다.
           </span>
         )}
@@ -81,11 +70,7 @@ export function FormulaBar() {
                 <button
                   key={i}
                   type="button"
-                  className={`mx-0.5 cursor-pointer rounded border px-1.5 py-0.5 font-sans text-xs font-bold ${
-                    isExternalAddress(part.target)
-                      ? 'border-[#b35131] bg-[#f6e2d8] text-[#b35131] hover:bg-[#f0d2c3]'
-                      : 'border-[#1f6f66] bg-[#e4f1ee] text-[#1f6f66] hover:bg-[#cfe7e2]'
-                  }`}
+                  className={`wb-ref ${isExternalAddress(part.target) ? 'wb-ref-external' : ''}`}
                   title={`${wb.labelOf(part.target)} = ${describe(part.target)}`}
                   data-ref-target={part.target}
                   onClick={() => follow(part.target!)}
@@ -96,7 +81,7 @@ export function FormulaBar() {
                   )}
                 </button>
               ) : (
-                <span key={i} className="whitespace-pre-wrap">
+                <span key={i} className="wb-formula-bar-text">
                   {part.text}
                 </span>
               ),
@@ -104,7 +89,7 @@ export function FormulaBar() {
           </>
         )}
         {cell && !cell.formula && (
-          <span className="font-sans text-[#536863]">
+          <span className="wb-formula-bar-note">
             {cell.source.kind === 'value' && cell.source.write
               ? '입력 값'
               : '고정 값'}
@@ -114,7 +99,7 @@ export function FormulaBar() {
 
       {cell && (
         <span
-          className={`shrink-0 font-mono text-[0.85rem] font-bold ${cell.error ? 'text-[#c0392b]' : ''}`}
+          className={`wb-formula-bar-value ${cell.error ? 'wb-error' : ''}`}
           data-formula-bar-value
           title={cell.errorDetail}
         >
@@ -122,7 +107,7 @@ export function FormulaBar() {
         </span>
       )}
 
-      <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-[#536863]">
+      <label className="wb-formula-bar-toggle">
         <input
           type="checkbox"
           checked={showRaw}

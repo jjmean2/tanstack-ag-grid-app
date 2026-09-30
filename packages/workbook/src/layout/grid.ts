@@ -1,36 +1,31 @@
 import type { CellType } from '../core/cell-types'
-import type {
-  BuildCtx,
-  CellSpec,
-  LayoutNode,
-  RowSpec,
-  Tags,
-} from '../core/types'
+import type { RowsCtx, CellSpec, RowsNode, RowSpec, Tags } from '../core/types'
 import { formulaCell, inputCell, labelCell, literalCell } from './cells'
 import { listOf, patch, read } from './state'
 import type { ListKey, ObjectKey, Slice } from './state'
 
-// Layout nodes of a grid sheet: each turns the session state into rows, top to
-// bottom. A sheet's layout is a list of them.
+// Row nodes: each turns the session state into rows, top to bottom. A sheet's
+// `rows` is a list of them.
 
-export type FieldDef =
+export type FieldConfig =
   string | { label: string; type?: CellType; readOnly?: boolean }
-export type FieldsSpec<TObject> = { [P in keyof TObject & string]?: FieldDef }
+export type FieldsConfig<TObject> = {
+  [P in keyof TObject & string]?: FieldConfig
+}
 
 // The columns rows fill, left to right: all but the leading `spanRows` columns,
 // which hold merged section labels (see `spanned`).
-const contentColumns = (ctx: Pick<BuildCtx<unknown>, 'columns'>) =>
+const contentColumns = (ctx: Pick<RowsCtx<unknown>, 'columns'>) =>
   ctx.columns.filter((col) => !col.spanRows)
 
 // Section title row, drawn across the whole grid (a full width row).
 export function title<TState extends object>(
   id: string,
   text: string,
-): LayoutNode<TState> {
+): RowsNode<TState> {
   return () => [
     {
       id,
-      kind: 'title',
       tags: 'title',
       cells: {},
       fullWidth: { kind: 'title', text },
@@ -46,8 +41,8 @@ export function spanned<TState extends object>(
   key: string,
   colId: string,
   text: string,
-  nodes: LayoutNode<TState>[],
-): LayoutNode<TState> {
+  nodes: RowsNode<TState>[],
+): RowsNode<TState> {
   return (ctx) =>
     nodes
       .flatMap((node) => node(ctx))
@@ -70,12 +65,11 @@ export function spanned<TState extends object>(
 export function items<TState extends object, TKey extends ListKey<TState>>(
   key: TKey,
   opts: { removeCol?: string; label?: string } = {},
-): LayoutNode<TState> {
+): RowsNode<TState> {
   return (ctx) => {
     ctx.declareGroup(key, opts.label ?? key)
     return listOf(ctx.state, key).map((item): RowSpec => ({
       id: item.id,
-      kind: 'data',
       group: key,
       cells: Object.fromEntries(
         contentColumns(ctx).map((col): [string, CellSpec] => {
@@ -124,9 +118,9 @@ export function items<TState extends object, TKey extends ListKey<TState>>(
 // forming the group `key`. Row ids are `key.prop`, so no server ids are needed.
 export function fields<TState extends object, TKey extends ObjectKey<TState>>(
   key: TKey,
-  spec: FieldsSpec<TState[TKey]>,
+  spec: FieldsConfig<TState[TKey]>,
   opts: { labelCol?: string; valueCol?: string; label?: string } = {},
-): LayoutNode<TState> {
+): RowsNode<TState> {
   return (ctx) => {
     ctx.declareGroup(key, opts.label ?? key)
     const cols = contentColumns(ctx)
@@ -134,7 +128,7 @@ export function fields<TState extends object, TKey extends ObjectKey<TState>>(
     const valueCol = opts.valueCol ?? cols[1].colId
     const object = read(ctx.state, key) as Slice
     const entries = Object.entries(
-      spec as unknown as Record<string, FieldDef | undefined>,
+      spec as unknown as Record<string, FieldConfig | undefined>,
     )
 
     return entries.flatMap(([prop, def]): RowSpec[] => {
@@ -150,7 +144,6 @@ export function fields<TState extends object, TKey extends ObjectKey<TState>>(
       return [
         {
           id: `${key}.${prop}`,
-          kind: 'field',
           group: key,
           cells: {
             [labelCol]: labelCell(label),
@@ -171,13 +164,12 @@ export function subtotal<TState extends object>(
   keys: ListKey<TState> | ListKey<TState>[],
   sumCols: string[],
   tags: Tags = 'subtotal',
-): LayoutNode<TState> {
+): RowsNode<TState> {
   return (ctx) => {
     const groups = Array.isArray(keys) ? keys : [keys]
     return [
       {
         id,
-        kind: 'subtotal',
         tags,
         cells: {
           [contentColumns(ctx)[0].colId]: labelCell(text),
@@ -201,11 +193,10 @@ export function addRow<TState extends object, TKey extends ListKey<TState>>(
   key: TKey,
   create: () => { id: string },
   text: string,
-): LayoutNode<TState> {
+): RowsNode<TState> {
   return (ctx) => [
     {
       id,
-      kind: 'action',
       tags: 'add-row',
       cells: {},
       fullWidth: {
@@ -222,13 +213,13 @@ export function addRow<TState extends object, TKey extends ListKey<TState>>(
 // the row that does not set its own (label cells should use `labelCell`).
 export function row<TState extends object>(
   id: string,
-  opts: { tags?: Tags; type?: CellType },
-  cells: (ctx: Parameters<LayoutNode<TState>>[0]) => Record<string, CellSpec>,
-): LayoutNode<TState> {
+  opts: { label?: string; tags?: Tags; type?: CellType },
+  cells: (ctx: Parameters<RowsNode<TState>>[0]) => Record<string, CellSpec>,
+): RowsNode<TState> {
   return (ctx) => [
     {
       id,
-      kind: 'custom',
+      label: opts.label,
       tags: opts.tags,
       type: opts.type,
       cells: cells(ctx),

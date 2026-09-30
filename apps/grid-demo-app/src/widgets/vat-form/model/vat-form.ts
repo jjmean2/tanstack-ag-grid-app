@@ -1,25 +1,27 @@
 import {
   addRow,
   boundCell,
-  cellBox,
   defineWorkbook,
   formulaCell,
   items,
+  row,
   subtotal,
   T,
-  textBox,
 } from '@lab/workbook'
 import type {
   CellSpec,
-  FormCtx,
-  FormItem,
+  ColumnDef,
+  RowsCtx,
+  RowsNode,
   Tags,
-  Place,
-  SheetColumnDef,
 } from '@lab/workbook'
 
 // A made-up return whose layout borrows from a paper VAT return: numbered
 // lines, labels merged down and across, shaded boxes. Not a real legal form.
+//
+// This file holds the cells only: two sheets of ordinary rows (a row per line,
+// columns 금액 and 세액). Where the boxes go on the page is the view's, in
+// ui/return-layout.ts.
 
 export type Purchase = {
   id: string
@@ -101,280 +103,172 @@ export const newPurchase = (): Purchase => ({
   amount: 0,
 })
 
-const money = { type: T.money }
-const sum = (refs: string[]) => `=SUM(${refs.map((r) => `[${r}]`).join(',')})`
-const tax = (id: string, rate: number) =>
-  formulaCell(`=ROUND([${id}/amount]*${rate}/100,0)`, money)
+// The numbered lines of the return: row id → number and name. The rows below
+// are labelled with them, and the layout prints them.
+export const LINES = {
+  s1: ['(1)', '세금계산서 발급분'],
+  s2: ['(2)', '매입자발행 세금계산서'],
+  s3: ['(3)', '신용카드·현금영수증 발행분'],
+  s4: ['(4)', '기타(정규영수증 외 매출분)'],
+  s5: ['(5)', '세금계산서 발급분'],
+  s6: ['(6)', '기타'],
+  s7: ['(7)', '예정신고 누락분'],
+  s8: ['(8)', '대손세액 가감'],
+  s9: ['(9)', '합 계'],
+  p10: ['(10)', '일반 매입'],
+  p11: ['(11)', '고정자산 매입'],
+  p12: ['(12)', '예정신고 누락분'],
+  p13: ['(13)', '그 밖의 공제매입세액'],
+  p14: ['(14)', '합계 (10)+(11)+(12)+(13)'],
+  p15: ['(15)', '공제받지 못할 매입세액'],
+  p16: ['(16)', '차감 계 (14)−(15)'],
+  c17: ['(17)', '그 밖의 경감·공제세액'],
+  c18: ['(18)', '신용카드매출전표등 발행공제'],
+  c19: ['(19)', '합 계'],
+} as const
+export type LineId = keyof typeof LINES
 
-// One numbered line: label | (n) | amount | rate | tax. `null` boxes are
-// shaded (not used on this line).
-function line(
-  row: number,
-  labelAt: Place,
-  id: string,
-  label: string,
-  num: string,
-  boxes: { amount: CellSpec | null; rate: string | null; tax: CellSpec | null },
+type Cells = { amount?: CellSpec; tax?: CellSpec }
+
+// One numbered line of the return. A line without an amount or tax leaves
+// that cell out (the layout shades the box).
+const line = (
+  id: LineId,
+  cells: (ctx: RowsCtx<VatState>) => Cells,
   tags?: Tags,
-): FormItem[] {
-  const name = `${num} ${label}`
-  return [
-    textBox(labelAt, label, tags ?? 'label'),
-    textBox([row, 4], num, 'num'),
-    boxes.amount
-      ? cellBox([row, 5], `${id}/amount`, boxes.amount, { name, tags })
-      : textBox([row, 5], '', 'shade'),
-    boxes.rate === null
-      ? textBox([row, 6], '', 'shade')
-      : textBox([row, 6], boxes.rate, 'num'),
-    boxes.tax
-      ? cellBox([row, 7], `${id}/tax`, boxes.tax, { name, tags })
-      : textBox([row, 7], '', 'shade'),
-  ]
-}
+): RowsNode<VatState> =>
+  row(id, { label: LINES[id].join(' '), tags }, (ctx) => ({ ...cells(ctx) }))
+
+const sum = (refs: string[]) => `=SUM(${refs.map((r) => `[${r}]`).join(',')})`
+// Tax at `rate`% of the line's amount.
+const tax = (rate: number) => formulaCell(`=ROUND([.amount]*${rate}/100,0)`)
 
 // --- 사업자 정보 --------------------------------------------------------------
 
-const info = ({ state, update }: FormCtx<VatState>): FormItem[] => {
-  const ctx = { state, update }
-  const biz = (prop: keyof VatState['biz']) => boundCell(ctx, 'biz', prop)
-  return [
-    textBox([1, 1], '상 호', 'head'),
-    cellBox([1, 2], 'biz/name', biz('name'), { name: '사업자' }),
-    textBox([1, 3], '성 명', 'head'),
-    cellBox([1, 4], 'biz/ceo', biz('ceo')),
-    textBox([1, 5], '사업자등록번호', 'head'),
-    cellBox([1, 6], 'biz/no', biz('no')),
+const infoColumns: ColumnDef[] = [
+  { colId: 'name', headerName: '상호', type: T.text },
+  { colId: 'ceo', headerName: '성명', type: T.text },
+  { colId: 'no', headerName: '사업자등록번호', type: T.text },
+  { colId: 'address', headerName: '사업장 주소', type: T.text },
+  { colId: 'phone', headerName: '전화번호', type: T.text },
+  { colId: 'kind', headerName: '과세유형', type: T.select(['일반', '간이']) },
+  { colId: 'start', headerName: '개시일', type: T.date },
+  { colId: 'end', headerName: '종료일', type: T.date },
+]
 
-    textBox([2, 1], '사업장 주소', 'head'),
-    cellBox([2, 2, 1, 3], 'biz/address', biz('address')),
-    textBox([2, 5], '전화번호', 'head'),
-    cellBox([2, 6], 'biz/phone', biz('phone')),
-
-    textBox([3, 1], '신고기간', 'head'),
-    cellBox(
-      [3, 2],
-      'period/start',
-      boundCell(ctx, 'period', 'start', { type: T.date }),
-      { name: '신고기간' },
-    ),
-    textBox([3, 3], '~', 'head'),
-    cellBox(
-      [3, 4],
-      'period/end',
-      boundCell(ctx, 'period', 'end', { type: T.date }),
-    ),
-    textBox([3, 5], '과세유형', 'head'),
-    cellBox(
-      [3, 6],
-      'biz/kind',
-      boundCell(ctx, 'biz', 'kind', { type: T.select(['일반', '간이']) }),
-    ),
-  ]
-}
+const info: RowsNode<VatState>[] = [
+  row('biz', { label: '사업자' }, (ctx) => ({
+    name: boundCell(ctx, 'biz', 'name'),
+    ceo: boundCell(ctx, 'biz', 'ceo'),
+    no: boundCell(ctx, 'biz', 'no'),
+    address: boundCell(ctx, 'biz', 'address'),
+    phone: boundCell(ctx, 'biz', 'phone'),
+    kind: boundCell(ctx, 'biz', 'kind'),
+  })),
+  row('period', { label: '신고기간' }, (ctx) => ({
+    start: boundCell(ctx, 'period', 'start'),
+    end: boundCell(ctx, 'period', 'end'),
+  })),
+]
 
 // --- 신고 내용 ----------------------------------------------------------------
 
-const header = (): FormItem[] => [
-  textBox([1, 1, 1, 7], '① 신고 내용', 'title'),
-  textBox([2, 1, 1, 4], '구 분', 'head'),
-  textBox([2, 5], '금 액', 'head'),
-  textBox([2, 6], '세율', 'head'),
-  textBox([2, 7], '세 액', 'head'),
+const returnColumns: ColumnDef[] = [
+  { colId: 'amount', headerName: '금액', type: T.money },
+  { colId: 'tax', headerName: '세액', type: T.money },
 ]
 
-// Lines (1)-(9), rows 3-11.
-const sales = ({ state, update }: FormCtx<VatState>): FormItem[] => {
-  const input = (prop: keyof VatState['sales']) =>
-    boundCell({ state, update }, 'sales', prop, money)
-  const s = (n: number) => `s${n}`
-  return [
-    textBox([3, 1, 9, 1], '과세표준 및 매출세액', 'head'),
-    textBox([3, 2, 4, 1], '과세', 'head'),
-    ...line(3, [3, 3], s(1), '세금계산서 발급분', '(1)', {
-      amount: input('invoice'),
-      rate: '10/100',
-      tax: tax(s(1), 10),
-    }),
-    ...line(4, [4, 3], s(2), '매입자발행 세금계산서', '(2)', {
-      amount: input('buyerIssued'),
-      rate: '10/100',
-      tax: tax(s(2), 10),
-    }),
-    ...line(5, [5, 3], s(3), '신용카드·현금영수증 발행분', '(3)', {
-      amount: input('card'),
-      rate: '10/100',
-      tax: tax(s(3), 10),
-    }),
-    ...line(6, [6, 3], s(4), '기타(정규영수증 외 매출분)', '(4)', {
-      amount: input('other'),
-      rate: '10/100',
-      tax: tax(s(4), 10),
-    }),
-    textBox([7, 2, 2, 1], '영세율', 'head'),
-    ...line(7, [7, 3], s(5), '세금계산서 발급분', '(5)', {
-      amount: input('zeroInvoice'),
-      rate: '0/100',
-      tax: tax(s(5), 0),
-    }),
-    ...line(8, [8, 3], s(6), '기타', '(6)', {
-      amount: input('zeroOther'),
-      rate: '0/100',
-      tax: tax(s(6), 0),
-    }),
-    ...line(9, [9, 2, 1, 2], s(7), '예정신고 누락분', '(7)', {
-      amount: input('missedAmount'),
-      rate: '',
-      tax: input('missedTax'),
-    }),
-    ...line(10, [10, 2, 1, 2], s(8), '대손세액 가감', '(8)', {
-      amount: null,
-      rate: null,
-      tax: input('badDebtTax'),
-    }),
-    ...line(
-      11,
-      [11, 2, 1, 2],
-      s(9),
-      '합 계',
-      '(9)',
-      {
-        amount: formulaCell(
-          sum([1, 2, 3, 4, 5, 6, 7].map((n) => `${s(n)}/amount`)),
-          money,
-        ),
-        rate: '㉮',
-        tax: formulaCell(
-          sum([1, 2, 3, 4, 5, 6, 7, 8].map((n) => `${s(n)}/tax`)),
-          money,
-        ),
-      },
-      'strong',
-    ),
-  ]
-}
+const sales = (prop: keyof VatState['sales']) => (ctx: RowsCtx<VatState>) =>
+  boundCell(ctx, 'sales', prop)
+const extra =
+  (prop: keyof VatState['purchaseExtra']) => (ctx: RowsCtx<VatState>) =>
+    boundCell(ctx, 'purchaseExtra', prop)
+// (10) and (11) add up the purchase list sheet by kind.
+const byKind = (kind: string) =>
+  formulaCell(
+    `=SUMIF([purchases/@purchases/kind],"${kind}",[purchases/@purchases/amount])`,
+  )
 
-// Lines (10)-(16), rows 12-18. (10) and (11) add up the purchase list sheet.
-const purchases = ({ state, update }: FormCtx<VatState>): FormItem[] => {
-  const input = (prop: keyof VatState['purchaseExtra']) =>
-    boundCell({ state, update }, 'purchaseExtra', prop, money)
-  const byKind = (kind: string) =>
-    formulaCell(
-      `=SUMIF([purchases/@purchases/kind],"${kind}",[purchases/@purchases/amount])`,
-      money,
-    )
-  return [
-    textBox([12, 1, 7, 1], '매입세액', 'head'),
-    textBox([12, 2, 2, 1], '세금계산서 수취분', 'head'),
-    ...line(12, [12, 3], 'p10', '일반 매입', '(10)', {
-      amount: byKind('일반'),
-      rate: '',
-      tax: tax('p10', 10),
-    }),
-    ...line(13, [13, 3], 'p11', '고정자산 매입', '(11)', {
-      amount: byKind('고정자산'),
-      rate: '',
-      tax: tax('p11', 10),
-    }),
-    ...line(14, [14, 2, 1, 2], 'p12', '예정신고 누락분', '(12)', {
-      amount: input('missedAmount'),
-      rate: '',
-      tax: input('missedTax'),
-    }),
-    ...line(15, [15, 2, 1, 2], 'p13', '그 밖의 공제매입세액', '(13)', {
-      amount: input('otherAmount'),
-      rate: '',
-      tax: tax('p13', 10),
-    }),
-    ...line(
-      16,
-      [16, 2, 1, 2],
-      'p14',
-      '합계 (10)+(11)+(12)+(13)',
-      '(14)',
-      {
-        amount: formulaCell(
-          sum(['p10', 'p11', 'p12', 'p13'].map((p) => `${p}/amount`)),
-          money,
+const ret: RowsNode<VatState>[] = [
+  // 과세표준 및 매출세액
+  line('s1', (c) => ({ amount: sales('invoice')(c), tax: tax(10) })),
+  line('s2', (c) => ({ amount: sales('buyerIssued')(c), tax: tax(10) })),
+  line('s3', (c) => ({ amount: sales('card')(c), tax: tax(10) })),
+  line('s4', (c) => ({ amount: sales('other')(c), tax: tax(10) })),
+  line('s5', (c) => ({ amount: sales('zeroInvoice')(c), tax: tax(0) })),
+  line('s6', (c) => ({ amount: sales('zeroOther')(c), tax: tax(0) })),
+  line('s7', (c) => ({
+    amount: sales('missedAmount')(c),
+    tax: sales('missedTax')(c),
+  })),
+  line('s8', (c) => ({ tax: sales('badDebtTax')(c) })),
+  line(
+    's9',
+    () => ({
+      amount: formulaCell(
+        sum(
+          ['s1', 's2', 's3', 's4', 's5', 's6', 's7'].map((l) => `${l}/amount`),
         ),
-        rate: '',
-        tax: formulaCell(
-          sum(['p10', 'p11', 'p12', 'p13'].map((p) => `${p}/tax`)),
-          money,
+      ),
+      tax: formulaCell(
+        sum(
+          ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8'].map(
+            (l) => `${l}/tax`,
+          ),
         ),
-      },
-      'strong',
-    ),
-    ...line(17, [17, 2, 1, 2], 'p15', '공제받지 못할 매입세액', '(15)', {
-      amount: input('nonDeductible'),
-      rate: '',
-      tax: tax('p15', 10),
+      ),
     }),
-    ...line(
-      18,
-      [18, 2, 1, 2],
-      'p16',
-      '차감 계 (14)−(15)',
-      '(16)',
-      {
-        amount: formulaCell('=[p14/amount]-[p15/amount]', money),
-        rate: '㉯',
-        tax: formulaCell('=[p14/tax]-[p15/tax]', money),
-      },
-      'strong',
-    ),
-  ]
-}
-
-// Rows 19-23: tax due, credits (17)-(19), and what is finally paid.
-const settlement = ({ state, update }: FormCtx<VatState>): FormItem[] => [
-  textBox(
-    [19, 1, 1, 4],
-    '납부(환급)세액 (매출세액 ㉮ − 매입세액 ㉯)',
-    'strong',
-  ),
-  textBox([19, 5, 1, 2], '', 'shade'),
-  cellBox([19, 7], 'pay/tax', formulaCell('=[s9/tax]-[p16/tax]', money), {
-    name: '납부(환급)세액',
-    tags: 'strong',
-  }),
-
-  textBox([20, 1, 3, 2], '경감·공제세액', 'head'),
-  ...line(20, [20, 3], 'c17', '그 밖의 경감·공제세액', '(17)', {
-    amount: null,
-    rate: null,
-    tax: boundCell({ state, update }, 'credits', 'other', money),
-  }),
-  ...line(21, [21, 3], 'c18', '신용카드매출전표등 발행공제', '(18)', {
-    amount: formulaCell('=[s3/amount]', money),
-    rate: '1.3/100',
-    tax: formulaCell('=MIN(ROUND([c18/amount]*1.3/100,0),10000000)', money),
-  }),
-  ...line(
-    22,
-    [22, 3],
-    'c19',
-    '합 계',
-    '(19)',
-    {
-      amount: null,
-      rate: null,
-      tax: formulaCell('=[c17/tax]+[c18/tax]', money),
-    },
     'strong',
   ),
 
-  textBox([23, 1, 1, 4], '차가감하여 납부할 세액 (환급받을 세액)', 'strong'),
-  textBox([23, 5, 1, 2], '', 'shade'),
-  cellBox([23, 7], 'final/tax', formulaCell('=[pay/tax]-[c19/tax]', money), {
-    name: '차가감 납부할 세액',
-    tags: 'strong',
-  }),
+  // 매입세액
+  line('p10', () => ({ amount: byKind('일반'), tax: tax(10) })),
+  line('p11', () => ({ amount: byKind('고정자산'), tax: tax(10) })),
+  line('p12', (c) => ({
+    amount: extra('missedAmount')(c),
+    tax: extra('missedTax')(c),
+  })),
+  line('p13', (c) => ({ amount: extra('otherAmount')(c), tax: tax(10) })),
+  line(
+    'p14',
+    () => ({
+      amount: formulaCell(
+        sum(['p10', 'p11', 'p12', 'p13'].map((l) => `${l}/amount`)),
+      ),
+      tax: formulaCell(
+        sum(['p10', 'p11', 'p12', 'p13'].map((l) => `${l}/tax`)),
+      ),
+    }),
+    'strong',
+  ),
+  line('p15', (c) => ({ amount: extra('nonDeductible')(c), tax: tax(10) })),
+  line(
+    'p16',
+    () => ({
+      amount: formulaCell('=[p14/amount]-[p15/amount]'),
+      tax: formulaCell('=[p14/tax]-[p15/tax]'),
+    }),
+    'strong',
+  ),
+
+  // 납부세액, 경감·공제세액, 납부할 세액
+  row('pay', { label: '납부(환급)세액', tags: 'strong' }, () => ({
+    tax: formulaCell('=[s9/tax]-[p16/tax]'),
+  })),
+  line('c17', (c) => ({ tax: boundCell(c, 'credits', 'other') })),
+  line('c18', () => ({
+    amount: formulaCell('=[s3/amount]'),
+    tax: formulaCell('=MIN(ROUND([.amount]*1.3/100,0),10000000)'),
+  })),
+  line('c19', () => ({ tax: formulaCell('=[c17/tax]+[c18/tax]') }), 'strong'),
+  row('final', { label: '차가감 납부할 세액', tags: 'strong' }, () => ({
+    tax: formulaCell('=[pay/tax]-[c19/tax]'),
+  })),
 ]
 
 // --- 매입 명세 (목록) -------------------------------------------------------------
 
-const purchaseColumns: SheetColumnDef[] = [
+const purchaseColumns: ColumnDef[] = [
   {
     colId: 'vendor',
     headerName: '거래처',
@@ -399,47 +293,13 @@ const purchaseColumns: SheetColumnDef[] = [
 ]
 
 export const vatWorkbook = defineWorkbook<VatState>([
-  {
-    kind: 'form',
-    id: 'info',
-    title: '사업자 정보',
-    tab: 'return',
-    tracks: ['7rem', '1fr', '6rem', '1fr', '8rem', '1fr'],
-    colNames: {
-      name: '상호',
-      ceo: '성명',
-      no: '사업자등록번호',
-      address: '사업장 주소',
-      phone: '전화번호',
-      kind: '과세유형',
-      start: '개시일',
-      end: '종료일',
-    },
-    layout: [info],
-  },
-  {
-    kind: 'form',
-    id: 'ret',
-    title: '신고 내용',
-    tab: 'return',
-    tracks: [
-      '4.5rem',
-      '4rem',
-      'minmax(13rem,1fr)',
-      '3rem',
-      '10rem',
-      '4.5rem',
-      '10rem',
-    ],
-    colNames: { amount: '금액', tax: '세액' },
-    layout: [header, sales, purchases, settlement],
-  },
+  { id: 'info', title: '사업자 정보', columns: infoColumns, rows: info },
+  { id: 'ret', title: '신고 내용', columns: returnColumns, rows: ret },
   {
     id: 'purchases',
     title: '매입 명세',
-    tab: 'purchases',
     columns: purchaseColumns,
-    layout: [
+    rows: [
       addRow('add', 'purchases', newPurchase, '+ 매입 추가'),
       items('purchases', { removeCol: 'actions', label: '매입 명세' }),
       subtotal('total', '합 계', 'purchases', ['amount', 'tax'], 'total'),

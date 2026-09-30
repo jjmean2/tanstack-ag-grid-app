@@ -28,20 +28,20 @@ export function CompactFormulaBar() {
 
   return (
     <div
-      className="mx-auto mb-4 grid max-w-375 gap-2 border-l-4 border-[#1f6f66] bg-[#fffdf8] px-4 py-3 font-sans text-sm"
+      className="mx-auto mb-4 grid max-w-375 gap-2 border-l-4 border-app-accent bg-app-surface px-4 py-3 font-sans text-sm"
       data-compact-formula-bar
     >
       {!bar.cell ? (
-        <span className="text-[#536863]">셀을 선택하세요.</span>
+        <span className="text-app-muted">셀을 선택하세요.</span>
       ) : (
         <>
           <div className="flex items-baseline gap-3">
-            <span className="rounded bg-[#e4f1ee] px-1.5 text-xs font-bold text-[#1f6f66]">
+            <span className="rounded bg-app-accent-soft px-1.5 text-xs font-bold text-app-accent">
               {SOURCE[bar.source]}
             </span>
             <span className="font-bold">{bar.label}</span>
             <span
-              className={`ml-auto font-mono font-bold ${bar.error ? 'text-[#c0392b]' : ''}`}
+              className={`ml-auto font-mono font-bold ${bar.error ? 'text-app-error' : ''}`}
               title={bar.errorDetail}
             >
               {bar.value || '—'}
@@ -53,7 +53,7 @@ export function CompactFormulaBar() {
                 ref ? (
                   <mark
                     key={i}
-                    className="bg-transparent font-bold text-[#1f6f66]"
+                    className="bg-transparent font-bold text-app-accent"
                     style={{ color: colorOf(ref) }}
                     title={`${ref.fullLabel} = ${refValue(ref)}`}
                   >
@@ -71,7 +71,7 @@ export function CompactFormulaBar() {
                 <li key={i}>
                   <button
                     type="button"
-                    className="cursor-pointer border border-[#c5d0c7] bg-white px-2 py-0.5 text-xs hover:border-[#1f6f66]"
+                    className="cursor-pointer border border-app-line bg-app-surface px-2 py-0.5 text-xs hover:border-app-accent"
                     onClick={ref.follow}
                     data-ref-target={ref.address}
                     style={{ borderColor: colorOf(ref), color: colorOf(ref) }}

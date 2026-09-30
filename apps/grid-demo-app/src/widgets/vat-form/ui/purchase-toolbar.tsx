@@ -13,7 +13,7 @@ export function PurchaseToolbar() {
   if (!list) return null
 
   const button =
-    'cursor-pointer border border-[#9aaba0] bg-white px-3 py-1.5 font-bold hover:bg-[#eef3ed] disabled:cursor-default disabled:opacity-40'
+    'cursor-pointer border border-app-line-strong bg-app-surface px-3 py-1.5 font-bold hover:bg-app-subtle disabled:cursor-default disabled:opacity-40'
   return (
     <div className="flex flex-wrap items-center gap-2 font-sans text-sm">
       <button
@@ -40,7 +40,7 @@ export function PurchaseToolbar() {
       >
         선택한 행 삭제
       </button>
-      <span className="ml-2 text-xs text-[#536863]">
+      <span className="ml-2 text-xs text-app-muted">
         {list.rowIds.length}건 · 행을 우클릭해도 추가·삭제할 수 있습니다
       </span>
     </div>

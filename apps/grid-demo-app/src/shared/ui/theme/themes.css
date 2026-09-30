@@ -1,0 +1,229 @@
+/* Themes: the one place colours are written.
+ *
+ * A theme is a set of colour tokens, chosen by two attributes on <html>
+ * (see theme.ts): data-theme (forest | slate) and data-mode (light | dark).
+ * Everything else only names tokens:
+ *   - the page chrome, through Tailwind colours (bg-app-bg, text-app-muted, …,
+ *     mapped in styles.css)
+ *   - the workbook theme (workbook-view/theme.css), through var(--wb-…)
+ *   - AG Grid, whose theme parameters are var(--wb-…) (config/ag-grid.ts)
+ * So switching a theme is setting two attributes; nothing re-renders.
+ *
+ * Each theme × mode gives the base palette (--app-…) and the few colours of
+ * cells (--wb-…) that are not simply a palette colour. Tokens derived from
+ * the palette are defined once, at the end.
+ */
+
+/* --- forest: warm paper, green ink (light) --------------------------------- */
+:root,
+:root[data-theme='forest'] {
+  color-scheme: light;
+  --app-font-body: Georgia, 'Times New Roman', serif;
+
+  --app-bg: #f4f1e9; /* the page */
+  --app-surface: #fffdf8; /* panels, bars, buttons */
+  --app-subtle: #eef3ed; /* headers, inactive tabs */
+  --app-ink: #17312d;
+  --app-muted: #536863;
+  --app-line: #c5d0c7;
+  --app-line-strong: #9aaba0;
+  --app-accent: #1f6f66;
+  --app-accent-strong: #185a53;
+  --app-accent-soft: #e4f1ee;
+  --app-on-accent: #ffffff;
+  --app-warm: #b35131; /* eyebrows, other screens' values */
+  --app-warm-soft: #f6e2d8;
+  --app-warm-line: #e2b9a4;
+  --app-warm-panel: #fbf1ea;
+  --app-error: #c0392b;
+  --app-error-soft: #f8e1dd;
+  --app-ok: #1a7f4b;
+  --app-ok-soft: #e3f3ea;
+  --app-hover: #edf6f1;
+  --app-selected: #dcefe8;
+  --app-shadow: rgb(38 65 55 / 8%);
+
+  --wb-grid-line: #d8ded8;
+  --wb-title-bg: #dfe9e2;
+  --wb-fixed-bg: #ffffff;
+  --wb-editable-bg: #e8f1fd;
+  --wb-overridable-bg: #eaf6df;
+  --wb-add-row-bg: #fbfaf5;
+  --wb-focus-bg: #eef6f3;
+  --wb-negative: #d11a1a;
+  --wb-overridden: #c26a1b;
+  --wb-shade-1: #eceee9;
+  --wb-shade-2: #e2e5df;
+  --wb-hl-1: #2563eb;
+  --wb-hl-2: #dc2626;
+  --wb-hl-3: #7c3aed;
+  --wb-hl-4: #059669;
+  --wb-hl-5: #d97706;
+  --wb-hl-6: #db2777;
+}
+
+/* --- forest (dark) --------------------------------------------------------- */
+:root[data-theme='forest'][data-mode='dark'] {
+  color-scheme: dark;
+
+  --app-bg: #101a17;
+  --app-surface: #16231f;
+  --app-subtle: #1c2b27;
+  --app-ink: #dfe8e3;
+  --app-muted: #93a69f;
+  --app-line: #2b3d37;
+  --app-line-strong: #3d534b;
+  --app-accent: #4fb3a4;
+  --app-accent-strong: #6cc5b7;
+  --app-accent-soft: #1c3a35;
+  --app-on-accent: #0b1512;
+  --app-warm: #e0875f;
+  --app-warm-soft: #3a2519;
+  --app-warm-line: #5a3a2a;
+  --app-warm-panel: #2a1d16;
+  --app-error: #ef6b5c;
+  --app-error-soft: #3a1f1c;
+  --app-ok: #56c28a;
+  --app-ok-soft: #173326;
+  --app-hover: #1d302b;
+  --app-selected: #23413a;
+  --app-shadow: rgb(0 0 0 / 35%);
+
+  --wb-grid-line: #2b3d37;
+  --wb-title-bg: #20332e;
+  --wb-fixed-bg: #16231f;
+  --wb-editable-bg: #1b2c44;
+  --wb-overridable-bg: #22341c;
+  --wb-add-row-bg: #142019;
+  --wb-focus-bg: #1f3531;
+  --wb-negative: #ff7a7a;
+  --wb-overridden: #e8a060;
+  --wb-shade-1: #1d2a26;
+  --wb-shade-2: #243430;
+  --wb-hl-1: #60a5fa;
+  --wb-hl-2: #f87171;
+  --wb-hl-3: #a78bfa;
+  --wb-hl-4: #34d399;
+  --wb-hl-5: #fbbf24;
+  --wb-hl-6: #f472b6;
+}
+
+/* --- slate: a neutral back office (light) ---------------------------------- */
+/* Grey on white, text a shade lighter than black, one blue for what acts. */
+:root[data-theme='slate'] {
+  color-scheme: light;
+  --app-font-body: ui-sans-serif, system-ui, sans-serif;
+
+  --app-bg: #f3f4f6;
+  --app-surface: #ffffff;
+  --app-subtle: #f1f3f5;
+  --app-ink: #374151;
+  --app-muted: #6b7280;
+  --app-line: #e5e7eb;
+  --app-line-strong: #d1d5db;
+  --app-accent: #3b63c4;
+  --app-accent-strong: #2f52a8;
+  --app-accent-soft: #eaf0fb;
+  --app-on-accent: #ffffff;
+  --app-warm: #b45309;
+  --app-warm-soft: #fdf2e3;
+  --app-warm-line: #f1d3a8;
+  --app-warm-panel: #fffaf2;
+  --app-error: #dc2626;
+  --app-error-soft: #fdecec;
+  --app-ok: #15803d;
+  --app-ok-soft: #e8f6ec;
+  --app-hover: #f5f7fa;
+  --app-selected: #e8eefb;
+  --app-shadow: rgb(15 23 42 / 6%);
+
+  --wb-grid-line: #e5e7eb;
+  --wb-title-bg: #f3f4f6;
+  --wb-fixed-bg: #ffffff;
+  --wb-editable-bg: #eef4ff;
+  --wb-overridable-bg: #eef8ec;
+  --wb-add-row-bg: #fafafa;
+  --wb-focus-bg: #f0f5ff;
+  --wb-negative: #dc2626;
+  --wb-overridden: #b45309;
+  --wb-shade-1: #f1f2f4;
+  --wb-shade-2: #e8eaed;
+  --wb-hl-1: #2563eb;
+  --wb-hl-2: #dc2626;
+  --wb-hl-3: #7c3aed;
+  --wb-hl-4: #059669;
+  --wb-hl-5: #d97706;
+  --wb-hl-6: #db2777;
+}
+
+/* --- slate (dark) ----------------------------------------------------------- */
+:root[data-theme='slate'][data-mode='dark'] {
+  color-scheme: dark;
+
+  --app-bg: #0f1115;
+  --app-surface: #171a21;
+  --app-subtle: #1e222b;
+  --app-ink: #c9ced8;
+  --app-muted: #8b93a1;
+  --app-line: #2a2f3a;
+  --app-line-strong: #3a404c;
+  --app-accent: #6b8cff;
+  --app-accent-strong: #86a0ff;
+  --app-accent-soft: #1d2645;
+  --app-on-accent: #0f1115;
+  --app-warm: #f0a45a;
+  --app-warm-soft: #33261a;
+  --app-warm-line: #5b4127;
+  --app-warm-panel: #221b14;
+  --app-error: #f87171;
+  --app-error-soft: #3a1d1d;
+  --app-ok: #4ade80;
+  --app-ok-soft: #16301f;
+  --app-hover: #1c2029;
+  --app-selected: #232b40;
+  --app-shadow: rgb(0 0 0 / 40%);
+
+  --wb-grid-line: #2a2f3a;
+  --wb-title-bg: #1e222b;
+  --wb-fixed-bg: #171a21;
+  --wb-editable-bg: #1a2340;
+  --wb-overridable-bg: #1d2b1f;
+  --wb-add-row-bg: #14171d;
+  --wb-focus-bg: #1e2640;
+  --wb-negative: #ff8080;
+  --wb-overridden: #f0a45a;
+  --wb-shade-1: #1c2029;
+  --wb-shade-2: #232833;
+  --wb-hl-1: #60a5fa;
+  --wb-hl-2: #f87171;
+  --wb-hl-3: #a78bfa;
+  --wb-hl-4: #34d399;
+  --wb-hl-5: #fbbf24;
+  --wb-hl-6: #f472b6;
+}
+
+/* --- derived: the same in every theme --------------------------------------- */
+:root {
+  --wb-ink: var(--app-ink);
+  --wb-muted: var(--app-muted);
+  --wb-line: var(--app-line-strong);
+  --wb-line-soft: var(--app-line);
+  --wb-accent: var(--app-accent);
+  --wb-ok: var(--app-ok);
+  --wb-ok-bg: var(--app-ok-soft);
+  --wb-error: var(--app-error);
+  --wb-error-bg: var(--app-error-soft);
+  --wb-head-bg: var(--app-subtle);
+  --wb-panel-bg: var(--app-surface);
+  --wb-ref: var(--app-accent);
+  --wb-ref-bg: var(--app-accent-soft);
+  --wb-ref-hover-bg: color-mix(in srgb, var(--app-accent) 22%, transparent);
+  --wb-external: var(--app-warm);
+  --wb-external-bg: var(--app-warm-soft);
+  --wb-external-hover-bg: color-mix(in srgb, var(--app-warm) 22%, transparent);
+  --wb-external-line: var(--app-warm-line);
+  --wb-external-panel-bg: var(--app-warm-panel);
+  --wb-button-bg: var(--app-surface);
+  --wb-hover: var(--app-hover);
+  --wb-selected: var(--app-selected);
+}

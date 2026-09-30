@@ -6,10 +6,11 @@ ModuleRegistry.registerModules([AllEnterpriseModule])
 // Readable messages for misconfigured options, in development only.
 if (import.meta.env.DEV) enableDevValidations()
 
-// The grid's look, from the tokens of the workbook theme
-// (shared/ui/workbook-view/theme.css), which the form sheets use too: change
-// a token there and grids and forms change together. AG Grid takes CSS
-// `var()` values for its theme parameters.
+// The grid's look, from tokens: sizes from the workbook theme
+// (shared/ui/workbook-view/theme.css), colours from the active theme
+// (shared/ui/theme/themes.css). The form sheets use the same tokens, so a
+// change there, or switching themes, restyles grids and forms together. AG
+// Grid takes CSS `var()` values for its theme parameters.
 export const playgroundGridTheme = themeQuartz.withParams({
   accentColor: 'var(--wb-accent)',
   backgroundColor: 'var(--wb-fixed-bg)', // empty cells look fixed too
@@ -30,6 +31,8 @@ export const playgroundGridTheme = themeQuartz.withParams({
   headerColumnBorder: true,
   headerColumnBorderHeight: '100%',
   headerColumnResizeHandleColor: 'transparent',
-  rowHoverColor: '#edf6f1',
-  selectedRowBackgroundColor: '#dcefe8',
+  rowHoverColor: 'var(--wb-hover)',
+  selectedRowBackgroundColor: 'var(--wb-selected)',
+  // Scrollbars and native pickers follow the theme's light or dark mode.
+  browserColorScheme: 'inherit',
 })

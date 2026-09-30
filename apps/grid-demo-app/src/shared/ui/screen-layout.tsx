@@ -98,10 +98,10 @@ function Screen<TState extends object>({
       <StatusBar session={session} state={state} toolbar={toolbar} />
       <ExternalRefs />
       {formulaBar}
-      <section className="mx-auto max-w-375 border border-[#c5d0c7] bg-[#fffdf8] shadow-[0_1rem_3rem_rgb(38_65_55/8%)]">
+      <section className="mx-auto max-w-375 border border-app-line bg-app-surface shadow-[0_1rem_3rem_var(--app-shadow)]">
         {tabs.length > 1 && (
           <nav
-            className="flex border-b border-[#c5d0c7] font-sans"
+            className="flex border-b border-app-line font-sans"
             role="tablist"
           >
             {tabs.map((t) => (
@@ -110,12 +110,12 @@ function Screen<TState extends object>({
                 type="button"
                 role="tab"
                 aria-selected={current.id === t.id}
-                className={`flex cursor-pointer items-center gap-2 border-r border-[#c5d0c7] px-5 py-3 text-sm font-bold ${current.id === t.id ? 'bg-[#fffdf8] text-[#17312d]' : 'bg-[#eef3ed] text-[#536863]'}`}
+                className={`flex cursor-pointer items-center gap-2 border-r border-app-line px-5 py-3 text-sm font-bold ${current.id === t.id ? 'bg-app-surface text-app-ink' : 'bg-app-subtle text-app-muted'}`}
                 onClick={() => setTab(t.id)}
               >
                 {t.label}
                 {badge(t) > 0 && (
-                  <span className="rounded-full bg-[#c0392b] px-1.5 text-xs text-white">
+                  <span className="rounded-full bg-app-error px-1.5 text-xs text-app-on-accent">
                     {badge(t)}
                   </span>
                 )}
@@ -151,35 +151,35 @@ function StatusBar<TState>({
   }
 
   return (
-    <div className="mx-auto mb-4 flex max-w-375 flex-wrap items-center gap-x-8 gap-y-3 border border-[#c5d0c7] bg-[#fffdf8] px-6 py-4 font-sans text-sm">
+    <div className="mx-auto mb-4 flex max-w-375 flex-wrap items-center gap-x-8 gap-y-3 border border-app-line bg-app-surface px-6 py-4 font-sans text-sm">
       {toolbar}
       <div className="ml-auto flex items-center gap-3">
         {wb.errors.length > 0 && (
-          <span className="bg-[#f6d8d4] px-2 py-1 text-xs font-bold text-[#c0392b]">
+          <span className="bg-app-error-soft px-2 py-1 text-xs font-bold text-app-error">
             수식 오류 {wb.errors.length}
           </span>
         )}
         {session.persist && (
-          <span className="text-xs text-[#536863]">
+          <span className="text-xs text-app-muted">
             {session.savedAt
               ? `${savedAtText(session.savedAt)} 저장됨`
               : '저장된 적 없음'}
           </span>
         )}
         {failed && (
-          <span className="text-xs font-bold text-[#c0392b]">
+          <span className="text-xs font-bold text-app-error">
             저장하지 못했습니다
           </span>
         )}
         <span
-          className={`px-2 py-1 text-xs font-bold ${dirty ? 'bg-[#f6e2d8] text-[#b35131]' : 'bg-[#e6eee8] text-[#536863]'}`}
+          className={`px-2 py-1 text-xs font-bold ${dirty ? 'bg-app-warm-soft text-app-warm' : 'bg-app-subtle text-app-muted'}`}
         >
           {dirty ? '변경됨' : '변경 없음'}
         </span>
         {session.persist && (
           <button
             type="button"
-            className="cursor-pointer border border-[#1f6f66] bg-[#1f6f66] px-3 py-1.5 font-bold text-white hover:bg-[#185a53] disabled:cursor-default disabled:opacity-40"
+            className="cursor-pointer border border-app-accent bg-app-accent px-3 py-1.5 font-bold text-app-on-accent hover:bg-app-accent-strong disabled:cursor-default disabled:opacity-40"
             disabled={!dirty}
             onClick={save}
           >
@@ -188,7 +188,7 @@ function StatusBar<TState>({
         )}
         <button
           type="button"
-          className="cursor-pointer border border-[#9aaba0] bg-white px-3 py-1.5 font-bold hover:bg-[#eef3ed]"
+          className="cursor-pointer border border-app-line-strong bg-app-surface px-3 py-1.5 font-bold hover:bg-app-subtle"
           onClick={session.reset}
         >
           초기값으로

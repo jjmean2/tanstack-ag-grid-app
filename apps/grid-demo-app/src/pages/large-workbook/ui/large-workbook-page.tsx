@@ -50,12 +50,12 @@ function RowCount({ rows }: { rows: number }) {
   )
   return (
     <div className="flex items-center gap-3">
-      <span className="text-[#536863]">원장마다</span>
+      <span className="text-app-muted">원장마다</span>
       {ROW_COUNTS.map((n) => (
         <button
           key={n}
           type="button"
-          className={`cursor-pointer border px-2 py-1 ${n === rows ? 'border-[#1f6f66] bg-[#1f6f66] text-white' : 'border-[#9aaba0] bg-white'}`}
+          className={`cursor-pointer border px-2 py-1 ${n === rows ? 'border-app-accent bg-app-accent text-app-on-accent' : 'border-app-line-strong bg-app-surface'}`}
           onClick={() =>
             void navigate({
               to: '.',
@@ -66,7 +66,7 @@ function RowCount({ rows }: { rows: number }) {
           {n.toLocaleString()}행
         </button>
       ))}
-      <span className="text-[#536863]">셀 {cells.toLocaleString()}개</span>
+      <span className="text-app-muted">셀 {cells.toLocaleString()}개</span>
     </div>
   )
 }
@@ -90,7 +90,7 @@ function Screen({ rows }: { rows: number }) {
 export function LargeWorkbookPage() {
   const { rows = 5000 } = useSearch({ strict: false })
   return (
-    <main className="min-h-screen bg-[#f4f1e9] p-6 text-[#17312d] sm:p-10 lg:p-16">
+    <main className="min-h-screen bg-app-bg p-6 text-app-ink sm:p-10 lg:p-16">
       <PageHeader
         eyebrow="Workbook · 성능"
         title="대용량 원장"

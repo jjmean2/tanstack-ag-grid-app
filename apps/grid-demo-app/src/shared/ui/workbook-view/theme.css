@@ -33,46 +33,15 @@
 /* --- 1. tokens ------------------------------------------------------------ */
 
 :root {
-  --wb-ink: #17312d;
-  --wb-muted: #536863;
-  /* Shared by the grids and the form sheets: AG Grid's theme takes these
-     (shared/config/ag-grid.ts), and the form rules below use them, so a
-     change here restyles both. */
-  --wb-grid-line: #d8ded8; /* lines between cells, and round the outside */
+  /* Sizes and type, shared by the grids and the form sheets: AG Grid's theme
+     takes these (shared/config/ag-grid.ts), and the form rules below use
+     them, so a change here restyles both. Colours are the themes'
+     (shared/ui/theme/themes.css). */
   --wb-font-size: 14px;
   --wb-row-height: 42px;
   --wb-cell-padding: 16px; /* left and right in a cell */
   --wb-head-weight: 700;
   --wb-radius: 8px; /* outer corners */
-  --wb-line: #9aaba0;
-  --wb-line-soft: #c5d0c7;
-  --wb-accent: #1f6f66;
-  --wb-ok: #1a7f4b;
-  --wb-error: #c0392b;
-  --wb-negative: #d11a1a;
-  --wb-error-bg: #fbeeec;
-  --wb-title-bg: #dfe9e2;
-  --wb-head-bg: #eef3ed; /* also the grid header (shared/config/ag-grid.ts) */
-  /* Cell backgrounds say what a person can do with a cell. */
-  --wb-fixed-bg: #ffffff; /* nothing: formulas, labels */
-  --wb-editable-bg: #e8f1fd; /* type a value */
-  --wb-overridable-bg: #eaf6df; /* type over a formula */
-  --wb-add-row-bg: #fbfaf5;
-  --wb-panel-bg: #fffdf8;
-  --wb-ref: #1f6f66;
-  --wb-ref-bg: #e4f1ee;
-  --wb-external: #b35131;
-  --wb-external-bg: #f6e2d8;
-  --wb-external-line: #e2b9a4;
-  --wb-external-panel-bg: #fbf1ea;
-  --wb-overridden: #c26a1b;
-  /* The focused formula's references, one colour each (wb-hl-1..6). */
-  --wb-hl-1: #2563eb;
-  --wb-hl-2: #dc2626;
-  --wb-hl-3: #7c3aed;
-  --wb-hl-4: #059669;
-  --wb-hl-5: #d97706;
-  --wb-hl-6: #db2777;
   --wb-sans: ui-sans-serif, system-ui, sans-serif;
   --wb-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
@@ -195,7 +164,7 @@
 
 .wb-ref.wb-referenced {
   border-color: var(--wb-hl);
-  background-color: color-mix(in srgb, var(--wb-hl) 12%, white);
+  background-color: color-mix(in srgb, var(--wb-hl) 12%, var(--wb-fixed-bg));
   color: var(--wb-hl);
 }
 
@@ -263,7 +232,7 @@
 }
 
 .wb-tag-pass .wb-status {
-  background-color: #e3f3ea;
+  background-color: var(--wb-ok-bg);
 }
 
 .wb-tag-fail .wb-status {
@@ -303,10 +272,10 @@
 .wb-tag-shade {
   background-image: repeating-linear-gradient(
     135deg,
-    #eceee9 0,
-    #eceee9 4px,
-    #e2e5df 4px,
-    #e2e5df 8px
+    var(--wb-shade-1) 0,
+    var(--wb-shade-1) 4px,
+    var(--wb-shade-2) 4px,
+    var(--wb-shade-2) 8px
   );
 }
 
@@ -351,7 +320,7 @@
 }
 
 .wb-input-form:focus {
-  background-color: #eef6f3;
+  background-color: var(--wb-focus-bg);
   box-shadow: inset 0 0 0 2px var(--wb-accent);
 }
 
@@ -394,7 +363,7 @@ input[type='checkbox'].wb-input {
   cursor: pointer;
   border: 1px solid var(--wb-line);
   border-radius: 0.25rem;
-  background-color: white;
+  background-color: var(--wb-button-bg);
   padding: 0.125rem 0.5rem;
   color: var(--wb-ink);
   font-family: var(--wb-sans);
@@ -470,7 +439,7 @@ input[type='checkbox'].wb-input {
 }
 
 .wb-ref:hover {
-  background-color: #cfe7e2;
+  background-color: var(--wb-ref-hover-bg);
 }
 
 .wb-ref.wb-ref-external {
@@ -480,7 +449,7 @@ input[type='checkbox'].wb-input {
 }
 
 .wb-ref.wb-ref-external:hover {
-  background-color: #f0d2c3;
+  background-color: var(--wb-external-hover-bg);
 }
 
 .wb-external-refs,
@@ -538,7 +507,7 @@ input[type='checkbox'].wb-input {
 }
 
 .wb-error-boundary-detail {
-  background-color: white;
+  background-color: var(--wb-button-bg);
   font-size: 0.75rem;
 }
 

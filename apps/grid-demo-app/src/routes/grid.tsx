@@ -116,52 +116,52 @@ function GridDemo() {
   const [selectedCount, setSelectedCount] = useState(0)
 
   return (
-    <main className="min-h-screen bg-[#f4f1e9] p-8 text-[#17312d] sm:p-12 lg:p-20">
+    <main className="min-h-screen bg-app-bg p-8 text-app-ink sm:p-12 lg:p-20">
       <header className="mx-auto mb-10 flex max-w-[1500px] flex-col items-start justify-between gap-8 lg:flex-row">
         <div>
           <Link
-            className="mb-11 inline-flex gap-2 font-sans text-sm font-bold text-[#536863] no-underline"
+            className="mb-11 inline-flex gap-2 font-sans text-sm font-bold text-app-muted no-underline"
             to="/"
           >
             <span aria-hidden="true">←</span> Workspace
           </Link>
-          <p className="mb-4 font-mono text-[0.72rem] font-bold uppercase tracking-[0.08em] text-[#b35131]">
+          <p className="mb-4 font-mono text-[0.72rem] font-bold uppercase tracking-[0.08em] text-app-warm">
             Enterprise data grid
           </p>
           <h1 className="text-[clamp(3rem,6vw,6rem)] font-normal leading-[0.9] tracking-[-0.04em]">
             Revenue cockpit
           </h1>
-          <p className="mt-6 max-w-[480px] font-sans leading-[1.6] text-[#536863]">
+          <p className="mt-6 max-w-[480px] font-sans leading-[1.6] text-app-muted">
             A compact AG Grid Enterprise playground with grouping, filters, and
             live selection.
           </p>
         </div>
-        <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-[0.05em] text-[#536863]">
-          <span className="size-2 rounded-full bg-[#1f6f66]" />
+        <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-[0.05em] text-app-muted">
+          <span className="size-2 rounded-full bg-app-accent" />
           Q4 pipeline
         </div>
       </header>
 
       <section
-        className="mx-auto mb-5 grid max-w-[1500px] grid-cols-1 border-y border-[#b9c4bb] sm:grid-cols-3"
+        className="mx-auto mb-5 grid max-w-[1500px] grid-cols-1 border-y border-app-line-strong sm:grid-cols-3"
         aria-label="Pipeline summary"
       >
-        <div className="flex flex-col gap-2 border-b border-[#b9c4bb] p-5 font-sans sm:border-b-0 sm:border-r">
-          <span className="text-xs uppercase text-[#536863]">
+        <div className="flex flex-col gap-2 border-b border-app-line-strong p-5 font-sans sm:border-b-0 sm:border-r">
+          <span className="text-xs uppercase text-app-muted">
             Total pipeline
           </span>
           <strong className="text-2xl">
             {currencyFormatter.format(1125000)}
           </strong>
         </div>
-        <div className="flex flex-col gap-2 border-b border-[#b9c4bb] p-5 font-sans sm:border-b-0 sm:border-r">
-          <span className="text-xs uppercase text-[#536863]">
+        <div className="flex flex-col gap-2 border-b border-app-line-strong p-5 font-sans sm:border-b-0 sm:border-r">
+          <span className="text-xs uppercase text-app-muted">
             Open opportunities
           </span>
           <strong className="text-2xl">6</strong>
         </div>
         <div className="flex flex-col gap-2 p-5 font-sans">
-          <span className="text-xs uppercase text-[#536863]">
+          <span className="text-xs uppercase text-app-muted">
             Selected rows
           </span>
           <strong className="text-2xl">{selectedCount}</strong>
@@ -169,17 +169,17 @@ function GridDemo() {
       </section>
 
       <section
-        className="mx-auto max-w-375 overflow-hidden border border-[#c5d0c7] bg-[#fffdf8] shadow-[0_1rem_3rem_rgb(38_65_55/8%)]"
+        className="mx-auto max-w-375 overflow-hidden border border-app-line bg-app-surface shadow-[0_1rem_3rem_var(--app-shadow)]"
         aria-label="Revenue pipeline table"
       >
-        <div className="flex flex-col items-start justify-between gap-4 border-b border-[#d8ded8] p-4 font-sans sm:flex-row sm:items-center sm:px-5">
+        <div className="flex flex-col items-start justify-between gap-4 border-b border-app-line p-4 font-sans sm:flex-row sm:items-center sm:px-5">
           <div className="flex flex-col gap-1">
             <strong>Pipeline detail</strong>
-            <span className="text-[0.82rem] text-[#667b72]">
+            <span className="text-[0.82rem] text-app-muted">
               Group by account, then explore each opportunity.
             </span>
           </div>
-          <span className="inline-flex items-center gap-2 border border-[#b9cfc4] px-2 py-1.5 font-mono text-[0.65rem] font-bold uppercase tracking-wider text-[#1f6f66]">
+          <span className="inline-flex items-center gap-2 border border-app-line-strong px-2 py-1.5 font-mono text-[0.65rem] font-bold uppercase tracking-wider text-app-accent">
             ENTERPRISE
           </span>
         </div>
@@ -197,7 +197,7 @@ function GridDemo() {
               sortable: true,
               floatingFilter: true,
               headerStyle: {
-                backgroundColor: '#f5f5f5',
+                backgroundColor: 'var(--app-subtle)',
               },
             }}
             autoGroupColumnDef={{

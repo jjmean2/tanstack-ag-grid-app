@@ -8,13 +8,13 @@ export function ClosingExports() {
   return (
     <>
       <div className="grid gap-1">
-        <span className="text-xs font-bold text-[#536863]">
+        <span className="text-xs font-bold text-app-muted">
           다른 화면에 공개하는 값 (저장할 때 함께 저장)
         </span>
         <ul className="flex flex-wrap gap-x-6" data-exports>
           {Object.entries(wb.exports).map(([name, value]) => (
             <li key={name}>
-              <code className="text-xs text-[#b35131]">ext:closing/{name}</code>{' '}
+              <code className="text-xs text-app-warm">ext:closing/{name}</code>{' '}
               {value.label} ={' '}
               <strong className="font-mono">{value.text}</strong>
             </li>
@@ -23,7 +23,7 @@ export function ClosingExports() {
       </div>
       <button
         type="button"
-        className="cursor-pointer border border-[#9aaba0] bg-white px-3 py-1.5 font-bold hover:bg-[#eef3ed]"
+        className="cursor-pointer border border-app-line-strong bg-app-surface px-3 py-1.5 font-bold hover:bg-app-subtle"
         onClick={() => openScreen?.('tax')}
       >
         {SCREENS.tax.title} 화면 열기 ↗

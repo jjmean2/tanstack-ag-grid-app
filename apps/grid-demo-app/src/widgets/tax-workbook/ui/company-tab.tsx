@@ -5,7 +5,7 @@ import { SheetGrid } from '@lab/workbook/ag-grid'
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <label className="grid gap-1 font-sans text-sm font-bold text-[#536863]">
+    <label className="grid gap-1 font-sans text-sm font-bold text-app-muted">
       {label}
       {children}
     </label>
@@ -18,7 +18,7 @@ export function CompanyTab() {
   return (
     <div className="grid gap-8 p-6 lg:grid-cols-2">
       <section className="grid content-start gap-4">
-        <h2 className="font-sans text-sm font-bold uppercase tracking-wider text-[#536863]">
+        <h2 className="font-sans text-sm font-bold uppercase tracking-wider text-app-muted">
           Cell inputs
         </h2>
         <Field label="회사명">
@@ -35,7 +35,7 @@ export function CompanyTab() {
         </Field>
       </section>
       <section className="grid content-start gap-4">
-        <h2 className="font-sans text-sm font-bold uppercase tracking-wider text-[#536863]">
+        <h2 className="font-sans text-sm font-bold uppercase tracking-wider text-app-muted">
           Same cells in a grid
         </h2>
         <div>

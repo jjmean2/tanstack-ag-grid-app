@@ -10,11 +10,11 @@ export function Stat({
 }) {
   return (
     <div className="grid gap-1">
-      <span className="font-sans text-xs font-bold text-[#536863]">
+      <span className="font-sans text-xs font-bold text-app-muted">
         {label}
       </span>
       <strong
-        className={`font-mono text-lg ${tone === 'error' ? 'text-[#c0392b]' : tone === 'ok' ? 'text-[#1a7f4b]' : ''}`}
+        className={`font-mono text-lg ${tone === 'error' ? 'text-app-error' : tone === 'ok' ? 'text-app-ok' : ''}`}
       >
         {typeof value === 'number' ? value.toLocaleString('ko-KR') : '-'}
       </strong>

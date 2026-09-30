@@ -53,7 +53,7 @@ export function WorkbookFormPage() {
   })
 
   return (
-    <main className="min-h-screen bg-[#f4f1e9] p-6 text-[#17312d] sm:p-10 lg:p-16">
+    <main className="min-h-screen bg-app-bg p-6 text-app-ink sm:p-10 lg:p-16">
       <PageHeader
         eyebrow="Workbook · 서식형 sheet"
         title="Form sheet"

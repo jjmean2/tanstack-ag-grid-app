@@ -231,7 +231,9 @@ textBox([3, 1, 9, 1], '과세표준 및 매출세액', 'head')
 - AG Grid: `themeQuartz.withParams({ borderColor: 'var(--wb-grid-line)', rowHeight: 'var(--wb-row-height)', … })`
 - 서식 칸(`.wb-form`, `.wb-box`, `.wb-input-form`): 같은 토큰을 씁니다.
 
-토큰 하나를 바꾸면 grid와 서식이 함께 바뀌고, AG Grid의 테마 방식(Theming API)도 그대로 씁니다. 데모 앱의 `shared/ui/workbook-view/theme.css`와 `shared/config/ag-grid.ts`를 보세요.
+토큰 하나를 바꾸면 grid와 서식이 함께 바뀌고, AG Grid의 테마 방식(Theming API)도 그대로 씁니다.
+
+**테마 전환(색 세트)**: 색 토큰을 테마마다 한 벌씩 정의하고 `<html>`의 속성(예: `data-theme`, `data-mode`)으로 고르면, 속성만 바꿔 grid·서식·화면 전체가 즉시 바뀝니다. CSS 변수를 쓰므로 React는 다시 그리지 않습니다. 데모 앱은 `shared/ui/theme/themes.css`에 테마 2개 × 라이트/다크 = 4벌이 있고, 색은 이 파일에만 있습니다(화면의 Tailwind 색도 `@theme inline`으로 같은 토큰을 씁니다). 데모 앱의 `shared/ui/workbook-view/theme.css`와 `shared/config/ag-grid.ts`를 보세요.
 
 테마 예:
 

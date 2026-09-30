@@ -4,6 +4,7 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import '../styles.css'
+import { ThemeSwitcher } from '#/shared/ui/theme/theme-switcher'
 
 export const Route = createRootRoute({
   component: RootComponent,
@@ -12,6 +13,7 @@ export const Route = createRootRoute({
 function RootComponent() {
   return (
     <>
+      <ThemeSwitcher />
       <Outlet />
       <TanStackDevtools
         config={{

@@ -1,9 +1,9 @@
-// @labs/workbook — the core. Framework-free: nothing here imports React or
+// @lab/workbook — the core. Framework-free: nothing here imports React or
 // AG Grid, so a workbook can be defined, built and tested anywhere.
 //
 //   state ──(definition)──▶ buildWorkbook ──▶ Workbook (cells, values, errors)
 //
-// Views live in `@labs/workbook/react` and `@labs/workbook/ag-grid`.
+// Views live in `@lab/workbook/react` and `@lab/workbook/ag-grid`.
 
 // --- model -----------------------------------------------------------------
 export type * from './core/types'

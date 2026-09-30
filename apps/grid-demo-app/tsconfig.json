@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "include": ["**/*.ts", "**/*.tsx", "scripts/*.js"],
+  "exclude": ["node_modules", "dist"],
+  "compilerOptions": {
+    "allowJs": true, // include scripts/*.js (for typed linting), unchecked
+    "paths": {
+      "#/*": ["./src/*"],
+      "@/*": ["./src/*"]
+    },
+    "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"]
+  }
+}

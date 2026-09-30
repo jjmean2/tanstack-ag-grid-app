@@ -1,52 +1,20 @@
 {
-  "name": "tanstack-ag-grid-app",
+  "name": "@lab/root",
   "private": true,
   "type": "module",
-  "imports": {
-    "#/*": "./src/*"
-  },
   "scripts": {
-    "dev": "vite dev --port 3000",
-    "generate-routes": "tsr generate",
-    "build": "vite build",
-    "preview": "vite preview",
-    "lint": "eslint",
-    "format": "prettier --write . && eslint --fix",
-    "check": "prettier --check .",
-    "generate": "node scripts/generate.js",
-    "test": "vitest run",
-    "test:watch": "vitest"
-  },
-  "dependencies": {
-    "@tailwindcss/vite": "^4.1.18",
-    "@tanstack/react-devtools": "latest",
-    "@tanstack/react-router": "latest",
-    "@tanstack/react-router-devtools": "latest",
-    "ag-grid-community": "^36.2.0",
-    "ag-grid-enterprise": "^36.2.0",
-    "ag-grid-react": "^36.2.0",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "tailwindcss": "^4.3.3"
+    "dev": "pnpm --filter @lab/grid-demo-app dev",
+    "build": "pnpm --recursive build",
+    "test": "pnpm --recursive test",
+    "typecheck": "pnpm --recursive typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write . && eslint --fix .",
+    "check": "prettier --check ."
   },
   "devDependencies": {
-    "@tanstack/devtools-vite": "latest",
     "@tanstack/eslint-config": "latest",
-    "@tanstack/router-cli": "^1.132.0",
-    "@tanstack/router-plugin": "latest",
-    "@testing-library/dom": "^10.4.2",
-    "@testing-library/jest-dom": "^7.0.1",
-    "@testing-library/react": "^16.3.3",
-    "@testing-library/user-event": "^14.6.7",
-    "@types/node": "^22.10.2",
-    "@types/react": "^19.2.0",
-    "@types/react-dom": "^19.2.0",
-    "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^9.20.0",
-    "jsdom": "^30.1.1",
     "prettier": "^3.8.1",
-    "typescript": "^6.0.2",
-    "vite": "^8.0.0",
-    "vitest": "^5.0.2"
+    "typescript": "^6.0.2"
   }
 }

@@ -4,13 +4,20 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - '3000:3000'
     volumes:
+      # Keep the image's installed node_modules (one per workspace).
       - /app/node_modules
+      - /app/apps/grid-demo-app/node_modules
+      - /app/packages/workbook/node_modules
     develop:
       watch:
         - action: rebuild
           path: package.json
+        - action: rebuild
+          path: apps/grid-demo-app/package.json
+        - action: rebuild
+          path: packages/workbook/package.json
         - action: rebuild
           path: pnpm-lock.yaml
         - action: rebuild

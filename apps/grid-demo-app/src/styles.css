@@ -1,0 +1,31 @@
+@import 'tailwindcss';
+@import '@lab/workbook/ag-grid/styles.css';
+
+/* The workbook's React and AG Grid views use Tailwind classes; Tailwind skips
+   node_modules unless a source is registered. */
+@source '../node_modules/@lab/workbook/src';
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #app {
+    min-height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: #f4f1e9;
+    color: #17312d;
+    font-family: Georgia, 'Times New Roman', serif;
+  }
+
+  a {
+    color: inherit;
+  }
+}

@@ -1,4 +1,4 @@
-// @labs/workbook/react — React bindings: share a built workbook with views,
+// @lab/workbook/react — React bindings: share a built workbook with views,
 // and views that are not tied to a grid library (inputs, form sheets, the
 // formula bar).
 

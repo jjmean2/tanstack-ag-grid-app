@@ -1,0 +1,36 @@
+import { toRequest } from '#/entities/tax-session/model/adapter'
+import type { TaxSession } from '#/entities/tax-session/model/types'
+import type { Store } from '@lab/workbook'
+import { useStore } from '@lab/workbook/react'
+
+// Shows the two shapes side by side: the client state and the request payload
+// that `toRequest` builds from it.
+export function SessionDebug({ store }: { store: Store<TaxSession> }) {
+  const state = useStore(store, (s) => s)
+
+  return (
+    <details className="mx-auto mt-6 max-w-[1500px] border border-[#c5d0c7] bg-[#fffdf8] p-4">
+      <summary className="cursor-pointer font-sans text-sm font-bold text-[#536863]">
+        Session state / request payload
+      </summary>
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <div>
+          <h3 className="mb-2 font-sans text-xs font-bold text-[#b35131]">
+            Client state
+          </h3>
+          <pre className="max-h-96 overflow-auto bg-[#f4f1e9] p-3 font-mono text-xs">
+            {JSON.stringify(state, null, 2)}
+          </pre>
+        </div>
+        <div>
+          <h3 className="mb-2 font-sans text-xs font-bold text-[#b35131]">
+            toRequest(state)
+          </h3>
+          <pre className="max-h-96 overflow-auto bg-[#f4f1e9] p-3 font-mono text-xs">
+            {JSON.stringify(toRequest(state), null, 2)}
+          </pre>
+        </div>
+      </div>
+    </details>
+  )
+}

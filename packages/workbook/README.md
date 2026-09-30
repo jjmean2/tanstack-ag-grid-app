@@ -1,4 +1,4 @@
-# @labs/workbook
+# @lab/workbook
 
 클라이언트 state 위에 **스프레드시트 같은 양식**을 만드는 라이브러리입니다. 타입이 있는 셀, 고정 수식, 여러 sheet와 탭, 화면 간 참조를 다룹니다. 세무조서처럼 "여러 grid와 input으로 이루어진, 서로 연결된 큰 양식"을 위해 만들었습니다.
 
@@ -14,12 +14,12 @@ store (입력값만) ──(정의: sheets · layout · 수식)──▶ buildWo
 
 ## 진입점
 
-| import                              | 내용                                                                                  | 의존           |
-| ----------------------------------- | ------------------------------------------------------------------------------------- | -------------- |
-| `@labs/workbook`                    | 모델, 수식, 정의·계산, layout 헬퍼, store, 저장소                                     | 없음 (순수 TS) |
-| `@labs/workbook/react`              | Provider, `useCell`/`CellInput`, `FormSheet`, 수식 바, 외부 참조 패널, error boundary | React          |
-| `@labs/workbook/ag-grid`            | `SheetGrid`, `SheetGridProvider`                                                      | React, AG Grid |
-| `@labs/workbook/ag-grid/styles.css` | grid sheet의 행·셀 클래스 (`sheet-title` 등)                                          | —              |
+| import                             | 내용                                                                                  | 의존           |
+| ---------------------------------- | ------------------------------------------------------------------------------------- | -------------- |
+| `@lab/workbook`                    | 모델, 수식, 정의·계산, layout 헬퍼, store, 저장소                                     | 없음 (순수 TS) |
+| `@lab/workbook/react`              | Provider, `useCell`/`CellInput`, `FormSheet`, 수식 바, 외부 참조 패널, error boundary | React          |
+| `@lab/workbook/ag-grid`            | `SheetGrid`, `SheetGridProvider`                                                      | React, AG Grid |
+| `@lab/workbook/ag-grid/styles.css` | grid sheet의 행·셀 클래스 (`sheet-title` 등)                                          | —              |
 
 의존 방향은 **core ← react ← ag-grid** 한 방향입니다. 패키지는 앱 코드를 import하지 않습니다. 둘 다 [boundaries.test.ts](src/boundaries.test.ts)가 검사합니다.
 
@@ -27,7 +27,7 @@ store (입력값만) ──(정의: sheets · layout · 수식)──▶ buildWo
 
 ```
 src/
-├─ index.ts            @labs/workbook 공개 API
+├─ index.ts            @lab/workbook 공개 API
 ├─ core/               모델과 계산 (React·AG Grid 없음)
 │  ├─ types.ts           WorkbookDef · SheetDef(grid | form) · CellSpec · Cell · Workbook …
 │  ├─ address.ts         주소: sheet/row/col · sheet/@group/col · ext:screen/name
@@ -63,7 +63,7 @@ src/
 ## 양식 하나 만들기
 
 ```ts
-import { defineWorkbook, items, subtotal, title, T } from '@labs/workbook'
+import { defineWorkbook, items, subtotal, title, T } from '@lab/workbook'
 
 export const def = defineWorkbook<MyState>(
   [
@@ -132,8 +132,9 @@ export const def = defineWorkbook<MyState>(
 
 - **AG Grid 모듈 등록**: `ModuleRegistry.registerModules([...])`. grid sheet에는 client-side row model, 행 병합(`CellSpanModule`), 편집기 모듈이 필요합니다.
 - **테마**: `<SheetGridProvider theme={...}>`로 감쌉니다. 없으면 AG Grid 기본 테마입니다.
-- **CSS**: `@labs/workbook/ag-grid/styles.css`를 한 번 import합니다.
-- **Tailwind**: `react/`와 `ag-grid/`의 컴포넌트는 Tailwind 클래스를 씁니다. 패키지를 `node_modules`로 옮기면 앱 CSS에 `@source`로 이 경로를 추가해야 합니다.
+- **CSS**: `@lab/workbook/ag-grid/styles.css`를 한 번 import합니다.
+- **Tailwind**: `react/`와 `ag-grid/`의 컴포넌트는 Tailwind 클래스를 씁니다. Tailwind는 `node_modules`를 스캔하지 않으므로, 앱 CSS에 `@source '../node_modules/@lab/workbook/src';`처럼 등록해야 합니다.
+- **React와 AG Grid는 한 벌**: 둘 다 peer dependency입니다. AG Grid는 모듈 등록이 사본마다 따로라서, 두 벌이면 등록한 기능이 보이지 않습니다. 앱의 Vite 설정에 `resolve.dedupe`를 두는 것을 권합니다.
 - **라우팅**: 라이브러리는 route를 모릅니다. 다른 화면을 여는 방법은 `WorkbookProvider`의 `openScreen`으로 주입합니다.
 
 ## 알려진 제약
@@ -143,10 +144,17 @@ export const def = defineWorkbook<MyState>(
 - **form sheet에는 그룹 참조(`[@group/col]`)가 없습니다.** 늘어나는 목록은 grid sheet로 두고 참조하세요.
 - **뷰 컴포넌트의 색과 문구**(한국어 라벨)는 지금은 고정입니다.
 
-## 별도 패키지로 발행하려면
+## 개발
 
-지금은 앱이 tsconfig 경로 별칭(`@labs/workbook` → `packages/workbook/src`)으로 소스를 직접 가져옵니다. 발행하려면 다음이 필요합니다.
+이 저장소의 pnpm workspace 안에 있고, 앱은 `"@lab/workbook": "workspace:*"`로 의존합니다. `exports`가 `src/`의 TypeScript를 직접 가리키므로 빌드 단계 없이 앱의 Vite가 그대로 변환합니다.
 
-- 빌드 단계를 추가합니다(예: tsup으로 `dist/` 생성, `exports`를 `dist`로 변경).
+```bash
+pnpm --filter @lab/workbook test        # 패키지 테스트 (의존 방향 검사 포함)
+pnpm --filter @lab/workbook typecheck
+```
+
+## 저장소 밖으로 발행하려면
+
+- 빌드 단계를 추가합니다(예: tsup으로 `dist/`를 만들고 `exports`를 `dist`로 변경).
 - `private: false`로 바꾸고 버전을 관리합니다.
-- 앱에서는 별칭 대신 의존성으로 설치합니다. pnpm workspace로 연결할 때는 React와 AG Grid가 **한 벌**만 설치되도록 주의하세요. AG Grid는 모듈 등록이 인스턴스마다 따로라서, 두 벌이면 등록한 기능이 보이지 않습니다.
+- CSS와 Tailwind 클래스 처리(위의 `@source`)를 사용하는 앱에 안내합니다.

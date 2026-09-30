@@ -6,7 +6,7 @@ import {
   initialize,
 } from 'react-devtools-inline/frontend'
 
-import { FRONTEND_PATH } from './protocol'
+import { FRONTEND_PATH, SUPERSEDED_CLOSE_CODE } from './protocol'
 import type { RelayMessage } from './protocol'
 
 type Listener = Parameters<Wall['listen']>[0]
@@ -61,7 +61,13 @@ function connect() {
     }
     listeners.forEach((fn) => fn(message))
   }
-  socket.onclose = () => {
+  socket.onclose = ({ code }) => {
+    if (code === SUPERSEDED_CLOSE_CODE) {
+      renderStatus(
+        'React DevTools was opened in another tab. Reload to use it here.',
+      )
+      return
+    }
     renderStatus('Dev server disconnected. Retrying…')
     setTimeout(connect, 1000)
   }

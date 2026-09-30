@@ -93,6 +93,12 @@ importers:
       react-devtools-inline:
         specifier: ^8.0.0
         version: 8.0.0
+      react-dom-experimental:
+        specifier: npm:react-dom@0.0.0-experimental-d083ec1d-20260922
+        version: react-dom@0.0.0-experimental-d083ec1d-20260922(react@19.3.0)
+      react-experimental:
+        specifier: npm:react@0.0.0-experimental-d083ec1d-20260922
+        version: react@0.0.0-experimental-d083ec1d-20260922
       react-is:
         specifier: ^19.3.0
         version: 19.3.0
@@ -1929,6 +1935,11 @@ packages:
   react-devtools-inline@8.0.0:
     resolution: {integrity: sha512-GPkPAX4W75tvUqdgSAmykpoOQ+TABcX+OoL7oGPqg1wOXJ9WY8gL7liN961rc7uQqUoOw1MD1Rv48wwclNW9bw==}
 
+  react-dom@0.0.0-experimental-d083ec1d-20260922:
+    resolution: {integrity: sha512-uI6D4/gemCSu2zRtXwfzN+8V6eQfEgDfqZ06Ynv8QKwKZtSIfOc28s34lDc62J/5eyEB3tCs3OK2FGHajnLWNA==}
+    peerDependencies:
+      react: 0.0.0-experimental-d083ec1d-20260922
+
   react-dom@19.3.0:
     resolution: {integrity: sha512-JDk8dgif51OjFoDE70+OT9ICyYr+69HlmihNwp1+Nsfbna3t5sIiCa9ZJktDmQ4/1b/rn26hIAR2uYXDMr5r0Q==}
     peerDependencies:
@@ -1942,6 +1953,10 @@ packages:
 
   react-is@19.3.0:
     resolution: {integrity: sha512-UpMYezM4v5/18F28aC66AEsjXIgE02kyEMH6yLdgLXu/UTfa1Ntwck/nNLrbqJsEXW7gPb0coNO9FQse9WTovA==}
+
+  react@0.0.0-experimental-d083ec1d-20260922:
+    resolution: {integrity: sha512-15J0UFHUzhEJTjDrbYgjMqGlV4WWeA3WPIdBglDFqsRjfusPUMB5X7/1kyl9Wr7XI2F9SJntAyNv2C2xNfD91A==}
+    engines: {node: '>=0.10.0'}
 
   react@19.3.0:
     resolution: {integrity: sha512-E8LUcbtBWt20bbl2YoHfx4ZDBdxVTfOKtCZn9cDSJ4l6/nuoApcpIBcj47t2wZoVX8g2ZHuMHbiShgCR1T5Sog==}
@@ -1978,6 +1993,9 @@ packages:
   saxes@6.0.0:
     resolution: {integrity: sha512-xAg7SOnEhrm5zI3puOOKyy1OMcMlIJZYNJY7xLBwSze0UjhPLnWfj2GF2EpT0jmzaJKIWKHLsaSSajf35bcYnA==}
     engines: {node: '>=v12.22.7'}
+
+  scheduler@0.0.0-experimental-d083ec1d-20260922:
+    resolution: {integrity: sha512-1H1chghTymoioE4ST0vj+HutkzVkB/TbCr3aEWxvuBdwPgE7KcSh0NW2ty1aPAv7KkAfb812wwz+JK7RAgzfOg==}
 
   scheduler@0.28.0:
     resolution: {integrity: sha512-juorfCmIkIw8tT+p5BXSm6PJjQF/ycEYmKyzURCIt/RaZIhL+PulbQ9Yu2z1HdOJDdqDTlxA1+xKBmHXJsczAw==}
@@ -2322,18 +2340,6 @@ packages:
     peerDependencies:
       bufferutil: ^4.0.1
       utf-8-validate: ^5.0.2
-    peerDependenciesMeta:
-      bufferutil:
-        optional: true
-      utf-8-validate:
-        optional: true
-
-  ws@8.21.3:
-    resolution: {integrity: sha512-201TZ/kPWxoPr/OKWjquZR1SWKXcvxdH+e1xrx89b3YbmzLMFCLfnaG1HFIgWzJOEWZ7MvpK++odZufgYR50Rw==}
-    engines: {node: '>=10.0.0'}
-    peerDependencies:
-      bufferutil: ^4.0.1
-      utf-8-validate: '>=5.0.2'
     peerDependenciesMeta:
       bufferutil:
         optional: true
@@ -2898,7 +2904,7 @@ snapshots:
 
   '@tanstack/devtools-event-bus@0.4.3':
     dependencies:
-      ws: 8.21.3
+      ws: 8.22.0
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -4081,6 +4087,11 @@ snapshots:
       '@jridgewell/sourcemap-codec': 1.5.5
       source-map-js: 0.6.2
 
+  react-dom@0.0.0-experimental-d083ec1d-20260922(react@19.3.0):
+    dependencies:
+      react: 19.3.0
+      scheduler: 0.0.0-experimental-d083ec1d-20260922
+
   react-dom@19.3.0(react@19.3.0):
     dependencies:
       react: 19.3.0
@@ -4091,6 +4102,8 @@ snapshots:
   react-is@17.0.2: {}
 
   react-is@19.3.0: {}
+
+  react@0.0.0-experimental-d083ec1d-20260922: {}
 
   react@19.3.0: {}
 
@@ -4133,6 +4146,8 @@ snapshots:
   saxes@6.0.0:
     dependencies:
       xmlchars: 2.2.0
+
+  scheduler@0.0.0-experimental-d083ec1d-20260922: {}
 
   scheduler@0.28.0: {}
 
@@ -4391,8 +4406,6 @@ snapshots:
       strip-ansi: 6.0.1
 
   ws@7.5.13: {}
-
-  ws@8.21.3: {}
 
   ws@8.22.0: {}
 

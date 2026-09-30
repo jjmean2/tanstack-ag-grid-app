@@ -48,6 +48,8 @@
     "prettier": "^3.8.1",
     "react-devtools-core": "^8.0.0",
     "react-devtools-inline": "^8.0.0",
+    "react-dom-experimental": "npm:react-dom@0.0.0-experimental-d083ec1d-20260922",
+    "react-experimental": "npm:react@0.0.0-experimental-d083ec1d-20260922",
     "react-is": "^19.3.0",
     "typescript": "^6.0.2",
     "vite": "^8.0.0",

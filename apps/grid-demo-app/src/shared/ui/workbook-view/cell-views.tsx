@@ -93,10 +93,12 @@ export const cellViews = defineCellViews({
     status: { grid: StatusCell },
   },
   rules: [
-    // Negative amounts get a mark: a condition on the value, which CSS cannot
-    // express.
+    // Negative amounts get a mark (red in the theme): a condition on the
+    // value, which CSS cannot express. The money type shows them in
+    // parentheses.
     {
-      when: (f) => typeof f.value === 'number' && f.value < 0,
+      when: (f) =>
+        f.type === 'money' && typeof f.value === 'number' && f.value < 0,
       then: { marks: ['wb-negative'] },
     },
     // Years: centred, edited as a whole number in range.

@@ -62,7 +62,7 @@ const boxTags = (box: Box): string[] =>
 
 // Marks the library puts on every cell (styled or not, as the theme likes).
 const BUILT_IN =
-  /^wb-(cell|type-|source-|overridden|editable|error|action|align-|tag-)/
+  /^wb-(cell|type-|source-|overridable|overridden|editable|error|action|align-|tag-)/
 
 // Marks this app's presentation rules add.
 const ruleMarksOf = (wb: Workbook): string[] =>

@@ -153,7 +153,7 @@ const session = createSession(def, initialState, { externals }) // 컴포넌트 
 양식 정의는 **보이는 방식을 말하지 않고 의미만** 말합니다. 셀이 어떤 편집기로, 어떤 정렬로, 어떤 모양으로 보이는지는 세 단계로 정해집니다.
 
 ```
-① 의미 (정의)          tags: 'subtotal', 'input', 'pass' …       양식 작성자
+① 의미 (정의)          tags: 'subtotal', 'total', 'pass' …       양식 작성자
                        type: T.money, write 유무, 수식 여부      (셀의 사실)
         │
 ② 표시 규칙 (JS)       cell → { editor, display, align, marks }   기본 규칙: 라이브러리 (core/presentation.ts)
@@ -202,6 +202,7 @@ export const cellViews = defineCellViews({
 | `wb-cell`, `wb-type-<id>`                              | 셀, 그리고 셀 타입 (`wb-type-money`, `wb-type-date` …) |
 | `wb-source-value` / `wb-source-formula`                | 값의 출처                                              |
 | `wb-editable`, `wb-error`, `wb-action`                 | 편집 가능(표시 규칙 결과), 수식 오류, 버튼 칸          |
+| `wb-overridable`, `wb-overridden`                      | 사람이 덮어쓸 수 있는 수식 셀, 실제로 덮어쓴 셀        |
 | `wb-align-right` / `wb-align-center`                   | 표시 규칙이 정한 정렬                                  |
 | 앱 규칙이 추가한 표식                                  | 예: `wb-negative`                                      |
 | `wb-tag-<tag>`                                         | 정의의 태그. 셀 자신과 **그 행의 태그**가 모두 붙음    |
@@ -259,7 +260,7 @@ tax: formulaCell('=MIN(ROUND([.amount]*1.3/100,0),10000000)', {
 - **값은 state에 있습니다.** 덮어쓴 값은 `overrides.c18Tax`에 들어가고, 되돌리면 그 키가 지워집니다. 저장, 복원, 변경 여부, 초기화가 다른 입력과 똑같이 동작합니다. `overrides` 객체가 없는 옛 state도 "덮어쓰지 않음"으로 읽습니다.
 - **계산**: 수식은 항상 계산합니다. 덮어쓴 동안에는 셀 값과 이 셀을 참조하는 수식이 사람의 값을 쓰고, 수식 결과는 `cell.override.computed`에 남습니다. 수식이 오류여도 덮어쓴 셀에는 오류가 나지 않습니다.
 - **만들어진 셀**: `cell.write`(쓸 수 있으면 있음), `cell.override = { active, revert, computed? }`. 뷰는 `cell.write`만 봅니다. 사람의 입력은 `commitInput(cell, input)` 한 곳에서 해석합니다. 덮어쓰기 가능한 셀에서는 빈 입력이 "수식으로 되돌리기"입니다.
-- **표시**: 셀의 사실 `overridden`, 표식 `wb-overridden`. 덮어쓰기 가능한 셀은 `writable`이라 타입의 편집기가 붙습니다.
+- **표시**: 셀의 사실 `overridable`/`overridden`, 표식 `wb-overridable`/`wb-overridden`. 덮어쓰기 가능한 셀은 `writable`이라 타입의 편집기가 붙습니다.
 - **되돌리기**: 값 지우기(grid, input, 서식 칸, grid의 Delete 키), grid 우클릭 메뉴 "수식으로 되돌리기"(AG Grid Enterprise 컨텍스트 메뉴. 문구는 `defineCellViews({ texts })`), 수식 바의 버튼(`useFormulaBar().revert`).
 - 병합 열(`spanRows`)에는 둘 수 없습니다. 목록 열의 수식(`LeafColumnDef.formula`)은 아직 덮어쓸 수 없습니다.
 

@@ -39,7 +39,8 @@ export type CellFacts = {
   type: string // cell type id
   writable: boolean // a person can change it (input, or overridable formula)
   formula: boolean
-  overridden: boolean // a formula cell showing a person's value
+  overridable: boolean // a formula cell a person may type over
+  overridden: boolean // ... and did: it shows their value
   error: boolean
   tags: readonly string[] // its own and its row's
   value: unknown
@@ -66,6 +67,7 @@ const factsOf = (cell: Cell): CellFacts => ({
   type: cell.type.id,
   writable: cell.write !== undefined,
   formula: cell.source.kind === 'formula',
+  overridable: cell.override !== undefined,
   overridden: cell.override?.active === true,
   error: cell.error !== undefined,
   tags: [...cell.rowTags, ...cell.tags],

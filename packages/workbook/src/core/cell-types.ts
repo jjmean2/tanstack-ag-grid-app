@@ -43,8 +43,14 @@ function numeric(id: string, show: (n: number) => string): CellType<number> {
       typeof v === 'number' ? show(v) : v == null ? '' : String(v),
     parse: (input) => {
       if (input === '' || input == null) return 0
-      const n = Number(input)
-      return Number.isFinite(n) ? n : INVALID
+      if (typeof input === 'number')
+        return Number.isFinite(input) ? input : INVALID
+      // Also what `format` shows: thousands separators, and an accounting
+      // negative in parentheses, "(1,234)".
+      const raw = String(input).trim().replaceAll(',', '')
+      const paren = /^\((.+)\)$/.exec(raw)
+      const n = paren ? -Number(paren[1]) : Number(raw)
+      return raw !== '' && Number.isFinite(n) ? n : INVALID
     },
     toEval: (v) => (typeof v === 'number' ? v : null),
     fromEval: (v) => {
@@ -111,7 +117,10 @@ const select = (options: readonly string[]): CellType<string> => ({
   fromEval: (v) => text.fromEval(v),
 })
 
-const won = (n: number) => n.toLocaleString('ko-KR')
+// Amounts: grouped, and negatives the accounting way, "(1,234)" (their colour
+// is the theme's, via a presentation rule).
+const won = (n: number) =>
+  n < 0 ? `(${(-n).toLocaleString('ko-KR')})` : n.toLocaleString('ko-KR')
 
 export const T = {
   text,

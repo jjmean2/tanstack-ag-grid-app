@@ -128,10 +128,8 @@ export const taxWorkbook = defineWorkbook<TaxSession>([
         subtotal('total', '합 계', ['adds', 'subs'], amountCols, 'total'),
         row('reported', {}, (ctx) => ({
           account: labelCell('신고서상 금액'),
-          tax: inputCell(
-            ctx.state.reported,
-            (value) => ctx.update((s) => ({ ...s, reported: Number(value) })),
-            { tags: 'input' },
+          tax: inputCell(ctx.state.reported, (value) =>
+            ctx.update((s) => ({ ...s, reported: Number(value) })),
           ),
         })),
         row('gap', { tags: 'total' }, () => ({

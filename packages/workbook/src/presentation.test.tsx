@@ -195,7 +195,7 @@ describe('CellInput and the presentation', () => {
       's/info.note/value',
     )
     // Other cells keep the built-in editors.
-    expect(screen.getByDisplayValue('-5').tagName).toBe('INPUT')
+    expect(screen.getByDisplayValue('(5)').tagName).toBe('INPUT')
   })
 
   it('follows rules that make a cell read-only', () => {
@@ -204,7 +204,7 @@ describe('CellInput and the presentation', () => {
         rules: [{ when: (f) => f.type === 'money', then: { editor: null } }],
       }),
     )
-    const input = screen.getByDisplayValue('-5')
+    const input = screen.getByDisplayValue('(5)')
     expect(input).toHaveAttribute('readonly')
     expect(input).not.toHaveClass('wb-editable')
   })

@@ -7,7 +7,8 @@ import type { Cell, Row, Tags } from './types'
 //   wb-cell                       every cell
 //   wb-type-<type id>             wb-type-money, wb-type-date, ...
 //   wb-source-value | -formula    where the value comes from
-//   wb-overridden                 a formula cell showing a person's value
+//   wb-overridable                a formula cell a person may type over
+//   wb-overridden                 ... and did: it shows their value
 //   wb-error                      evaluated to an error (#REF!, #DIV/0!, ...)
 //   wb-action                     holds a button
 //   wb-tag-<tag>                  tags from the definition: the cell's own and
@@ -35,6 +36,7 @@ export function factMarks(cell: Cell): string[] {
     `wb-type-${cell.type.id}`,
     `wb-source-${cell.source.kind}`,
   ]
+  if (cell.override) marks.push('wb-overridable')
   if (cell.override?.active) marks.push('wb-overridden')
   if (cell.error) marks.push('wb-error')
   if (cell.action) marks.push('wb-action')

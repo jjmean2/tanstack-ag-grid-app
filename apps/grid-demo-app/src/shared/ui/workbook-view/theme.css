@@ -36,17 +36,16 @@
   --wb-line: #9aaba0;
   --wb-line-soft: #c5d0c7;
   --wb-accent: #1f6f66;
-  --wb-editable: #1d4ed8;
   --wb-ok: #1a7f4b;
   --wb-error: #c0392b;
-  --wb-negative: #b35131;
+  --wb-negative: #d11a1a;
   --wb-error-bg: #fbeeec;
   --wb-title-bg: #dfe9e2;
-  --wb-head-bg: #eef3ed;
-  --wb-subtotal-bg: #f1f5f1;
-  --wb-total-bg: #e6eee8;
-  --wb-input-bg: #fff8db;
-  --wb-readonly-bg: #f3f6f2;
+  --wb-head-bg: #eef3ed; /* also the grid header (shared/config/ag-grid.ts) */
+  /* Cell backgrounds say what a person can do with a cell. */
+  --wb-fixed-bg: #ffffff; /* nothing: formulas, labels */
+  --wb-editable-bg: #e8f1fd; /* type a value */
+  --wb-overridable-bg: #eaf6df; /* type over a formula */
   --wb-add-row-bg: #fbfaf5;
   --wb-panel-bg: #fffdf8;
   --wb-ref: #1f6f66;
@@ -56,16 +55,26 @@
   --wb-external-line: #e2b9a4;
   --wb-external-panel-bg: #fbf1ea;
   --wb-overridden: #c26a1b;
-  --wb-overridden-bg: #fdf1e1;
   --wb-sans: ui-sans-serif, system-ui, sans-serif;
   --wb-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 /* --- 2. states ------------------------------------------------------------ */
 
-/* Anything the user can change reads blue, in a grid, an input or a form. */
+/* Backgrounds, in a grid, an input or a form box alike: white where nothing
+   can be typed, light blue where a value can, light green where a formula can
+   be typed over. Text keeps its colour. Subtotal and total rows (section 4)
+   are the header colour where nothing can be typed. */
+.wb-cell {
+  background-color: var(--wb-fixed-bg);
+}
+
 .wb-cell.wb-editable {
-  color: var(--wb-editable);
+  background-color: var(--wb-editable-bg);
+}
+
+.wb-cell.wb-editable.wb-overridable {
+  background-color: var(--wb-overridable-bg);
 }
 
 /* Formula cells: a small marker in the top-right corner of a grid cell. */
@@ -79,18 +88,14 @@
   border-color: transparent var(--wb-accent) transparent transparent;
 }
 
-/* A formula cell showing a person's value: italic, with the corner marker
-   in another colour (grid) or a tinted background (inputs, form boxes). */
+/* A formula cell showing a person's value: italic, and in a grid the corner
+   marker in another colour. */
 .wb-cell.wb-overridden {
   font-style: italic;
 }
 
 .ag-cell.wb-overridden::after {
   border-color: transparent var(--wb-overridden) transparent transparent;
-}
-
-.wb-input.wb-overridden {
-  background-color: var(--wb-overridden-bg);
 }
 
 .wb-cell.wb-error {
@@ -102,9 +107,8 @@
   background-color: var(--wb-error-bg);
 }
 
-/* Marks added by presentation rules (presentation.ts). After the
-   editable rule, with as many classes, so a negative amount shows as such
-   even where it can be edited. */
+/* Marks added by presentation rules (cell-views.tsx). A negative amount is
+   red wherever it is (its parentheses are the money type's format). */
 .wb-cell.wb-negative {
   color: var(--wb-negative);
 }
@@ -132,13 +136,16 @@
   font-weight: 700;
 }
 
-.wb-tag-subtotal {
-  background-color: var(--wb-subtotal-bg);
-  font-weight: 700;
-}
-
-.wb-tag-total {
-  background-color: var(--wb-total-bg);
+/* Subtotal and total rows: the header colour. After the white of fixed
+   cells, with as many classes, so it wins over it; a cell that can be typed
+   in keeps its own colour (more classes). */
+.wb-tag-subtotal,
+.wb-tag-total,
+.wb-tag-strong,
+.wb-cell.wb-tag-subtotal,
+.wb-cell.wb-tag-total,
+.wb-cell.wb-tag-strong {
+  background-color: var(--wb-head-bg);
   font-weight: 700;
 }
 
@@ -148,11 +155,6 @@
 
 .wb-tag-add-row {
   background-color: var(--wb-add-row-bg);
-}
-
-/* Cells. */
-.wb-tag-input {
-  background-color: var(--wb-input-bg);
 }
 
 /* A check's result (e.g. a difference that must be zero). The 'status'
@@ -211,11 +213,6 @@
   );
 }
 
-.wb-tag-strong {
-  background-color: var(--wb-subtotal-bg);
-  font-weight: 700;
-}
-
 /* --- 5. chrome ------------------------------------------------------------ */
 
 .wb-input {
@@ -224,7 +221,6 @@
 
 .wb-input-field {
   border-color: var(--wb-line-soft);
-  background-color: white;
   font-family: var(--wb-sans);
   font-size: 1rem;
 }
@@ -236,9 +232,6 @@
 
 .wb-input-field:not(.wb-editable) {
   cursor: default;
-  background-color: #f4f1e9;
-  color: var(--wb-muted);
-  font-style: italic;
 }
 
 .wb-input-field.wb-invalid,
@@ -246,8 +239,7 @@
   border-color: var(--wb-error);
 }
 
-/* An error shows as such even on a read-only input (the rule above would
-   otherwise win: same specificity, later in the file). */
+/* An error shows as such on an input too. */
 .wb-input.wb-error {
   color: var(--wb-error);
 }
@@ -264,7 +256,6 @@
 
 .wb-input-form:not(.wb-editable) {
   cursor: default;
-  background-color: var(--wb-readonly-bg);
 }
 
 input[type='checkbox'].wb-input {

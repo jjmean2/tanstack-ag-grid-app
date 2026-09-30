@@ -64,10 +64,8 @@ export const adjustmentWorkbook = defineWorkbook<AdjustmentState>([
 
       row('reported', {}, (ctx) => ({
         account: labelCell('신고서상 금액'),
-        tax: inputCell(
-          ctx.state.reported,
-          (value) => ctx.update((s) => ({ ...s, reported: Number(value) })),
-          { tags: 'input' },
+        tax: inputCell(ctx.state.reported, (value) =>
+          ctx.update((s) => ({ ...s, reported: Number(value) })),
         ),
       })),
       row('gap', { tags: 'total' }, () => ({

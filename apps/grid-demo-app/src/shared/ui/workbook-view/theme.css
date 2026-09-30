@@ -21,7 +21,8 @@
  * app's components (wb-status) ·
  * wb-row · wb-input(-field|-form) · wb-invalid · wb-form · wb-box(-text|-cell|
  * -tall) · wb-button · wb-full-width · wb-formula-bar(-…) · wb-ref(-external) ·
- * wb-referenced · wb-hl-1…6 (the focused formula's references) ·
+ * wb-referenced · wb-hl-1…6 · wb-hl-top|right|bottom|left (the focused
+ * formula's references, and the sides of their outline) ·
  * wb-external-ref(s-…) · wb-error-boundary(-…). See
  * packages/workbook/src/core/marks.ts.
  *
@@ -132,8 +133,55 @@
   --wb-hl: var(--wb-hl-6);
 }
 
+/* A line on each side of the outline (wb-hl-top|right|bottom|left): a range
+   reads as one rectangle, as AG Grid draws a selected range. Each side mark
+   sets a width; two inset shadows draw the left/top and right/bottom ones. */
+.wb-hl-top {
+  --wb-hl-t: 2px;
+}
+.wb-hl-right {
+  --wb-hl-r: 2px;
+}
+.wb-hl-bottom {
+  --wb-hl-b: 2px;
+}
+.wb-hl-left {
+  --wb-hl-l: 2px;
+}
+
 .wb-cell.wb-referenced {
-  box-shadow: inset 0 0 0 2px var(--wb-hl);
+  box-shadow:
+    inset var(--wb-hl-l, 0px) var(--wb-hl-t, 0px) 0 0 var(--wb-hl),
+    inset calc(-1 * var(--wb-hl-r, 0px)) calc(-1 * var(--wb-hl-b, 0px)) 0 0
+      var(--wb-hl);
+}
+
+/* In a grid, the row separator runs in a 1px gap below each cell, which
+   would break the sides of an outline at every row. So there the lines are a
+   layer over the cell's own 1px (transparent) border, reaching 1px further
+   down over the gap unless the cell is the bottom of its outline. The cell
+   lets it paint those 2px outside its padding box (and still clips its text,
+   so the ellipsis stays). Browsers without overflow-clip-margin show the
+   1px breaks. */
+.ag-cell.wb-referenced {
+  overflow: clip;
+  overflow-clip-margin: 2px;
+  box-shadow: none;
+}
+
+.ag-cell.wb-referenced::before {
+  content: '';
+  position: absolute;
+  inset: -1px -1px -2px;
+  border-color: var(--wb-hl);
+  border-style: solid;
+  border-width: var(--wb-hl-t, 0px) var(--wb-hl-r, 0px) var(--wb-hl-b, 0px)
+    var(--wb-hl-l, 0px);
+  pointer-events: none;
+}
+
+.ag-cell.wb-referenced.wb-hl-bottom::before {
+  bottom: -1px;
 }
 
 .wb-ref.wb-referenced {

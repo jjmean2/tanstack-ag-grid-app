@@ -19,7 +19,11 @@ import { gridViewsOf } from './views'
 import { FullWidthRow } from './full-width-row'
 import { rowMarks } from '../core/marks'
 import { leafColumns } from '../core/workbook'
-import { highlightMarks, referenceHighlights } from '../core/highlight'
+import {
+  cellHighlightMarks,
+  referenceHighlights,
+  sameHighlight,
+} from '../core/highlight'
 import { claimPending, reportFocus } from '../core/navigation'
 import { splitAddress } from '../core/address'
 import type { CellRef, Row } from '../core/types'
@@ -125,7 +129,9 @@ export function useSheetGrid(
             editors,
             displays,
             extraMarks: (cell) =>
-              highlightMarks(highlightsRef.current.byCell.get(cell.address)),
+              cellHighlightMarks(
+                highlightsRef.current.byCell.get(cell.address),
+              ),
           })
         : [],
     [sheetColumns, present, editors, displays],
@@ -160,8 +166,8 @@ export function useSheetGrid(
     drawn.current = highlights
     if (!ready || !api || before === highlights) return
     const changed = new Set<string>()
-    for (const [address, n] of highlights.byCell)
-      if (before.byCell.get(address) !== n) changed.add(address)
+    for (const [address, h] of highlights.byCell)
+      if (!sameHighlight(before.byCell.get(address), h)) changed.add(address)
     for (const address of before.byCell.keys())
       if (!highlights.byCell.has(address)) changed.add(address)
     const mine = [...changed]

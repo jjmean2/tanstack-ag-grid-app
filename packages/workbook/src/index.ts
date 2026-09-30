@@ -48,9 +48,10 @@ export { createStore } from './store/create-store'
 export type { UiState } from './core/navigation'
 export { navigate } from './core/navigation'
 export { commitInput } from './core/edit'
-export type { Highlights } from './core/highlight'
+export type { Highlight, Highlights } from './core/highlight'
 export {
   HIGHLIGHT_COLORS,
+  cellHighlightMarks,
   highlightMarks,
   referenceHighlights,
 } from './core/highlight'

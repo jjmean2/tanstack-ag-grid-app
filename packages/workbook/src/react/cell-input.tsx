@@ -3,14 +3,15 @@ import { useEffect, useRef, useState } from 'react'
 import { useStore } from './use-store'
 import { cellAddress } from '../core/address'
 import { commitInput } from '../core/edit'
-import { highlightMarks, referenceHighlights } from '../core/highlight'
+import { cellHighlightMarks, referenceHighlights } from '../core/highlight'
+import type { Highlight } from '../core/highlight'
 import { claimPending, reportFocus } from '../core/navigation'
 import type { Address } from '../core/types'
 import { useWorkbook } from './workbook-context'
 
-// The reference number of this cell in the focused cell's formula, if any
+// This cell's highlight as a reference of the focused cell's formula, if any
 // (see `referenceHighlights`). Re-renders only when it changes.
-export function useHighlight(address: Address): number | undefined {
+export function useHighlight(address: Address): Highlight | undefined {
   const { wb, ui } = useWorkbook()
   return useStore(ui, (s) =>
     referenceHighlights(wb, s.focused).byCell.get(address),
@@ -79,7 +80,8 @@ export function CellInput({
     'wb-input',
     `wb-input-${variant}`,
     ...cellMarks,
-    ...highlightMarks(highlight),
+    // An input is not laid out as the sheet is: outline every side.
+    ...cellHighlightMarks(highlight, { outline: false }),
     invalid && 'wb-invalid',
   ]
     .filter(Boolean)

@@ -270,6 +270,7 @@ textBox([3, 1, 9, 1], '과세표준 및 매출세액', 'head')
 
 - 수식 셀에 포커스가 가면, 그 수식이 참조하는 셀(범위와 목록 열 포함)에 표식 `wb-referenced`와 참조 번호 `wb-hl-1`…`wb-hl-6`이 붙습니다. 수식 바의 해당 참조 링크에도 같은 번호가 붙어, 테마가 둘을 같은 색으로 칠합니다(엑셀처럼).
 - 저장하는 값이 아니라 포커스(`ui.focused`)와 수식에서 계산합니다: `referenceHighlights(wb, focused)`. grid 셀, `CellInput`, 서식 칸, 수식 바가 같은 결과를 씁니다. 커스텀 뷰는 `useHighlight(address)`, 커스텀 수식 바는 `useFormulaBar()` 참조의 `highlight` 번호를 씁니다.
+- 참조마다 **바깥 테두리**를 계산합니다. 셀의 위·오른쪽·아래·왼쪽 이웃이 같은 참조가 아니면 그 변에 `wb-hl-top|right|bottom|left`가 붙어, 범위와 목록 열이 사각형 하나로 그려집니다(AG Grid의 범위 선택처럼). 서식 칸과 input은 sheet 배치를 따르지 않으므로 네 변을 모두 그립니다(`cellHighlightMarks(h, { outline: false })`).
 - grid는 하이라이트가 켜지거나 꺼진 셀만 다시 그립니다. 다른 화면 참조(`ext:`)는 이 화면에 셀이 없어 하이라이트하지 않습니다.
 
 ## 사람이 덮어쓸 수 있는 수식 셀

@@ -1,5 +1,9 @@
 import { T } from './cell-types'
-import { highlightMarks, referenceHighlights } from './highlight'
+import {
+  cellHighlightMarks,
+  highlightMarks,
+  referenceHighlights,
+} from './highlight'
 import type { ColumnDef } from './types'
 import { buildWorkbook, defineWorkbook } from './workbook'
 import { formulaCell, items, literalCell, row } from '../index'
@@ -45,13 +49,19 @@ describe('referenceHighlights', () => {
       ['s/x/b:y/b', 2],
       ['s/@list/a', 3],
     ])
-    expect(Object.fromEntries(h.byCell)).toEqual({
-      's/x/a': 1,
-      's/x/b': 2,
-      's/y/b': 2,
-      's/l1/a': 3,
-      's/l2/a': 3,
-    })
+    const sides = (address: string) => {
+      const c = h.byCell.get(address)!
+      return `${c.n}:${['top', 'right', 'bottom', 'left'].filter((k) => c[k as 'top']).join(',')}`
+    }
+    // One cell: all four sides.
+    expect(sides('s/x/a')).toBe('1:top,right,bottom,left')
+    // A range down one column, x/b..y/b: one rectangle.
+    expect(sides('s/x/b')).toBe('2:top,right,left')
+    expect(sides('s/y/b')).toBe('2:right,bottom,left')
+    // A list column: one rectangle over its rows.
+    expect(sides('s/l1/a')).toBe('3:top,right,left')
+    expect(sides('s/l2/a')).toBe('3:right,bottom,left')
+    expect(h.byCell.size).toBe(5)
   })
 
   it('is empty without a focused formula', () => {
@@ -68,5 +78,44 @@ describe('referenceHighlights', () => {
   it('gives marks for a number', () => {
     expect(highlightMarks(2)).toEqual(['wb-referenced', 'wb-hl-2'])
     expect(highlightMarks(undefined)).toEqual([])
+  })
+})
+
+describe('outlines', () => {
+  it('draw a rectangle round a range of rows and columns', () => {
+    const def2 = defineWorkbook<S>([
+      {
+        id: 's',
+        title: 's',
+        columns,
+        rows: [
+          row('x', {}, () => ({ a: literalCell(1), b: literalCell(2) })),
+          row('y', {}, () => ({ a: literalCell(3), b: literalCell(4) })),
+          row('f', {}, () => ({ a: formulaCell('=SUM([x/a]:[y/b])') })),
+        ],
+      },
+    ])
+    const h = referenceHighlights(
+      buildWorkbook(def2, { list: [] }),
+      at('f', 'a'),
+    )
+    const sides = (address: string) =>
+      (['top', 'right', 'bottom', 'left'] as const)
+        .filter((k) => h.byCell.get(address)![k])
+        .join(',')
+    expect(sides('s/x/a')).toBe('top,left')
+    expect(sides('s/x/b')).toBe('top,right')
+    expect(sides('s/y/a')).toBe('bottom,left')
+    expect(sides('s/y/b')).toBe('right,bottom')
+    expect(cellHighlightMarks(h.byCell.get('s/x/a'))).toEqual([
+      'wb-referenced',
+      'wb-hl-1',
+      'wb-hl-top',
+      'wb-hl-left',
+    ])
+    // Laid out otherwise (a form): every side.
+    expect(
+      cellHighlightMarks(h.byCell.get('s/x/a'), { outline: false }),
+    ).toHaveLength(6)
   })
 })

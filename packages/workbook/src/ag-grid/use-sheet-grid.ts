@@ -13,6 +13,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { useStore } from '../react/use-store'
 import { createGridColumns } from './columns'
+import { contextMenuItems } from './context-menu'
 import { gridViewsOf } from './views'
 import { FullWidthRow } from './full-width-row'
 import { rowMarks } from '../core/marks'
@@ -60,7 +61,7 @@ function focusCells(api: GridApi<Row>, targets: CellRef[]) {
 export function useSheetGrid(sheetId: string): AgGridReactProps<Row> {
   const { wb, ui, views } = useWorkbook()
   const { present } = views
-  const { theme, editors, displays } = gridViewsOf(views)
+  const { theme, editors, displays, texts } = gridViewsOf(views)
   const sheet = wb.sheets[sheetId]
   const sheetColumns = sheet?.columns
   const rows = sheet?.rows
@@ -107,6 +108,7 @@ export function useSheetGrid(sheetId: string): AgGridReactProps<Row> {
       embedFullWidthRows: true, // scroll horizontally with the other rows
       enableCellSpan,
       stopEditingWhenCellsLoseFocus: true,
+      getContextMenuItems: (params) => contextMenuItems(params, texts),
       onFirstDataRendered: (event: FirstDataRenderedEvent<Row>) => {
         apiRef.current = event.api
         setReady(true)
@@ -123,7 +125,7 @@ export function useSheetGrid(sheetId: string): AgGridReactProps<Row> {
         reportFocus(ui, { sheetId, rowId: node.data.id, colId })
       },
     }),
-    [theme, rows, columnDefs, enableCellSpan, sheetId, ui],
+    [theme, rows, columnDefs, enableCellSpan, sheetId, ui, texts],
   )
 
   if (!sheet) throw new Error(`Unknown sheet: ${sheetId}`)

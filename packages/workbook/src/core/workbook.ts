@@ -107,12 +107,24 @@ export function buildWorkbook<TState>(
     rowTags: string[] = [],
   ): Cell => {
     if (cells.has(address)) throw new Error(`Duplicate cell ${address}`)
+    const { source } = spec
+    const override = source.kind === 'formula' ? source.override : undefined
+    const active = override !== undefined && override.value !== undefined
     const cell: Cell = {
       address,
       ...ids,
       type,
-      source: spec.source,
-      value: spec.source.kind === 'value' ? spec.source.value : undefined,
+      source,
+      // A formula cell gets its value when formulas are evaluated, unless a
+      // person's value overrides it.
+      value: source.kind === 'value' ? source.value : override?.value,
+      write: source.kind === 'value' ? source.write : override?.write,
+      override: override && {
+        active,
+        revert: () => {
+          if (active) override.write(undefined)
+        },
+      },
       span: spec.span,
       rowSpan: spec.rowSpan,
       tags: [],
@@ -175,7 +187,8 @@ export function buildWorkbook<TState>(
         // Nor may another cell's span cover it.
         const span = cellSpec.span ?? 1
         if (leaf.spanRows) {
-          if (cellSpec.source.kind === 'value' && cellSpec.source.write)
+          const { source } = cellSpec
+          if (source.kind === 'value' ? source.write : source.override)
             throw new Error(`A spanRows column cannot be editable: ${where}`)
           if (span > 1)
             throw new Error(`A spanRows column cannot span across: ${where}`)
@@ -269,10 +282,20 @@ export function buildWorkbook<TState>(
     return valueOfCell(target)
   }
 
-  // The value dependants see: dates as serials, and so on.
+  // The value dependants see: dates as serials, and so on. A person's value
+  // overriding a formula is what dependants see; its formula is evaluated on
+  // its own (below), so it cannot make a cycle.
   function valueOfCell(cell: Cell): Scalar {
-    if (cell.source.kind === 'value') return cell.type.toEval(cell.value)
+    if (cell.source.kind === 'value' || cell.override?.active)
+      return cell.type.toEval(cell.value)
+    return evaluateFormula(cell)
+  }
 
+  // Evaluates a formula cell: into the cell's value (or error), or, while a
+  // person's value overrides it, into `override.computed`.
+  function evaluateFormula(cell: Cell): Scalar {
+    if (cell.source.kind !== 'formula') return cell.type.toEval(cell.value)
+    const overridden = cell.override?.active ? cell.override : undefined
     const memo = results.get(cell.address)
     if (memo) {
       if (memo.ok) return memo.value
@@ -287,16 +310,27 @@ export function buildWorkbook<TState>(
       if (parsed instanceof FormulaError) throw parsed
       cell.formula = { text: parsed.text, parts: toParts(parsed, cell) }
       const result = evaluate(parsed.ast, { ref: (ref) => readRef(ref, cell) })
-      cell.value = cell.type.fromEval(result)
-      const seen = cell.type.toEval(cell.value)
+      const value = cell.type.fromEval(result)
+      if (overridden) overridden.computed = { value }
+      else cell.value = value
+      const seen = cell.type.toEval(value)
       results.set(cell.address, { ok: true, value: seen })
       return seen
     } catch (error) {
       if (!(error instanceof FormulaError)) throw error
-      cell.error = error.code
-      cell.errorDetail =
+      const errorDetail =
         error.message === error.code ? undefined : error.message
-      cell.value = undefined
+      if (overridden)
+        overridden.computed = {
+          value: undefined,
+          error: error.code,
+          errorDetail,
+        }
+      else {
+        cell.error = error.code
+        cell.errorDetail = errorDetail
+        cell.value = undefined
+      }
       if (!cell.formula)
         cell.formula = {
           text: cell.source.formula,
@@ -311,7 +345,7 @@ export function buildWorkbook<TState>(
 
   for (const cell of formulaCells) {
     try {
-      valueOfCell(cell)
+      evaluateFormula(cell)
     } catch (error) {
       if (!(error instanceof FormulaError)) throw error
     }

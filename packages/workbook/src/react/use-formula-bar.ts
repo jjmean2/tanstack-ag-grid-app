@@ -39,13 +39,19 @@ export type FormulaBarState =
   | {
       cell: Cell
       label: string
-      // Where the value comes from: a formula, an input, or a fixed value.
-      source: 'formula' | 'input' | 'fixed'
+      // Where the value comes from: a formula, a person's value overriding
+      // a formula, an input, or a fixed value.
+      source: 'formula' | 'override' | 'input' | 'fixed'
       formula?: string // as written, e.g. "=[s1/tax]+[s2/tax]"
       parts: FormulaBarPart[] // empty without a formula
       value: string // shown as formatted, or the error code
       error?: string // the error code
       errorDetail?: string
+      overridable: boolean // a formula a person may override by typing
+      // While overridden: what the formula gives (formatted, or its error
+      // code), and a way back to it.
+      computed?: string
+      revert?: () => void
     }
 
 export function useFormulaBar(): FormulaBarState {
@@ -97,14 +103,18 @@ export function useFormulaBar(): FormulaBarState {
     }
   }
 
+  const override = cell.override
+  const computed = override?.active ? override.computed : undefined
   return {
     cell,
     label: wb.labelOf(cell.address),
-    source: cell.formula
-      ? 'formula'
-      : cell.source.kind === 'value' && cell.source.write
-        ? 'input'
-        : 'fixed',
+    source: override?.active
+      ? 'override'
+      : cell.formula
+        ? 'formula'
+        : cell.write
+          ? 'input'
+          : 'fixed',
     formula: cell.formula?.text,
     parts: (cell.formula?.parts ?? []).map((p) =>
       p.target ? { text: p.text, ref: resolve(p.target) } : { text: p.text },
@@ -112,6 +122,9 @@ export function useFormulaBar(): FormulaBarState {
     value: cell.error ?? cell.type.format(cell.value),
     error: cell.error,
     errorDetail: cell.errorDetail,
+    overridable: override !== undefined,
+    computed: computed && (computed.error ?? cell.type.format(computed.value)),
+    revert: override?.active ? override.revert : undefined,
   }
 }
 

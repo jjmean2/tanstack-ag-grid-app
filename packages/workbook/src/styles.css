@@ -115,6 +115,13 @@ input[type='checkbox'].wb-input {
   white-space: pre-wrap;
 }
 
+.wb-formula-bar-override {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 0.75rem;
+}
+
 .wb-formula-bar-value,
 .wb-formula-bar-toggle {
   flex-shrink: 0;

@@ -1,5 +1,5 @@
 import { T } from '../core/cell-types'
-import type { CellSpec, Update } from '../core/types'
+import type { CellSpec, Override, Update } from '../core/types'
 import { patch, read } from './state'
 import type { ObjectKey, Slice } from './state'
 
@@ -49,11 +49,39 @@ export function boundCell<
   )
 }
 
-// A fixed formula, e.g. `=SUM([@adds/tax])`. The cell's type is the result type.
+// A formula, e.g. `=SUM([@adds/tax])`. The cell's type is the result type.
+// Read-only, unless `override` gives a slot for a person's value (see
+// `overrideOf`): then it can be edited, and cleared back to the formula.
 export const formulaCell = (
   formula: string,
-  extra: CellExtras = {},
+  { override, ...extra }: CellExtras & { override?: Override } = {},
 ): CellSpec => ({
-  source: { kind: 'formula', formula },
+  source: { kind: 'formula', formula, override },
   ...extra,
 })
+
+// An override slot at `state[key][prop]`, where `state[key]` is a plain object
+// (e.g. one `overrides` object per screen). The prop is absent while the
+// formula is in effect; a missing object counts as empty.
+export function overrideOf<
+  TState extends object,
+  TKey extends ObjectKey<TState>,
+>(
+  ctx: { state: TState; update: Update<TState> },
+  key: TKey,
+  prop: keyof TState[TKey] & string,
+): Override {
+  const slots = (s: TState) => (read(s, key) as Slice | undefined) ?? {}
+  return {
+    value: slots(ctx.state)[prop],
+    write: (value) =>
+      ctx.update((s) => {
+        const { [prop]: _old, ...rest } = slots(s)
+        return patch(
+          s,
+          key,
+          value === undefined ? rest : { ...rest, [prop]: value },
+        )
+      }),
+  }
+}

@@ -37,8 +37,9 @@ export type Presentation<
 export type CellFacts = {
   cell: Cell
   type: string // cell type id
-  writable: boolean // the definition gave it a writer
+  writable: boolean // a person can change it (input, or overridable formula)
   formula: boolean
+  overridden: boolean // a formula cell showing a person's value
   error: boolean
   tags: readonly string[] // its own and its row's
   value: unknown
@@ -63,8 +64,9 @@ export type Presenter = (cell: Cell) => Presentation
 const factsOf = (cell: Cell): CellFacts => ({
   cell,
   type: cell.type.id,
-  writable: cell.source.kind === 'value' && cell.source.write !== undefined,
+  writable: cell.write !== undefined,
   formula: cell.source.kind === 'formula',
+  overridden: cell.override?.active === true,
   error: cell.error !== undefined,
   tags: [...cell.rowTags, ...cell.tags],
   value: cell.value,

@@ -26,6 +26,7 @@ export {
   inputCell,
   boundCell,
   formulaCell,
+  overrideOf,
 } from './layout/cells'
 export type { FieldConfig, FieldsConfig } from './layout/grid'
 export {
@@ -46,6 +47,7 @@ export type { Store } from './store/create-store'
 export { createStore } from './store/create-store'
 export type { UiState } from './core/navigation'
 export { navigate } from './core/navigation'
+export { commitInput } from './core/edit'
 export { screenExports } from './core/external'
 
 // --- presentation: how views show cells (rules; see defineCellViews) ----------

@@ -1,6 +1,6 @@
 import type { ColDef, ColGroupDef } from 'ag-grid-community'
 
-import { INVALID } from '../core/cell-types'
+import { commitInput } from '../core/edit'
 import { defaultPresenter } from '../core/presentation'
 import type { Presenter } from '../core/presentation'
 import type { Row, ColumnDef, LeafColumnDef } from '../core/types'
@@ -33,17 +33,16 @@ function createLeafColDef(
     flex: col.width ? undefined : (col.flex ?? 1),
     width: col.width,
     valueGetter: ({ data }) => cellOf(data)?.value,
-    valueParser: ({ newValue, data }) => typeOf(data).parse(newValue),
+    // The editor's raw input goes to `commitInput`, which parses it like
+    // every view (and treats blank as "back to the formula" where a person
+    // may override one).
+    valueParser: ({ newValue }) => newValue,
     valueSetter: ({ data, newValue }) => {
       const cell = cellOf(data)
-      const source = cell?.source
-      const write = source?.kind === 'value' ? source.write : undefined
-      if (!cell || !write || newValue === INVALID) return false
-      // Only record it in the store: the rebuilt workbook brings new rows, and
+      // Only recorded in the store: the rebuilt workbook brings new rows, and
       // the grid redraws the cell from them (value, marks, editor). Built cells
       // are never changed in place.
-      write(newValue)
-      return true
+      return cell ? commitInput(cell, newValue) : false
     },
     valueFormatter: ({ value, data }) =>
       cellOf(data)?.error ?? typeOf(data).format(value),

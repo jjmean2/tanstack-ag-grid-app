@@ -5,6 +5,8 @@
 export { SheetGrid } from './sheet-grid'
 export { useSheetGrid } from './use-sheet-grid'
 export type { GridDisplay, GridEditor, GridViews } from './views'
+export type { GridTexts } from './context-menu'
+export { gridTexts } from './context-menu'
 export {
   defineCellViews,
   defaultGridDisplays,

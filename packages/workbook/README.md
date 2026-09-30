@@ -245,6 +245,24 @@ textBox([3, 1, 9, 1], '과세표준 및 매출세액', 'head')
 
 규칙과 테마를 각각 앱 한 파일에 모으고, **정의·배치가 쓰는 모든 태그와 규칙이 추가하는 모든 표식이 테마에 있는지 테스트로 확인**하는 방식을 권합니다(데모 앱의 `shared/ui/workbook-view/view.test.ts`). 태그는 자유 문자열이라, 이 검사가 없으면 오타나 스타일 누락이 조용히 지나갑니다.
 
+## 사람이 덮어쓸 수 있는 수식 셀
+
+수식 셀 중 정의에서 고른 셀만 사람이 값을 직접 입력해 덮어쓸 수 있습니다. 입력한 값은 수식 결과와 같은 형식이고(금액이면 금액), 지우면 다시 수식 결과가 됩니다.
+
+```ts
+// state: { ..., overrides: { c18Tax?: number } }  화면마다 한 곳에 모읍니다
+tax: formulaCell('=MIN(ROUND([.amount]*1.3/100,0),10000000)', {
+  override: overrideOf(ctx, 'overrides', 'c18Tax'), // 이 셀만 덮어쓰기 가능
+}),
+```
+
+- **값은 state에 있습니다.** 덮어쓴 값은 `overrides.c18Tax`에 들어가고, 되돌리면 그 키가 지워집니다. 저장, 복원, 변경 여부, 초기화가 다른 입력과 똑같이 동작합니다. `overrides` 객체가 없는 옛 state도 "덮어쓰지 않음"으로 읽습니다.
+- **계산**: 수식은 항상 계산합니다. 덮어쓴 동안에는 셀 값과 이 셀을 참조하는 수식이 사람의 값을 쓰고, 수식 결과는 `cell.override.computed`에 남습니다. 수식이 오류여도 덮어쓴 셀에는 오류가 나지 않습니다.
+- **만들어진 셀**: `cell.write`(쓸 수 있으면 있음), `cell.override = { active, revert, computed? }`. 뷰는 `cell.write`만 봅니다. 사람의 입력은 `commitInput(cell, input)` 한 곳에서 해석합니다. 덮어쓰기 가능한 셀에서는 빈 입력이 "수식으로 되돌리기"입니다.
+- **표시**: 셀의 사실 `overridden`, 표식 `wb-overridden`. 덮어쓰기 가능한 셀은 `writable`이라 타입의 편집기가 붙습니다.
+- **되돌리기**: 값 지우기(grid, input, 서식 칸, grid의 Delete 키), grid 우클릭 메뉴 "수식으로 되돌리기"(AG Grid Enterprise 컨텍스트 메뉴. 문구는 `defineCellViews({ texts })`), 수식 바의 버튼(`useFormulaBar().revert`).
+- 병합 열(`spanRows`)에는 둘 수 없습니다. 목록 열의 수식(`LeafColumnDef.formula`)은 아직 덮어쓸 수 없습니다.
+
 ## 수식 바를 바꾸려면
 
 단계가 셋입니다. 필요한 만큼만 내려가세요.
@@ -291,7 +309,7 @@ function MyFormulaBar() {
 - **재계산은 통째로 합니다.** 편집할 때마다 workbook 전체를 다시 계산합니다. 셀 수만 개까지는 수십 ms 수준입니다. 대용량 원천 데이터는 셀 밖에 두고 집계만 셀로 두세요.
 - **grid sheet의 병합**: 병합 열(`spanRows`)은 편집할 수 없고, 다른 셀의 가로 병합(`span`)이 병합 열을 덮을 수 없습니다(AG Grid 제약). 임의의 직사각형 병합이 필요하면 `FormSheet` 배치를 쓰세요.
 - **서식 배치는 고정입니다.** 늘어나는 목록은 grid로 두고 참조하세요.
-- **뷰 컴포넌트의 문구**는 한국어가 기본입니다. `FormulaBar`와 `ExternalRefs`는 `texts` prop으로 바꿀 수 있고, 나머지는 고정입니다. 색과 글꼴은 테마가 정합니다.
+- **뷰 컴포넌트의 문구**는 한국어가 기본입니다. `FormulaBar`와 `ExternalRefs`는 `texts` prop으로, grid의 우클릭 메뉴는 `defineCellViews({ texts })`로 바꿀 수 있고, 나머지는 고정입니다. 색과 글꼴은 테마가 정합니다.
 
 ## 개발
 

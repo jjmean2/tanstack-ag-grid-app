@@ -26,6 +26,18 @@ describe('vat form definition', () => {
     expect(wb.value('ret/final/tax')).toBe(5_795_000)
   })
 
+  it('takes a typed (18) credit over its formula, down to the tax due', () => {
+    const wb = build({ ...initialVat, overrides: { c18Tax: 300_000 } })
+    expect(wb.value('ret/c18/tax')).toBe(300_000)
+    expect(wb.cell('ret/c18/tax')?.override?.computed?.value).toBe(455_000)
+    expect(wb.value('ret/final/tax')).toBe(5_950_000) // 6,250,000 − 300,000
+  })
+
+  it('reads a state saved before overrides existed', () => {
+    const { overrides: _, ...old } = initialVat
+    expect(build(old as VatState).value('ret/c18/tax')).toBe(455_000)
+  })
+
   it('names form cells by line and column for the formula bar', () => {
     const wb = build(initialVat)
     expect(wb.labelOf('ret/s3/tax')).toBe(

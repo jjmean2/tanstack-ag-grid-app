@@ -15,8 +15,8 @@
  *   4. tags        the vocabulary definitions use (subtotal, input, ok, head …)
  *   5. chrome      the parts views draw around cells (inputs, boxes, buttons)
  *
- * Marks: wb-cell · wb-type-<id> · wb-source-value|formula · wb-editable ·
- * wb-error · wb-action · wb-align-right|center · wb-tag-<tag> (cell and row
+ * Marks: wb-cell · wb-type-<id> · wb-source-value|formula · wb-overridden ·
+ * wb-editable · wb-error · wb-action · wb-align-right|center · wb-tag-<tag> (cell and row
  * tags) · marks the app's presentation rules add (wb-negative, ...) · classes of the
  * app's components (wb-status) ·
  * wb-row · wb-input(-field|-form) · wb-invalid · wb-form · wb-box(-text|-cell|
@@ -55,6 +55,8 @@
   --wb-external-bg: #f6e2d8;
   --wb-external-line: #e2b9a4;
   --wb-external-panel-bg: #fbf1ea;
+  --wb-overridden: #c26a1b;
+  --wb-overridden-bg: #fdf1e1;
   --wb-sans: ui-sans-serif, system-ui, sans-serif;
   --wb-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
@@ -75,6 +77,20 @@
   border-style: solid;
   border-width: 0 7px 7px 0;
   border-color: transparent var(--wb-accent) transparent transparent;
+}
+
+/* A formula cell showing a person's value: italic, with the corner marker
+   in another colour (grid) or a tinted background (inputs, form boxes). */
+.wb-cell.wb-overridden {
+  font-style: italic;
+}
+
+.ag-cell.wb-overridden::after {
+  border-color: transparent var(--wb-overridden) transparent transparent;
+}
+
+.wb-input.wb-overridden {
+  background-color: var(--wb-overridden-bg);
 }
 
 .wb-cell.wb-error {

@@ -1,7 +1,12 @@
 import { useFormulaBar } from '@lab/workbook/react'
 import type { FormulaBarRef } from '@lab/workbook/react'
 
-const SOURCE = { formula: '수식', input: '입력', fixed: '고정' }
+const SOURCE = {
+  formula: '수식',
+  override: '수동',
+  input: '입력',
+  fixed: '고정',
+}
 
 const refValue = (ref: FormulaBarRef) =>
   ref.kind === 'group'

@@ -15,6 +15,8 @@ export const formulaBarTexts = {
   hint: '셀을 선택하면 값의 출처와 수식이 표시됩니다.',
   input: '입력 값',
   fixed: '고정 값',
+  override: (computed: string) => `수동 입력 · 수식 결과 ${computed}`,
+  revert: '수식으로 되돌리기',
   blank: '(빈 값)',
   raw: '원문',
   missingCell: '(없는 셀)',
@@ -75,8 +77,18 @@ export function FormulaBar({
               </span>
             ),
           )}
-        {bar.cell && bar.source !== 'formula' && (
+        {bar.cell && (bar.source === 'input' || bar.source === 'fixed') && (
           <span className="wb-formula-bar-note">{texts[bar.source]}</span>
+        )}
+        {bar.cell && bar.source === 'override' && (
+          <span className="wb-formula-bar-override">
+            <span className="wb-formula-bar-note">
+              {texts.override(bar.computed || texts.blank)}
+            </span>
+            <button type="button" className="wb-button" onClick={bar.revert}>
+              {texts.revert}
+            </button>
+          </span>
         )}
       </div>
 

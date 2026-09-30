@@ -5,6 +5,7 @@ import {
   formulaCell,
   items,
   labelCell,
+  overrideOf,
   row,
   subtotal,
   T,
@@ -63,6 +64,8 @@ export type VatState = {
     nonDeductible: number
   }
   credits: { other: number }
+  // Values a person typed over formula cells, by cell; absent = the formula.
+  overrides: { c18Tax?: number }
 }
 
 export const initialVat: VatState = {
@@ -98,6 +101,7 @@ export const initialVat: VatState = {
     nonDeductible: 0,
   },
   credits: { other: 0 },
+  overrides: {},
 }
 
 export const newPurchase = (): Purchase => ({
@@ -273,9 +277,13 @@ const ret: RowsNode<VatState>[] = [
     'strong',
   ),
   line('c17', (c) => ({ tax: boundCell(c, 'credits', 'other') })),
-  line('c18', () => ({
+  // The credit is computed, but may be typed over (e.g. a figure from the
+  // card company's statement); clearing it goes back to the formula.
+  line('c18', (c) => ({
     amount: formulaCell('=[s3/amount]'),
-    tax: formulaCell('=MIN(ROUND([.amount]*1.3/100,0),10000000)'),
+    tax: formulaCell('=MIN(ROUND([.amount]*1.3/100,0),10000000)', {
+      override: overrideOf(c, 'overrides', 'c18Tax'),
+    }),
   })),
   line('c19', () => ({ tax: formulaCell('=[c17/tax]+[c18/tax]') }), 'strong'),
   named(

@@ -84,7 +84,15 @@ export type TagFn = (result: {
 // Where a cell's value comes from (an axis separate from its data type).
 export type CellSource =
   | { kind: 'value'; value: unknown; write?: (value: unknown) => void } // editable when `write` is set
-  | { kind: 'formula'; formula: string } // fixed, read-only
+  | { kind: 'formula'; formula: string; override?: Override } // read-only, unless it has `override`
+
+// A slot in the state where a person's value for a formula cell is kept. While
+// `value` is undefined the formula gives the cell's value; writing a value
+// overrides it, writing undefined goes back to the formula.
+export type Override = {
+  value: unknown
+  write: (value: unknown) => void // receives undefined to go back
+}
 
 export type CellSpec = {
   source: CellSource
@@ -133,6 +141,17 @@ export type Cell = {
   rowSpan?: string
   // Formula cells: the text, split so references can be shown as links.
   formula?: { text: string; parts: FormulaPart[] }
+  // Set when a person can change the value: an input cell, or a formula cell
+  // with an override slot. Receives a parsed value (see `commitInput`).
+  write?: (value: unknown) => void
+  // Formula cells with an override slot.
+  override?: {
+    active: boolean // a person's value is in effect (`value` is theirs)
+    revert: () => void // back to the formula
+    // While active: what the formula gives (its value is not what the cell
+    // shows, and its error is not the cell's).
+    computed?: { value: unknown; error?: string; errorDetail?: string }
+  }
 }
 
 export type Row = {

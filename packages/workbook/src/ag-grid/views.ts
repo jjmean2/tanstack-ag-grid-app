@@ -3,6 +3,8 @@ import type { CustomCellRendererProps } from 'ag-grid-react'
 import type { ComponentType } from 'react'
 
 import { ActionCell } from './action-cell'
+import { gridTexts } from './context-menu'
+import type { GridTexts } from './context-menu'
 import type { EditorKind } from '../core/cell-types'
 import { definePresentation } from '../core/presentation'
 import type { BuiltInDisplay, PresentationRule } from '../core/presentation'
@@ -44,11 +46,13 @@ export type GridViews = {
   theme?: Theme
   editors: Record<string, GridEditor>
   displays: Record<string, GridDisplay>
+  texts: GridTexts
 }
 
 const defaultGridViews: GridViews = {
   editors: defaultGridEditors,
   displays: defaultGridDisplays,
+  texts: gridTexts,
 }
 
 export const gridViewsOf = (views: CellViews): GridViews =>
@@ -63,6 +67,7 @@ export const gridViewsOf = (views: CellViews): GridViews =>
 //   displays   per app display id, its grid renderer
 //   rules      the presentation: which editor, display, alignment and marks
 //              each cell gets. Ids must be built in or listed above.
+//   texts      words the grid adds (the context menu's "수식으로 되돌리기")
 //
 // Pass the result as a module-level constant.
 export function defineCellViews<
@@ -76,6 +81,7 @@ export function defineCellViews<
     NoInfer<TEditor> | EditorKind,
     NoInfer<TDisplay> | BuiltInDisplay
   >[]
+  texts?: Partial<GridTexts>
 }): CellViews {
   const editors = Object.entries<{ grid: GridEditor; input: InputEditor }>(
     config.editors ?? {},
@@ -83,6 +89,7 @@ export function defineCellViews<
   const displays = Object.entries<{ grid: GridDisplay }>(config.displays ?? {})
   const grid: GridViews = {
     theme: config.gridTheme,
+    texts: { ...gridTexts, ...config.texts },
     editors: {
       ...defaultGridEditors,
       ...Object.fromEntries(editors.map(([id, e]) => [id, e.grid])),

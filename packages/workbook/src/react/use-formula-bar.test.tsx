@@ -6,7 +6,14 @@ import { T } from '../core/cell-types'
 import { createSession } from '../core/session'
 import type { SavedExports } from '../core/types'
 import { defineWorkbook } from '../core/workbook'
-import { formulaCell, inputCell, items, labelCell, row } from '../index'
+import {
+  formulaCell,
+  inputCell,
+  items,
+  labelCell,
+  overrideOf,
+  row,
+} from '../index'
 import { FormulaBar } from './formula-bar'
 import { useExternalRefs, useFormulaBar } from './use-formula-bar'
 import { WorkbookProvider } from './workbook-context'
@@ -160,5 +167,68 @@ describe('FormulaBar', () => {
     expect(screen.getByText('No cell')).toBeInTheDocument()
     await userEvent.click(screen.getByLabelText('Raw'))
     expect(screen.getByLabelText('Raw')).toBeChecked()
+  })
+})
+
+describe('useFormulaBar on an overridable formula', () => {
+  type O = { overrides: { v?: number } }
+  const odef = defineWorkbook<O>([
+    {
+      id: 'o',
+      title: '덮어쓰기',
+      columns: [{ colId: 'v', headerName: '값', type: T.money }],
+      rows: [
+        row('r', {}, (ctx) => ({
+          v: formulaCell('=1+2', {
+            override: overrideOf(ctx, 'overrides', 'v'),
+          }),
+        })),
+      ],
+    },
+  ])
+
+  function osetup(overrides: O['overrides']) {
+    const session = createSession(odef, { overrides })
+    session.ui.set((s) => ({
+      ...s,
+      focused: { sheetId: 'o', rowId: 'r', colId: 'v' },
+    }))
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <WorkbookProvider session={session}>{children}</WorkbookProvider>
+    )
+    return { session, wrapper }
+  }
+
+  it('is a formula until overridden', () => {
+    const bar = renderHook(useFormulaBar, { wrapper: osetup({}).wrapper })
+      .result.current
+    expect(bar).toMatchObject({
+      source: 'formula',
+      overridable: true,
+      value: '3',
+    })
+    if (bar.cell) expect(bar.revert).toBeUndefined()
+  })
+
+  it("shows the person's value, the formula result, and goes back", async () => {
+    const { session, wrapper: Wrapper } = osetup({ v: 10 })
+    const bar = renderHook(useFormulaBar, { wrapper: Wrapper }).result.current
+    expect(bar).toMatchObject({
+      source: 'override',
+      value: '10',
+      computed: '3',
+    })
+
+    render(
+      <Wrapper>
+        <FormulaBar />
+      </Wrapper>,
+    )
+    expect(screen.getByText('수동 입력 · 수식 결과 3')).toBeInTheDocument()
+    await userEvent.click(
+      screen.getByRole('button', { name: '수식으로 되돌리기' }),
+    )
+    expect(session.store.get().overrides).toEqual({})
+    expect(screen.getByText('= 3')).toBeInTheDocument()
   })
 })

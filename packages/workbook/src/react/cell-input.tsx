@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { useStore } from './use-store'
 import { cellAddress } from '../core/address'
-import { INVALID } from '../core/cell-types'
+import { commitInput } from '../core/edit'
 import { claimPending, reportFocus } from '../core/navigation'
 import type { Address } from '../core/types'
 import { useWorkbook } from './workbook-context'
@@ -27,20 +27,15 @@ export function useCell(address: Address) {
   }, [pending, address, ui])
 
   if (!cell) throw new Error(`Unknown cell: ${address}`)
-  const write = cell.source.kind === 'value' ? cell.source.write : undefined
 
   return {
     cell,
     ref,
     text: cell.error ?? cell.type.format(cell.value),
-    editable: write !== undefined,
-    // Parses like a grid editor; false when the input is rejected.
-    commit: (input: unknown) => {
-      const value = cell.type.parse(input)
-      if (!write || value === INVALID) return false
-      write(value)
-      return true
-    },
+    editable: cell.write !== undefined,
+    // Parses like a grid editor; false when the input is rejected. Blank goes
+    // back to the formula on an overridable formula cell.
+    commit: (input: unknown) => commitInput(cell, input),
     onFocus: () =>
       reportFocus(ui, {
         sheetId: cell.sheetId,

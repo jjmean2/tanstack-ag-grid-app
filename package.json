@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm --filter @lab/grid-demo-app dev",
-    "build": "pnpm --recursive build",
+    "build": "pnpm --filter @lab/grid-demo-app build",
     "test": "pnpm --recursive test",
     "typecheck": "pnpm --recursive typecheck",
     "lint": "eslint .",

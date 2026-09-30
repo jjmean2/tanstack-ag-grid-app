@@ -96,7 +96,7 @@ function Screen({
         </nav>
 
         {/* Inactive tabs are unmounted; the data lives in the store. */}
-        {tab === 'company' && <CompanyTab store={store} />}
+        {tab === 'company' && <CompanyTab />}
         {tab === 'adjustment' && <SheetGrid sheetId="adj" />}
         {tab === 'tax' && <TaxTab />}
       </section>

@@ -1,7 +1,10 @@
-import { themeQuartz } from 'ag-grid-community'
+import { enableDevValidations, themeQuartz } from 'ag-grid-community'
 import { AllEnterpriseModule, ModuleRegistry } from 'ag-grid-enterprise'
 
 ModuleRegistry.registerModules([AllEnterpriseModule])
+
+// Readable messages for misconfigured options, in development only.
+if (import.meta.env.DEV) enableDevValidations()
 
 export const playgroundGridTheme = themeQuartz.withParams({
   accentColor: '#1f6f66',

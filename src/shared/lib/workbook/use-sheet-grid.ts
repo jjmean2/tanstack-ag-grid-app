@@ -13,6 +13,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { playgroundGridTheme } from '#/shared/config/ag-grid'
 import { useStore } from '../store/use-store'
 import { createGridColumns } from './columns'
+import { flattenLeafs } from './workbook'
+import { claimPending, reportFocus } from './navigation'
 import type { CellRef, ResolvedRow } from './types'
 import { useWorkbook } from './workbook-context'
 
@@ -59,6 +61,11 @@ export function useSheetGrid(sheetId: string): AgGridReactProps<ResolvedRow> {
     () => (sheetColumns ? createGridColumns(sheetColumns) : []),
     [sheetColumns],
   )
+  // An initial-only grid option; the columns of a sheet never change.
+  const enableCellSpan = useMemo(
+    () => flattenLeafs(sheetColumns ?? []).some((leaf) => leaf.spanRows),
+    [sheetColumns],
+  )
 
   const apiRef = useRef<GridApi<ResolvedRow> | null>(null)
   const [ready, setReady] = useState(false)
@@ -70,11 +77,8 @@ export function useSheetGrid(sheetId: string): AgGridReactProps<ResolvedRow> {
     const api = apiRef.current
     if (!ready || !api || !pending) return
     const mine = pending.targets.filter((t) => t.sheetId === sheetId)
-    if (mine.length === 0) return
+    if (mine.length === 0 || !claimPending(ui, pending.nonce)) return
     focusCells(api, mine)
-    ui.set((s) =>
-      s.pending?.nonce === pending.nonce ? { ...s, pending: null } : s,
-    )
   }, [ready, pending, sheetId, ui])
 
   const props = useMemo<AgGridReactProps<ResolvedRow>>(
@@ -86,6 +90,7 @@ export function useSheetGrid(sheetId: string): AgGridReactProps<ResolvedRow> {
       defaultColDef,
       getRowId,
       getRowClass,
+      enableCellSpan,
       stopEditingWhenCellsLoseFocus: true,
       onFirstDataRendered: (event: FirstDataRenderedEvent<ResolvedRow>) => {
         apiRef.current = event.api
@@ -100,16 +105,10 @@ export function useSheetGrid(sheetId: string): AgGridReactProps<ResolvedRow> {
           typeof event.column === 'string'
             ? event.column
             : event.column.getColId()
-        ui.set((s) =>
-          s.focused?.sheetId === sheetId &&
-          s.focused.rowId === node.data?.id &&
-          s.focused.colId === colId
-            ? s
-            : { ...s, focused: { sheetId, rowId: node.data!.id, colId } },
-        )
+        reportFocus(ui, { sheetId, rowId: node.data.id, colId })
       },
     }),
-    [rows, columnDefs, sheetId, ui],
+    [rows, columnDefs, enableCellSpan, sheetId, ui],
   )
 
   if (!sheet) throw new Error(`Unknown sheet: ${sheetId}`)

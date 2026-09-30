@@ -14,6 +14,25 @@ export type UiState = {
 export const createUiStore = (tab: string): Store<UiState> =>
   createStore<UiState>({ tab, focused: null, pending: null })
 
+// Takes a navigation request for handling. The same cell may be shown by more
+// than one view (a grid and an input): only the first to claim it moves focus.
+export function claimPending(ui: Store<UiState>, nonce: number): boolean {
+  if (ui.get().pending?.nonce !== nonce) return false
+  ui.set((s) => ({ ...s, pending: null }))
+  return true
+}
+
+// Reports the focused cell (from a grid or an input) to the formula bar.
+export function reportFocus(ui: Store<UiState>, ref: CellRef) {
+  ui.set((s) =>
+    s.focused?.sheetId === ref.sheetId &&
+    s.focused.rowId === ref.rowId &&
+    s.focused.colId === ref.colId
+      ? s
+      : { ...s, focused: ref },
+  )
+}
+
 let counter = 0
 
 // Moves focus to a cell, or to the first cell of a list (the grid highlights

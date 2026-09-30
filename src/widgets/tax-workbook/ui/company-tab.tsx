@@ -1,8 +1,6 @@
 import type { ReactNode } from 'react'
 
-import type { TaxSession } from '#/entities/tax-session/model/types'
-import type { Store } from '#/shared/lib/store/create-store'
-import { shallowEqual, useStore } from '#/shared/lib/store/use-store'
+import { CellInput } from '#/shared/lib/workbook/cell-input'
 import { SheetGrid } from '#/shared/lib/workbook/sheet-grid'
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -14,47 +12,31 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-const inputClass =
-  'border border-[#c5d0c7] bg-white px-3 py-2 font-sans text-base font-normal text-[#17312d]'
-
-// Plain inputs and a grid over the same session state.
-export function CompanyTab({ store }: { store: Store<TaxSession> }) {
-  const company = useStore(store, (s) => s.company, shallowEqual)
-  const setCompany = (patch: Partial<TaxSession['company']>) =>
-    store.set((s) => ({ ...s, company: { ...s.company, ...patch } }))
-
+// Inputs and a grid showing the same cells: both can be referenced by
+// formulas and followed from the formula bar.
+export function CompanyTab() {
   return (
     <div className="grid gap-8 p-6 lg:grid-cols-2">
       <section className="grid content-start gap-4">
-        <h2 className="font-sans text-sm font-bold uppercase tracking-[0.05em] text-[#536863]">
-          Plain inputs
+        <h2 className="font-sans text-sm font-bold uppercase tracking-wider text-[#536863]">
+          Cell inputs
         </h2>
         <Field label="회사명">
-          <input
-            className={inputClass}
-            value={company.name}
-            onChange={(e) => setCompany({ name: e.target.value })}
-          />
+          <CellInput address="company/company.name/value" />
         </Field>
         <Field label="대표자">
-          <input
-            className={inputClass}
-            value={company.ceo}
-            onChange={(e) => setCompany({ ceo: e.target.value })}
-          />
+          <CellInput address="company/company.ceo/value" />
         </Field>
         <Field label="사업연도">
-          <input
-            className={inputClass}
-            type="number"
-            value={company.bizYear}
-            onChange={(e) => setCompany({ bizYear: Number(e.target.value) })}
-          />
+          <CellInput address="company/company.bizYear/value" />
+        </Field>
+        <Field label="총부담세액 (세액계산 탭의 수식, 읽기 전용)">
+          <CellInput address="calc/burden/value" />
         </Field>
       </section>
       <section className="grid content-start gap-4">
-        <h2 className="font-sans text-sm font-bold uppercase tracking-[0.05em] text-[#536863]">
-          Same data in a grid
+        <h2 className="font-sans text-sm font-bold uppercase tracking-wider text-[#536863]">
+          Same cells in a grid
         </h2>
         <div className="border border-[#c5d0c7]">
           <SheetGrid sheetId="company" />

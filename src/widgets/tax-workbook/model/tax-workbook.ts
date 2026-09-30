@@ -2,6 +2,7 @@ import { newAdjustmentItem } from '#/entities/tax-session/model/adapter'
 import type { TabId, TaxSession } from '#/entities/tax-session/model/types'
 import { splitAddress } from '#/shared/lib/workbook/address'
 import { T } from '#/shared/lib/workbook/cell-types'
+import type { CellType } from '#/shared/lib/workbook/cell-types'
 import {
   addRow,
   fields,
@@ -10,6 +11,7 @@ import {
   items,
   labelCell,
   row,
+  spanned,
   subtotal,
   title,
 } from '#/shared/lib/workbook/layout'
@@ -23,6 +25,14 @@ import { defineWorkbook } from '#/shared/lib/workbook/workbook'
 
 // --- 기본정보 ---------------------------------------------------------------
 
+// A form can define its own cell types: a year is an integer shown without
+// grouping separators.
+const year: CellType<number> = {
+  ...T.integer,
+  id: 'year',
+  format: (v) => (typeof v === 'number' ? String(v) : ''),
+}
+
 const companyColumns: SheetColumnDef[] = [
   { colId: 'label', headerName: '항목', type: T.text },
   { colId: 'value', headerName: '값', type: T.text, flex: 2 },
@@ -31,6 +41,14 @@ const companyColumns: SheetColumnDef[] = [
 // --- 소득금액조정 -----------------------------------------------------------
 
 const adjustmentColumns: SheetColumnDef[] = [
+  // Merged down per block (see `spanned` below).
+  {
+    colId: 'section',
+    headerName: '구분',
+    type: T.text,
+    width: 110,
+    spanRows: true,
+  },
   {
     colId: 'account',
     headerName: '계정과목',
@@ -81,7 +99,13 @@ export const taxWorkbook = defineWorkbook<TaxSession>([
     title: '기본정보',
     tab: 'company',
     columns: companyColumns,
-    layout: [fields('company', { name: '회사명', ceo: '대표자' })],
+    layout: [
+      fields('company', {
+        name: '회사명',
+        ceo: '대표자',
+        bizYear: { label: '사업연도', type: year },
+      }),
+    ],
   },
 
   {
@@ -90,42 +114,46 @@ export const taxWorkbook = defineWorkbook<TaxSession>([
     tab: 'adjustment',
     columns: adjustmentColumns,
     layout: [
-      title('t-add', 'Ⅰ. 익금산입'),
-      items('adds', { removeCol: 'actions', label: '익금산입 항목' }),
-      addRow('a-add', 'adds', newAdjustmentItem, '+ 항목 추가'),
-      subtotal('s-add', '소 계', 'adds', amountCols),
+      spanned('adds', 'section', 'Ⅰ. 익금산입', [
+        items('adds', { removeCol: 'actions', label: '익금산입 항목' }),
+        addRow('a-add', 'adds', newAdjustmentItem, '+ 항목 추가'),
+        subtotal('s-add', '소 계', 'adds', amountCols),
+      ]),
 
-      title('t-sub', 'Ⅱ. 손금산입'),
-      items('subs', { removeCol: 'actions', label: '손금산입 항목' }),
-      addRow('a-sub', 'subs', newAdjustmentItem, '+ 항목 추가'),
-      subtotal('s-sub', '소 계', 'subs', amountCols),
+      spanned('subs', 'section', 'Ⅱ. 손금산입', [
+        items('subs', { removeCol: 'actions', label: '손금산입 항목' }),
+        addRow('a-sub', 'subs', newAdjustmentItem, '+ 항목 추가'),
+        subtotal('s-sub', '소 계', 'subs', amountCols),
+      ]),
 
-      subtotal('total', '합 계', ['adds', 'subs'], amountCols, 'sheet-total'),
-
-      row('reported', {}, (ctx) => ({
-        account: labelCell('신고서상 금액'),
-        tax: inputCell(
-          ctx.state.reported,
-          (value) => ctx.update((s) => ({ ...s, reported: Number(value) })),
-          { className: 'sheet-input' },
-        ),
-      })),
-      row('gap', { className: 'sheet-total' }, () => ({
-        account: labelCell('차 이'),
-        tax: formulaCell('=[total/tax]-[reported/tax]', {
-          className: ({ value }) => (value === 0 ? 'sheet-ok' : 'sheet-error'),
-        }),
-        // A text result in a column whose type is `select`: a cell-level override.
-        disposition: formulaCell(
-          '=IF([gap/tax]=0,"일치","불일치 - 검토 필요")',
-          {
-            type: T.text,
-            span: 2,
-            className: ({ get }) =>
-              get('adj/gap/tax') === 0 ? 'sheet-ok' : 'sheet-error',
-          },
-        ),
-      })),
+      spanned('check', 'section', 'Ⅲ. 검증', [
+        subtotal('total', '합 계', ['adds', 'subs'], amountCols, 'sheet-total'),
+        row('reported', {}, (ctx) => ({
+          account: labelCell('신고서상 금액'),
+          tax: inputCell(
+            ctx.state.reported,
+            (value) => ctx.update((s) => ({ ...s, reported: Number(value) })),
+            { className: 'sheet-input' },
+          ),
+        })),
+        row('gap', { className: 'sheet-total' }, () => ({
+          account: labelCell('차 이'),
+          tax: formulaCell('=[total/tax]-[reported/tax]', {
+            className: ({ value }) =>
+              value === 0 ? 'sheet-ok' : 'sheet-error',
+          }),
+          // A text result in a column whose type is `select`: a cell-level override.
+          disposition: formulaCell(
+            '=IF([gap/tax]=0,"일치","불일치 - 검토 필요")',
+            {
+              type: T.text,
+              span: 2,
+              className: ({ get }) =>
+                get('adj/gap/tax') === 0 ? 'sheet-ok' : 'sheet-error',
+            },
+          ),
+        })),
+      ]),
     ],
   },
 
@@ -233,7 +261,7 @@ export const taxWorkbook = defineWorkbook<TaxSession>([
       row('summary', { type: T.text }, () => ({
         label: labelCell('신고 요약'),
         value: formulaCell(
-          '=CONCAT([inputs/options.method/value]," 신고 / ",IF([inputs/options.sme/value],"중소기업","일반기업")," / ",[days/value],"일")',
+          '=CONCAT([company/company.name/value]," ",[company/company.bizYear/value],"년 / ",[inputs/options.method/value]," 신고 / ",IF([inputs/options.sme/value],"중소기업","일반기업")," / ",[days/value],"일")',
         ),
       })),
     ],

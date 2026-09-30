@@ -25,6 +25,9 @@ export type CellSpec = {
   source: CellSource
   type?: CellType // cell-level type override
   span?: number
+  // Vertically adjacent cells of a `spanRows` column with the same key merge
+  // into one (the top one is shown). Read-only cells only.
+  rowSpan?: string
   className?: string | ClassFn
   action?: { label: string; run: () => void } // renders a button
 }
@@ -52,6 +55,7 @@ export type Cell = {
   error?: string
   errorDetail?: string
   span?: number
+  rowSpan?: string
   className?: string
   action?: { label: string; run: () => void }
   // Formula cells: the text, split so references can be shown as links.
@@ -74,6 +78,10 @@ export type SheetLeaf = {
   width?: number
   editable?: boolean // data rows of this column are editable
   formula?: string // data rows of this column are this formula (`[.col]` = same row)
+  // Cells of this column can merge down (`CellSpec.rowSpan`), e.g. a section
+  // label on the left of a block. Only leading columns: full-width rows start
+  // to their right, as a column cannot both merge down and span across.
+  spanRows?: boolean
 }
 
 export type SheetGroup = {

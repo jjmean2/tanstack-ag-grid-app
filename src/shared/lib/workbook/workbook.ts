@@ -47,6 +47,12 @@ export function defineWorkbook<TState>(
       throw new Error(`Sheet id must not contain "/" or ":": ${sheet.id}`)
     if (ids.has(sheet.id)) throw new Error(`Duplicate sheet id: ${sheet.id}`)
     ids.add(sheet.id)
+    const leafs = flattenLeafs(sheet.columns)
+    const leading = leafs.findIndex((leaf) => !leaf.spanRows)
+    if (leafs.slice(leading).some((leaf) => leaf.spanRows))
+      throw new Error(
+        `Sheet "${sheet.id}": spanRows columns must come before all others`,
+      )
   }
   return { sheets, exports: opts.exports ?? {} }
 }
@@ -125,6 +131,17 @@ export function buildWorkbook<TState>(
             `Unknown column "${colId}" in sheet "${sheet.id}", row "${spec.id}"`,
           )
 
+        const where = `column "${colId}" of sheet "${sheet.id}", row "${spec.id}"`
+        if (cellSpec.rowSpan !== undefined && !leaf.spanRows)
+          throw new Error(`rowSpan needs a spanRows column: ${where}`)
+        // AG Grid: a column that merges down can neither be edited nor span.
+        if (leaf.spanRows) {
+          if (cellSpec.source.kind === 'value' && cellSpec.source.write)
+            throw new Error(`A spanRows column cannot be editable: ${where}`)
+          if ((cellSpec.span ?? 1) > 1)
+            throw new Error(`A spanRows column cannot span across: ${where}`)
+        }
+
         const address = cellAddress(sheet.id, spec.id, colId)
         const cell: Cell = {
           address,
@@ -139,6 +156,7 @@ export function buildWorkbook<TState>(
               ? cellSpec.source.value
               : undefined,
           span: cellSpec.span,
+          rowSpan: cellSpec.rowSpan,
           action: cellSpec.action,
         }
         if (typeof cellSpec.className === 'function') {
@@ -277,8 +295,10 @@ export function buildWorkbook<TState>(
     (STRUCTURAL_ERRORS as readonly string[]).includes(e.code),
   )
 
+  // A row is named by its first column, past merged section labels (which
+  // are the same for every row of a block).
   const rowLabelOf = (sheetId: string, rowId: string) => {
-    const first = leafsBySheet.get(sheetId)?.[0]
+    const first = leafsBySheet.get(sheetId)?.find((leaf) => !leaf.spanRows)
     const cell = first && cells.get(cellAddress(sheetId, rowId, first.colId))
     const text = cell ? cell.type.format(cell.value) : ''
     return text || '(이름 없음)'

@@ -54,11 +54,22 @@ function createLeafColDef(col: SheetLeaf): ColDef<ResolvedRow> {
     },
     valueFormatter: ({ value, data }) =>
       cellOf(data)?.error ?? typeOf(data).format(value),
-    editable: ({ data }) => writerOf(data) !== undefined,
     cellEditorSelector: ({ data }) => editorFor(typeOf(data)),
     cellRendererSelector: ({ data }) =>
       cellOf(data)?.action ? { component: ActionCell } : undefined,
-    colSpan: ({ data }) => cellOf(data)?.span ?? 1,
+    // AG Grid: a column that merges down can neither span across nor be
+    // editable (the workbook rejects editable merged cells for that reason).
+    ...(col.spanRows
+      ? {
+          spanRows: ({ nodeA, nodeB }) => {
+            const key = cellOf(nodeA?.data)?.rowSpan
+            return key !== undefined && key === cellOf(nodeB?.data)?.rowSpan
+          },
+        }
+      : {
+          editable: ({ data }) => writerOf(data) !== undefined,
+          colSpan: ({ data }) => cellOf(data)?.span ?? 1,
+        }),
     cellClass: ({ data }) => {
       const cell = cellOf(data)
       return [

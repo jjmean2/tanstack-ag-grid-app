@@ -1,6 +1,6 @@
 import { T } from './cell-types'
 import type { CellType } from './cell-types'
-import type { CellSpec, LayoutNode, RowSpec } from './types'
+import type { BuildCtx, CellSpec, LayoutNode, RowSpec } from './types'
 
 type Slice = Record<string, unknown>
 type Item = { id: string } & Slice
@@ -65,6 +65,11 @@ const patch = <TState extends object>(
   next: unknown,
 ): TState => ({ ...state, [key]: next })
 
+// The columns rows fill, left to right: all but the leading `spanRows` columns,
+// which hold merged section labels (see `spanned`).
+const contentColumns = (ctx: Pick<BuildCtx<unknown>, 'columns'>) =>
+  ctx.columns.filter((col) => !col.spanRows)
+
 // --- layout nodes ----------------------------------------------------------
 
 // Section title row: the title sits in the first column and spans all columns.
@@ -72,16 +77,35 @@ export function title<TState extends object>(
   id: string,
   text: string,
 ): LayoutNode<TState> {
-  return (ctx) => [
-    {
-      id,
-      kind: 'title',
-      className: 'sheet-title',
-      cells: {
-        [ctx.columns[0].colId]: labelCell(text, { span: ctx.columns.length }),
+  return (ctx) => {
+    const cols = contentColumns(ctx)
+    return [
+      {
+        id,
+        kind: 'title',
+        className: 'sheet-title',
+        cells: { [cols[0].colId]: labelCell(text, { span: cols.length }) },
       },
-    },
-  ]
+    ]
+  }
+}
+
+// Merges the `colId` column down across every row `nodes` produce, showing
+// `text` once: a section label on the left of a block (구분). The column must
+// set `spanRows`; `key` must differ from the neighbouring blocks'.
+export function spanned<TState extends object>(
+  key: string,
+  colId: string,
+  text: string,
+  nodes: LayoutNode<TState>[],
+): LayoutNode<TState> {
+  return (ctx) =>
+    nodes
+      .flatMap((node) => node(ctx))
+      .map((spec) => ({
+        ...spec,
+        cells: { ...spec.cells, [colId]: labelCell(text, { rowSpan: key }) },
+      }))
 }
 
 // Unrolls a list in the state into data rows (one row per item), forming the
@@ -98,7 +122,7 @@ export function items<TState extends object, TKey extends ListKey<TState>>(
       kind: 'data',
       group: key,
       cells: Object.fromEntries(
-        ctx.columns.map((col): [string, CellSpec] => {
+        contentColumns(ctx).map((col): [string, CellSpec] => {
           if (col.colId === opts.removeCol) {
             return [
               col.colId,
@@ -150,8 +174,9 @@ export function fields<TState extends object, TKey extends ObjectKey<TState>>(
 ): LayoutNode<TState> {
   return (ctx) => {
     ctx.declareGroup(key, opts.label ?? key)
-    const labelCol = opts.labelCol ?? ctx.columns[0].colId
-    const valueCol = opts.valueCol ?? ctx.columns[1].colId
+    const cols = contentColumns(ctx)
+    const labelCol = opts.labelCol ?? cols[0].colId
+    const valueCol = opts.valueCol ?? cols[1].colId
     const object = read(ctx.state, key) as Slice
     const entries = Object.entries(
       spec as unknown as Record<string, FieldDef | undefined>,
@@ -200,7 +225,7 @@ export function subtotal<TState extends object>(
         kind: 'subtotal',
         className,
         cells: {
-          [ctx.columns[0].colId]: labelCell(text),
+          [contentColumns(ctx)[0].colId]: labelCell(text),
           ...Object.fromEntries(
             sumCols.map((colId): [string, CellSpec] => [
               colId,
@@ -228,8 +253,8 @@ export function addRow<TState extends object, TKey extends ListKey<TState>>(
       kind: 'action',
       className: 'sheet-add-row',
       cells: {
-        [ctx.columns[0].colId]: labelCell('', {
-          span: ctx.columns.length,
+        [contentColumns(ctx)[0].colId]: labelCell('', {
+          span: contentColumns(ctx).length,
           className: 'sheet-action',
           action: {
             label: text,

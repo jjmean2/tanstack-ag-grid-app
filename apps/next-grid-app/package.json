@@ -9,12 +9,14 @@
   },
   "dependencies": {
     "@lab/workbook": "workspace:*",
+    "@tanstack/react-query": "^5.104.0",
     "ag-grid-community": "^36.2.0",
     "ag-grid-enterprise": "^36.2.0",
     "ag-grid-react": "^36.2.0",
     "next": "16.3.7",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

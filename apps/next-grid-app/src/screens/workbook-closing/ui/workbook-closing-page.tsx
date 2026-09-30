@@ -12,7 +12,7 @@ import {
 import type { ClosingState } from '@/widgets/closing-workbook/model/closing-workbook'
 import { ClosingExports } from '@/widgets/closing-workbook/ui/closing-exports'
 
-const tabs: ScreenTab[] = [
+export const tabs: ScreenTab[] = [
   {
     id: 'is',
     label: '손익계산서',

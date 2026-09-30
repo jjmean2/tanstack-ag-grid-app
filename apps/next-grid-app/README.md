@@ -20,3 +20,19 @@ What differs from the Vite app:
 - **FSD `pages` layer is `screens`** — `src/pages` would be Next's Pages Router.
 - `@lab/workbook` ships TypeScript source; Turbopack compiles workspace packages
   without `transpilePackages`.
+
+## State from a server: TanStack Query
+
+`/server/closing` and `/server/tax` are the closing and tax screens with their
+state on a server instead of this browser:
+
+- `src/app/api/screens/[id]` (GET, PUT) and `src/app/api/exports` (GET) are
+  Route Handlers over `src/server/screen-store.ts`, an in-memory stand-in for
+  a database (seeded with the same data, with a little latency).
+- `useServerScreenSession` (`src/shared/lib/server-screen`) loads the state
+  with `useSuspenseQuery` (the page shows a fallback meanwhile), feeds other
+  screens' exports from a second query into the session, and saves with
+  `useMutation`, which invalidates every exports query: the tax screen refetches
+  the closing screen's net income.
+- It returns the same `ScreenSession` as the browser-storage one: the screen
+  frame only calls `session.save()`, so tabs, toolbars and formulas are shared.

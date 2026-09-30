@@ -1,6 +1,7 @@
 import Link from 'next/link'
 
 import { SCREENS } from '@/shared/config/screens'
+import { SERVER_SCREENS } from '@/shared/lib/server-screen/api'
 
 const demos = [
   {
@@ -51,6 +52,23 @@ export default function Home() {
             >
               <strong>{SCREENS[demo.screen].title} ↗</strong>
               <span className="text-sm text-app-muted">{demo.text}</span>
+            </Link>
+          ))}
+          <p className="mt-6 text-xs font-bold uppercase tracking-wider text-app-warm">
+            State from a server (TanStack Query)
+          </p>
+          {(['closing', 'tax'] as const).map((id) => (
+            <Link
+              key={id}
+              href={SERVER_SCREENS[id].path}
+              className="grid gap-0.5 no-underline hover:text-app-accent"
+            >
+              <strong>{SERVER_SCREENS[id].title} ↗</strong>
+              <span className="text-sm text-app-muted">
+                {id === 'closing'
+                  ? 'Loads and saves its state through an API; saving invalidates what other screens read.'
+                  : 'Reads the server-backed closing screen’s exports through a query.'}
+              </span>
             </Link>
           ))}
         </nav>

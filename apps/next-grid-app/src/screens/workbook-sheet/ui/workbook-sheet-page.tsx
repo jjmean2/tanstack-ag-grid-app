@@ -17,7 +17,7 @@ import { SessionDebug } from '@/widgets/tax-workbook/ui/session-debug'
 import { TaxTab } from '@/widgets/tax-workbook/ui/tax-tab'
 import { WorkbookSummary } from '@/widgets/tax-workbook/ui/workbook-summary'
 
-const tabs: ScreenTab[] = [
+export const tabs: ScreenTab[] = [
   {
     id: 'company',
     label: '기본정보',

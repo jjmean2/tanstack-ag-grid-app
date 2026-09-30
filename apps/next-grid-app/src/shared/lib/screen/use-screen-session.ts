@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react'
 
 import { createSession } from '@lab/workbook'
-import type { WorkbookDef, WorkbookSession } from '@lab/workbook'
+import type { ScreenExports, WorkbookDef, WorkbookSession } from '@lab/workbook'
 import { SCREENS } from '@/shared/config/screens'
 import type { ScreenId } from '@/shared/config/screens'
 import { screenStorage } from './storage'
 
 // A screen's workbook session (the library's: state, UI state, other screens'
-// exports), plus what this app adds: where it is stored, and whether it
-// changed since it was loaded or saved.
+// exports), plus what this app adds: how it is saved, and whether it changed
+// since it was loaded or saved. Where it is saved is the session's: this
+// browser (useScreenSession) or a server (useServerScreenSession); the screen
+// frame only calls `save`.
 export type ScreenSession<TState> = {
-  id: ScreenId
+  id: string // the screen's name in references (`[ext:<id>/…]`)
   title: string
   workbook: WorkbookSession<TState>
   persist: boolean
@@ -18,8 +20,10 @@ export type ScreenSession<TState> = {
   // null when a persisted screen has never been saved.
   baseline: string | null
   savedAt: string | null
-  reset: () => void // back to `initial()`
-  markSaved: (json: string, at: string) => void
+  reset: () => void // back to where it started
+  // Saves the state with what it exports; resolves to whether it worked.
+  save: (state: TState, exports: ScreenExports) => Promise<boolean>
+  saving: boolean
 }
 
 export function useScreenSession<TState>(opts: {
@@ -71,6 +75,12 @@ export function useScreenSession<TState>(opts: {
     baseline: saved.baseline,
     savedAt: saved.savedAt,
     reset: () => started.workbook.store.set(() => started.initial()),
-    markSaved: (json, at) => setSaved({ baseline: json, savedAt: at }),
+    save: (state, exports) => {
+      const ok = screenStorage.save(opts.id, state, exports)
+      if (ok)
+        setSaved({ baseline: JSON.stringify(state), savedAt: exports.savedAt })
+      return Promise.resolve(ok)
+    },
+    saving: false,
   }
 }

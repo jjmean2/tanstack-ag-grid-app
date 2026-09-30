@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 
 import { screenExports } from '@lab/workbook'
 import type { Workbook } from '@lab/workbook'
+import type { OpenScreen } from '@lab/workbook/react'
 import {
   ExternalRefs,
   FormulaBar,
@@ -14,7 +15,6 @@ import {
   WorkbookProvider,
 } from '@lab/workbook/react'
 import { useCellSearch, useOpenScreen } from '@/shared/lib/screen/router'
-import { screenStorage } from '@/shared/lib/screen/storage'
 import type { ScreenSession } from '@/shared/lib/screen/use-screen-session'
 import { cellViews } from '@/shared/ui/workbook-view'
 
@@ -37,13 +37,16 @@ type Props<TState> = {
   issues?: (wb: Workbook, state: TState) => Record<string, number>
   // Replaces the library's formula bar (e.g. one drawn with `useFormulaBar`).
   formulaBar?: ReactNode
+  // How references to other screens open them; this app's routes by default.
+  openScreen?: OpenScreen
 }
 
 // The frame every screen shares: the workbook and its error boundary, the
 // status bar (changed / save / reset), references to other screens, the
 // formula bar, the tabs, and focusing a cell named in the URL.
 export function ScreenLayout<TState extends object>(props: Props<TState>) {
-  const openScreen = useOpenScreen()
+  const routes = useOpenScreen()
+  const openScreen = props.openScreen ?? routes
   return (
     <WorkbookErrorBoundary>
       <WorkbookProvider
@@ -143,11 +146,10 @@ function StatusBar<TState>({
   const [failed, setFailed] = useState(false)
   const dirty = JSON.stringify(state) !== session.baseline
 
-  const save = () => {
+  // Where it goes is the session's (this browser, or a server).
+  const save = async () => {
     const exports = screenExports(wb, session.id, session.title)
-    const ok = screenStorage.save(session.id, state, exports)
-    setFailed(!ok)
-    if (ok) session.markSaved(JSON.stringify(state), exports.savedAt)
+    setFailed(!(await session.save(state, exports)))
   }
 
   return (
@@ -180,10 +182,10 @@ function StatusBar<TState>({
           <button
             type="button"
             className="cursor-pointer border border-app-accent bg-app-accent px-3 py-1.5 font-bold text-app-on-accent hover:bg-app-accent-strong disabled:cursor-default disabled:opacity-40"
-            disabled={!dirty}
-            onClick={save}
+            disabled={!dirty || session.saving}
+            onClick={() => void save()}
           >
-            저장
+            {session.saving ? '저장 중…' : '저장'}
           </button>
         )}
         <button

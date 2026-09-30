@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 
 import './globals.css'
+import { Providers } from '@/shared/lib/query/providers'
 import { ClientOnly } from '@/shared/ui/client-only'
 import { ThemeSwitcher } from '@/shared/ui/theme/theme-switcher'
 
@@ -30,7 +31,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <ClientOnly>
           <ThemeSwitcher />
         </ClientOnly>
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   )

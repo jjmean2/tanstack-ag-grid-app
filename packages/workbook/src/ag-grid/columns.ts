@@ -39,10 +39,9 @@ function createLeafColDef(
       const source = cell?.source
       const write = source?.kind === 'value' ? source.write : undefined
       if (!cell || !write || newValue === INVALID) return false
-      // Apply to the grid row immediately (rows are throwaway views), then
-      // record it in the store, which rebuilds the workbook. Without the
-      // immediate step the cell shows the old value until that has rendered.
-      cell.value = newValue
+      // Only record it in the store: the rebuilt workbook brings new rows, and
+      // the grid redraws the cell from them (value, marks, editor). Built cells
+      // are never changed in place.
       write(newValue)
       return true
     },

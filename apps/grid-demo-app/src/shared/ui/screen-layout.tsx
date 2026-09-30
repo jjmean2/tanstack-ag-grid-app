@@ -69,15 +69,22 @@ function Screen<TState extends object>({
   useFocusAddress(cell, clearCell)
 
   // Following a reference to a sheet of another tab opens that tab; the view
-  // there takes the request once it has mounted.
+  // there takes the request once it has mounted. A sheet may be shown by
+  // several tabs (as a form and as a grid): the current one wins.
   const pending = useStore(ui, (s) => s.pending)
   useEffect(() => {
     const sheet = pending?.targets[0]?.sheetId
-    const target = tabs.find((t) => sheet && t.sheets.includes(sheet))
-    if (target) setTab(target.id)
+    if (!sheet) return
+    setTab((current) => {
+      const shows = (t: ScreenTab) => t.sheets.includes(sheet)
+      if (tabs.some((t) => t.id === current && shows(t))) return current
+      return tabs.find(shows)?.id ?? current
+    })
   }, [pending, tabs])
 
   const extra = issues?.(wb, state) ?? {}
+  // A tab's formula errors and its issues. A sheet shown in two tabs counts
+  // in both.
   const badge = (t: ScreenTab) =>
     wb.errors.filter((e) => t.sheets.includes(e.address.split('/')[0])).length +
     (extra[t.id] ?? 0)

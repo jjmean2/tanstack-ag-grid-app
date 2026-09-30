@@ -14,6 +14,20 @@ const tabs: ScreenTab[] = [
     sheets: ['info', 'ret'],
     render: () => <ReturnTab />,
   },
+  // The same 신고 내용 sheet as a grid: the form's cells, not a copy. Edit a
+  // 금액 here and the 신고서 tab shows the new totals.
+  {
+    id: 'return-grid',
+    label: '신고서 (표)',
+    sheets: ['ret'],
+    render: () => (
+      <div className="p-6">
+        <div className="max-w-3xl border border-[#c5d0c7]">
+          <SheetGrid sheetId="ret" />
+        </div>
+      </div>
+    ),
+  },
   {
     id: 'purchases',
     label: '매입 명세',

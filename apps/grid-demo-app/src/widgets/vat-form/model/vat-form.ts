@@ -4,9 +4,11 @@ import {
   defineWorkbook,
   formulaCell,
   items,
+  labelCell,
   row,
   subtotal,
   T,
+  title,
 } from '@lab/workbook'
 import type {
   CellSpec,
@@ -20,8 +22,10 @@ import type {
 // lines, labels merged down and across, shaded boxes. Not a real legal form.
 //
 // This file holds the cells only: two sheets of ordinary rows (a row per line,
-// columns 금액 and 세액). Where the boxes go on the page is the view's, in
-// ui/return-layout.ts.
+// columns 구분 · 금액 · 세액). Where the boxes go on the page is the view's:
+// ui/return-layout.ts places them like the paper form, and the same sheet can
+// also be shown as a grid (the 신고서 (표) tab). The form ignores what it does
+// not place (the 구분 column, the section titles); the grid shows everything.
 
 export type Purchase = {
   id: string
@@ -130,14 +134,23 @@ export type LineId = keyof typeof LINES
 
 type Cells = { amount?: CellSpec; tax?: CellSpec }
 
+// A row of the return named `name` (in the 구분 column, which also names its
+// cells: "신고 내용 › (3) … › 세액").
+const named = (
+  id: string,
+  name: string,
+  cells: (ctx: RowsCtx<VatState>) => Cells,
+  tags?: Tags,
+): RowsNode<VatState> =>
+  row(id, { tags }, (ctx) => ({ name: labelCell(name), ...cells(ctx) }))
+
 // One numbered line of the return. A line without an amount or tax leaves
-// that cell out (the layout shades the box).
+// that cell out (the form shades the box, the grid shows it empty).
 const line = (
   id: LineId,
   cells: (ctx: RowsCtx<VatState>) => Cells,
   tags?: Tags,
-): RowsNode<VatState> =>
-  row(id, { label: LINES[id].join(' '), tags }, (ctx) => ({ ...cells(ctx) }))
+): RowsNode<VatState> => named(id, LINES[id].join(' '), cells, tags)
 
 const sum = (refs: string[]) => `=SUM(${refs.map((r) => `[${r}]`).join(',')})`
 // Tax at `rate`% of the line's amount.
@@ -174,6 +187,7 @@ const info: RowsNode<VatState>[] = [
 // --- 신고 내용 ----------------------------------------------------------------
 
 const returnColumns: ColumnDef[] = [
+  { colId: 'name', headerName: '구분', type: T.text, flex: 2 },
   { colId: 'amount', headerName: '금액', type: T.money },
   { colId: 'tax', headerName: '세액', type: T.money },
 ]
@@ -190,7 +204,7 @@ const byKind = (kind: string) =>
   )
 
 const ret: RowsNode<VatState>[] = [
-  // 과세표준 및 매출세액
+  title('sales', '과세표준 및 매출세액'),
   line('s1', (c) => ({ amount: sales('invoice')(c), tax: tax(10) })),
   line('s2', (c) => ({ amount: sales('buyerIssued')(c), tax: tax(10) })),
   line('s3', (c) => ({ amount: sales('card')(c), tax: tax(10) })),
@@ -221,7 +235,7 @@ const ret: RowsNode<VatState>[] = [
     'strong',
   ),
 
-  // 매입세액
+  title('input', '매입세액'),
   line('p10', () => ({ amount: byKind('일반'), tax: tax(10) })),
   line('p11', () => ({ amount: byKind('고정자산'), tax: tax(10) })),
   line('p12', (c) => ({
@@ -251,19 +265,25 @@ const ret: RowsNode<VatState>[] = [
     'strong',
   ),
 
-  // 납부세액, 경감·공제세액, 납부할 세액
-  row('pay', { label: '납부(환급)세액', tags: 'strong' }, () => ({
-    tax: formulaCell('=[s9/tax]-[p16/tax]'),
-  })),
+  title('due', '납부세액 · 경감·공제세액'),
+  named(
+    'pay',
+    '납부(환급)세액',
+    () => ({ tax: formulaCell('=[s9/tax]-[p16/tax]') }),
+    'strong',
+  ),
   line('c17', (c) => ({ tax: boundCell(c, 'credits', 'other') })),
   line('c18', () => ({
     amount: formulaCell('=[s3/amount]'),
     tax: formulaCell('=MIN(ROUND([.amount]*1.3/100,0),10000000)'),
   })),
   line('c19', () => ({ tax: formulaCell('=[c17/tax]+[c18/tax]') }), 'strong'),
-  row('final', { label: '차가감 납부할 세액', tags: 'strong' }, () => ({
-    tax: formulaCell('=[pay/tax]-[c19/tax]'),
-  })),
+  named(
+    'final',
+    '차가감 납부할 세액',
+    () => ({ tax: formulaCell('=[pay/tax]-[c19/tax]') }),
+    'strong',
+  ),
 ]
 
 // --- 매입 명세 (목록) -------------------------------------------------------------

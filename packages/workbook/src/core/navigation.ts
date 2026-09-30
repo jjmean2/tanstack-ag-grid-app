@@ -1,6 +1,6 @@
 import { createStore } from '../store/create-store'
 import type { Store } from '../store/create-store'
-import type { Address, CellRef, Workbook } from './types'
+import type { Address, CellRef, Workbook, WorkbookList } from './types'
 
 // UI state shared by the views and the formula bar. Tabs and pages are the
 // app's: to show a target that is not mounted, the app watches `pending` and
@@ -36,16 +36,33 @@ export function reportFocus(ui: Store<UiState>, ref: CellRef) {
 
 let counter = 0
 
+// Posts a request to move focus to cells; the view showing them takes it.
+export function requestFocus(ui: Store<UiState>, targets: CellRef[]) {
+  if (targets.length === 0) return
+  counter += 1
+  const nonce = counter
+  ui.set((s) => ({ ...s, pending: { targets, nonce } }))
+}
+
 // Moves focus to a cell, or to the first cell of a list (the grid highlights
-// all of them), by posting a request the view showing it takes.
+// all of them).
 export function navigate(
   ui: Store<UiState>,
   workbook: Workbook,
   address: Address,
 ) {
-  const targets = workbook.targets(address)
-  if (targets.length === 0) return
-  counter += 1
-  const nonce = counter
-  ui.set((s) => ({ ...s, pending: { targets, nonce } }))
+  requestFocus(ui, workbook.targets(address))
+}
+
+// Adds a row to a list (at the end, or next to a row) and moves focus to it,
+// so a person can type into it at once. The view takes the request once the
+// rebuilt workbook shows the row.
+export function insertListRow(
+  ui: Store<UiState>,
+  list: WorkbookList,
+  at?: { before?: string; after?: string },
+) {
+  const target = list.insert(at)
+  if (target) requestFocus(ui, [target])
+  return target
 }

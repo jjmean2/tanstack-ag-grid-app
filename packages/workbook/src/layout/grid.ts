@@ -1,8 +1,15 @@
 import type { CellType } from '../core/cell-types'
-import type { RowsCtx, CellSpec, RowsNode, RowSpec, Tags } from '../core/types'
+import type {
+  CellSpec,
+  ListOps,
+  RowsCtx,
+  RowsNode,
+  RowSpec,
+  Tags,
+} from '../core/types'
 import { formulaCell, inputCell, labelCell, literalCell } from './cells'
 import { listOf, patch, read } from './state'
-import type { ListKey, ObjectKey, Slice } from './state'
+import type { Item, ListKey, ObjectKey, Slice } from './state'
 
 // Row nodes: each turns the session state into rows, top to bottom. A sheet's
 // `rows` is a list of them.
@@ -59,16 +66,59 @@ export function spanned<TState extends object>(
       )
 }
 
+// An item of the list `state[key]`.
+type ItemOf<
+  TState,
+  TKey extends keyof TState,
+> = TState[TKey] extends readonly (infer TItem)[] ? TItem : never
+
 // Unrolls a list in the state into data rows (one row per item), forming the
 // group `key` that formulas can reference as `[@key/col]`.
-// `removeCol` puts a delete button for the item in that column.
+// What a person may do to the list is the definition's to say:
+//   create     makes a new item: rows can be added (`addRow`, the grid's
+//              context menu, `useList` / `useFocusedList` anywhere)
+//   removable  rows can be removed (context menu, `useList`); on by default
+//              with `removeCol`, which puts a delete button in that column
 export function items<TState extends object, TKey extends ListKey<TState>>(
   key: TKey,
-  opts: { removeCol?: string; label?: string } = {},
+  opts: {
+    create?: () => ItemOf<TState, TKey>
+    removable?: boolean
+    removeCol?: string
+    label?: string
+  } = {},
 ): RowsNode<TState> {
   return (ctx) => {
-    ctx.declareGroup(key, opts.label ?? key)
     const columns = contentColumns(ctx)
+    const setList = (fn: (list: Item[]) => Item[]) =>
+      ctx.update((s) => patch(s, key, fn(listOf(s, key))))
+    const { create } = opts
+    const remove = (id: string) => setList((l) => l.filter((i) => i.id !== id))
+    const list: ListOps = {
+      remove:
+        (opts.removable ?? opts.removeCol !== undefined) ? remove : undefined,
+      insert:
+        create &&
+        ((at = {}) => {
+          const item = create() as Item
+          setList((l) => {
+            const next = [...l]
+            const ref = at.after ?? at.before
+            const found =
+              ref === undefined ? -1 : l.findIndex((i) => i.id === ref)
+            const index =
+              found < 0 ? l.length : at.after !== undefined ? found + 1 : found
+            next.splice(index, 0, item)
+            return next
+          })
+          return item.id
+        }),
+      // A new row takes focus in its first editable column.
+      focusCol: columns.find(
+        (col) => col.editable && !col.formula && col.colId !== opts.removeCol,
+      )?.colId,
+    }
+    ctx.declareGroup(key, opts.label ?? key, list)
     return listOf(ctx.state, key).map((item): RowSpec => ({
       id: item.id,
       group: key,
@@ -78,17 +128,7 @@ export function items<TState extends object, TKey extends ListKey<TState>>(
             return [
               col.colId,
               labelCell('', {
-                action: {
-                  label: '삭제',
-                  run: () =>
-                    ctx.update((s) =>
-                      patch(
-                        s,
-                        key,
-                        listOf(s, key).filter((i) => i.id !== item.id),
-                      ),
-                    ),
-                },
+                action: { label: '삭제', run: () => remove(item.id) },
               }),
             ]
           }
@@ -97,13 +137,9 @@ export function items<TState extends object, TKey extends ListKey<TState>>(
             col.colId,
             col.editable
               ? inputCell(item[col.colId], (value) =>
-                  ctx.update((s) =>
-                    patch(
-                      s,
-                      key,
-                      listOf(s, key).map((i) =>
-                        i.id === item.id ? { ...i, [col.colId]: value } : i,
-                      ),
+                  setList((l) =>
+                    l.map((i) =>
+                      i.id === item.id ? { ...i, [col.colId]: value } : i,
                     ),
                   ),
                 )
@@ -188,11 +224,12 @@ export function subtotal<TState extends object>(
   }
 }
 
-// A full width row holding a button that appends a new item to a list.
+// A full width row holding a button that appends a new item to the list
+// `key` of this sheet (made by its `items(key, { create })`). One place for
+// such a button; `useList` / `useFocusedList` put one anywhere else.
 export function addRow<TState extends object, TKey extends ListKey<TState>>(
   id: string,
   key: TKey,
-  create: () => { id: string },
   text: string,
 ): RowsNode<TState> {
   return (ctx) => [
@@ -203,8 +240,8 @@ export function addRow<TState extends object, TKey extends ListKey<TState>>(
       fullWidth: {
         kind: 'action',
         label: text,
-        run: () =>
-          ctx.update((s) => patch(s, key, [...listOf(s, key), create()])),
+        run: () => void ctx.list(key)?.insert?.(),
+        list: `${ctx.sheetId}/@${key}`,
       },
     },
   ]

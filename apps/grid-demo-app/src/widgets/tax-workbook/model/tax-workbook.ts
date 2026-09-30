@@ -112,15 +112,23 @@ export const taxWorkbook = defineWorkbook<TaxSession>([
     rows: [
       // Add buttons are full width rows: kept outside the merged blocks, which
       // they would otherwise cut in two.
-      addRow('a-add', 'adds', newAdjustmentItem, '+ 익금산입 항목 추가'),
+      addRow('a-add', 'adds', '+ 익금산입 항목 추가'),
       spanned('adds', 'section', 'Ⅰ. 익금산입', [
-        items('adds', { removeCol: 'actions', label: '익금산입 항목' }),
+        items('adds', {
+          create: newAdjustmentItem,
+          removeCol: 'actions',
+          label: '익금산입 항목',
+        }),
         subtotal('s-add', '소 계', 'adds', amountCols),
       ]),
 
-      addRow('a-sub', 'subs', newAdjustmentItem, '+ 손금산입 항목 추가'),
+      addRow('a-sub', 'subs', '+ 손금산입 항목 추가'),
       spanned('subs', 'section', 'Ⅱ. 손금산입', [
-        items('subs', { removeCol: 'actions', label: '손금산입 항목' }),
+        items('subs', {
+          create: newAdjustmentItem,
+          removeCol: 'actions',
+          label: '손금산입 항목',
+        }),
         subtotal('s-sub', '소 계', 'subs', amountCols),
       ]),
 

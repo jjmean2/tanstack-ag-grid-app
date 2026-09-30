@@ -315,8 +315,12 @@ export const vatWorkbook = defineWorkbook<VatState>([
     title: '매입 명세',
     columns: purchaseColumns,
     rows: [
-      addRow('add', 'purchases', newPurchase, '+ 매입 추가'),
-      items('purchases', { removeCol: 'actions', label: '매입 명세' }),
+      addRow('add', 'purchases', '+ 매입 추가'),
+      items('purchases', {
+        create: newPurchase,
+        removeCol: 'actions',
+        label: '매입 명세',
+      }),
       subtotal('total', '합 계', 'purchases', ['amount', 'tax'], 'total'),
     ],
   },

@@ -2,7 +2,7 @@
 // helpers. Internal to the layout module.
 
 export type Slice = Record<string, unknown>
-type Item = { id: string } & Slice
+export type Item = { id: string } & Slice
 
 // Keys of the session state holding a list of `{ id }` items / a plain object.
 export type ListKey<TState> = {

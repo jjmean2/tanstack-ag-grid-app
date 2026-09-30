@@ -47,7 +47,7 @@ describe('layout with a spanRows column', () => {
         spanned('blk', 'section', '구분1', [
           items('list'),
           subtotal('sum', '소계', 'list', ['amount']),
-          addRow('add', 'list', () => ({ id: 'x' }), '+'),
+          addRow('add', 'list', '+'),
         ]),
       ]),
     ]),

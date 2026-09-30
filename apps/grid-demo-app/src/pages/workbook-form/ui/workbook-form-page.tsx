@@ -5,6 +5,7 @@ import { ScreenLayout } from '#/shared/ui/screen-layout'
 import type { ScreenTab } from '#/shared/ui/screen-layout'
 import { initialVat, vatWorkbook } from '#/widgets/vat-form/model/vat-form'
 import type { VatState } from '#/widgets/vat-form/model/vat-form'
+import { PurchaseToolbar } from '#/widgets/vat-form/ui/purchase-toolbar'
 import { ReturnTab } from '#/widgets/vat-form/ui/return-tab'
 
 const tabs: ScreenTab[] = [
@@ -33,7 +34,8 @@ const tabs: ScreenTab[] = [
     label: '매입 명세',
     sheets: ['purchases'],
     render: () => (
-      <div className="p-6">
+      <div className="grid gap-3 p-6">
+        <PurchaseToolbar />
         <div className="border border-[#c5d0c7]">
           <SheetGrid sheetId="purchases" />
         </div>

@@ -17,6 +17,8 @@ export type { InputEditor, InputEditorProps } from './input-editors'
 
 // Views.
 export { CellInput, useCell, useHighlight } from './cell-input'
+export type { ListControls } from './lists'
+export { useFocusedList, useList } from './lists'
 export type { Box, Place } from './form-layout'
 export { FormSheet } from './form-sheet'
 export { textBox, cellBox, checkBoxes } from './form-layout'

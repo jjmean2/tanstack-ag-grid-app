@@ -52,3 +52,49 @@ describe('context menu', () => {
     ])
   })
 })
+
+describe('context menu on a list row', () => {
+  const list = {
+    address: 's/@list',
+    label: '목록',
+    rowIds: ['r'],
+    canInsert: true,
+    canRemove: true,
+    append: vi.fn(),
+    insertAbove: vi.fn(),
+    insertBelow: vi.fn(),
+    remove: vi.fn(),
+  }
+
+  it('adds above or below the row and removes it', () => {
+    const items = contextMenuItems(params(cell()), gridTexts, () => list)
+    expect(items.map((i) => (typeof i === 'string' ? i : i.name))).toEqual([
+      '위에 행 추가',
+      '아래에 행 추가',
+      '행 삭제',
+      'separator',
+      'copy',
+      'paste',
+    ])
+    const [above, below, remove] = items as unknown as { action: () => void }[]
+    above.action()
+    below.action()
+    remove.action()
+    expect(list.insertAbove).toHaveBeenCalledWith('r')
+    expect(list.insertBelow).toHaveBeenCalledWith('r')
+    expect(list.remove).toHaveBeenCalledWith('r')
+  })
+
+  it('offers only removing when the list cannot make items', () => {
+    const items = contextMenuItems(params(cell()), gridTexts, () => ({
+      ...list,
+      canInsert: false,
+    }))
+    expect(items.map((i) => (typeof i === 'string' ? i : i.name))).toEqual([
+      '행 삭제',
+      'separator',
+      'copy',
+      'paste',
+    ])
+  })
+})

@@ -26,6 +26,7 @@ import type {
   ExternalValue,
   FormulaPart,
   LeafColumnDef,
+  ListOps,
   Row,
   RowsCtx,
   SavedExports,
@@ -35,6 +36,7 @@ import type {
   Update,
   Workbook,
   WorkbookDef,
+  WorkbookList,
 } from './types'
 
 // The columns that hold cells, column groups flattened.
@@ -99,6 +101,7 @@ export function buildWorkbook<TState>(
   const cells = new Map<Address, Cell>()
   const members = new Map<Address, Cell[]>() // group address -> its cells
   const declaredGroups = new Map<string, string>() // `sheet/@group` -> label
+  const listOps = new Map<string, ListOps>() // `sheet/@list` -> what it allows
   const leafsBySheet = new Map<string, LeafColumnDef[]>()
   const rowLabels = new Map<string, string>() // `sheet/row` -> RowSpec.label
   const sheets: Record<string, Sheet | undefined> = {}
@@ -158,9 +161,11 @@ export function buildWorkbook<TState>(
       sheetId: sheet.id,
       columns: leafs,
       update,
-      declareGroup: (id, label) => {
+      declareGroup: (id, label, list) => {
         declaredGroups.set(`${sheet.id}/@${id}`, label)
+        if (list) listOps.set(`${sheet.id}/@${id}`, list)
       },
+      list: (id) => listOps.get(`${sheet.id}/@${id}`),
     }
     const specs = sheet.rows.flatMap((node) => node(ctx))
 
@@ -429,7 +434,33 @@ export function buildWorkbook<TState>(
     return text || '(이름 없음)'
   }
 
+  const listAt = (address: Address): WorkbookList | undefined => {
+    const ops = listOps.get(address)
+    if (!ops) return undefined
+    const [sheetId = '', group = ''] = address.split('/@')
+    const leafs = leafsBySheet.get(sheetId) ?? []
+    const focusCol = ops.focusCol ?? leafs.at(0)?.colId ?? ''
+    const { insert } = ops
+    return {
+      address,
+      sheetId,
+      label: declaredGroups.get(address) ?? group,
+      rowIds: (sheets[sheetId]?.rows ?? [])
+        .filter((row) => row.group === group)
+        .map((row) => row.id),
+      canInsert: insert !== undefined,
+      canRemove: ops.remove !== undefined,
+      insert: (at) => insert && { sheetId, rowId: insert(at), colId: focusCol },
+      remove: (rowId) => ops.remove?.(rowId),
+    }
+  }
+
   const workbook: Workbook = {
+    list: listAt,
+    listOf: ({ sheetId, rowId }) => {
+      const group = sheets[sheetId]?.rows.find((row) => row.id === rowId)?.group
+      return group === undefined ? undefined : listAt(`${sheetId}/@${group}`)
+    },
     sheets,
     cell: (address) => cells.get(address),
     cells: (address) => {

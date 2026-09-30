@@ -15,6 +15,7 @@ import { useStore } from '../react/use-store'
 import { createGridColumns } from './columns'
 import { contextMenuItems } from './context-menu'
 import { useStableRows } from './stable-rows'
+import { listControls } from '../react/lists'
 import { gridViewsOf } from './views'
 import { FullWidthRow } from './full-width-row'
 import { rowMarks } from '../core/marks'
@@ -93,6 +94,9 @@ export function useSheetGrid(
   }: { height?: number | string; pinnedBottom?: readonly string[] } = {},
 ): AgGridReactProps<Row> {
   const { wb, ui, views } = useWorkbook()
+  // For callbacks AG Grid keeps (the context menu): the current workbook.
+  const wbRef = useRef(wb)
+  wbRef.current = wb
   const { present } = views
   const { theme, editors, displays, texts } = gridViewsOf(views)
   const sheet = wb.sheets[sheetId]
@@ -147,14 +151,17 @@ export function useSheetGrid(
   const pending = useStore(ui, (s) => s.pending)
 
   // Consume a navigation request aimed at this sheet. If its tab was just
-  // opened, this runs once the grid has rendered its first rows.
+  // opened, this runs once the grid has rendered its first rows; if its row
+  // is not in the grid yet (just added), once the new rows are.
   useEffect(() => {
     const api = apiRef.current
     if (!ready || !api || !pending) return
     const mine = pending.targets.filter((t) => t.sheetId === sheetId)
-    if (mine.length === 0 || !claimPending(ui, pending.nonce)) return
+    if (mine.length === 0) return
+    if (!nodeOf(api, mine[0].rowId, pinnedIds).node) return
+    if (!claimPending(ui, pending.nonce)) return
     focusCells(api, mine, pinnedIds)
-  }, [ready, pending, sheetId, ui, pinnedIds])
+  }, [ready, pending, sheetId, ui, pinnedIds, body, bottom])
 
   // Redraw the cells of this sheet whose highlight changed. AG Grid only
   // re-evaluates `cellClass` when a cell is refreshed, and would skip cells
@@ -199,7 +206,11 @@ export function useSheetGrid(
       embedFullWidthRows: true, // scroll horizontally with the other rows
       enableCellSpan,
       stopEditingWhenCellsLoseFocus: true,
-      getContextMenuItems: (params) => contextMenuItems(params, texts),
+      getContextMenuItems: (params) =>
+        contextMenuItems(params, texts, (rowId) => {
+          const list = wbRef.current.listOf({ sheetId, rowId, colId: '' })
+          return list && listControls(ui, list)
+        }),
       onFirstDataRendered: (event: FirstDataRenderedEvent<Row>) => {
         apiRef.current = event.api
         setReady(true)

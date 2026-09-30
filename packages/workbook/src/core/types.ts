@@ -63,7 +63,22 @@ export type RowsCtx<TState> = {
   update: Update<TState>
   sheetId: string
   columns: LeafColumnDef[] // leaf columns, groups flattened
-  declareGroup: (id: string, label: string) => void
+  // Declares a group of rows formulas can reference as `[@id/col]`. A list
+  // (`items`) also gives what a person can do to it.
+  declareGroup: (id: string, label: string, list?: ListOps) => void
+  // A list of this sheet, looked up when called (for a button that adds to
+  // a list declared further down).
+  list: (id: string) => ListOps | undefined
+}
+
+// What a person can do to a list of the state shown as rows (see `items`).
+// Each changes the state through `update`.
+export type ListOps = {
+  // Adds a new item at the end, or before / after the item with that id;
+  // returns its id. Absent when the list has no way to make an item.
+  insert?: (at?: { before?: string; after?: string }) => string
+  remove?: (id: string) => void // absent when items cannot be removed
+  focusCol?: string // where a new row takes focus: its first editable column
 }
 
 // Turns the session state into zero or more rows.
@@ -108,7 +123,14 @@ export type CellSpec = {
 // title, an add button). It has no cells.
 export type FullWidthContent =
   | { kind: 'title'; text: string }
-  | { kind: 'action'; label: string; run: () => void }
+  | {
+      kind: 'action'
+      label: string
+      run: () => void
+      // Set when the button adds a row to this list (`sheet/@list`), so a
+      // view can move focus to the new row.
+      list?: Address
+    }
 
 export type RowSpec = {
   id: string
@@ -189,6 +211,23 @@ export type Workbook = {
   // What it reads from other screens.
   external: (address: Address) => ExternalValue | undefined
   externalRefs: ExternalRef[]
+  // The lists shown as rows (`items`), by `sheet/@list`; and the list whose
+  // row holds a cell.
+  list: (address: Address) => WorkbookList | undefined
+  listOf: (cell: CellRef) => WorkbookList | undefined
+}
+
+// A list of rows, and what a person can do to it. `insert` returns the new
+// row's cell to focus (see `insertListRow`, which also moves focus there).
+export type WorkbookList = {
+  address: Address // `sheet/@list`
+  sheetId: string
+  label: string
+  rowIds: readonly string[] // its rows, in order
+  canInsert: boolean
+  canRemove: boolean
+  insert: (at?: { before?: string; after?: string }) => CellRef | undefined
+  remove: (rowId: string) => void // does nothing unless `canRemove`
 }
 
 // --- other screens ---------------------------------------------------------------

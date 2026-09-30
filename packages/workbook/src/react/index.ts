@@ -12,6 +12,8 @@ export { useStore, shallowEqual } from './use-store'
 export { WorkbookErrorBoundary } from './error-boundary'
 
 export { useCell, CellInput } from './cell-input'
+export type { InputEditor, InputEditorProps } from './input-editors'
+export { defaultInputEditors } from './input-editors'
 export { FormSheet } from './form-sheet'
 export { FormulaBar, savedAtText } from './formula-bar'
 export { ExternalRefs } from './external-refs'

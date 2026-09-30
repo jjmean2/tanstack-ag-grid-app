@@ -14,12 +14,15 @@ import {
 } from '#/widgets/closing-workbook/model/closing-workbook'
 import { taxWorkbook } from '#/widgets/tax-workbook/model/tax-workbook'
 import { initialVat, vatWorkbook } from '#/widgets/vat-form/model/vat-form'
-import { presentation } from './workbook-presentation'
+import { defaultGridDisplays, defaultGridEditors } from '@lab/workbook/ag-grid'
+import { defaultInputEditors } from '@lab/workbook/react'
+import { gridDisplays, gridEditors, inputEditors } from './components'
+import { presentation } from './presentation'
 
 // Read as text: the test runner does not process CSS. Tests run from the app's
 // workspace root.
 const theme = readFileSync(
-  join(process.cwd(), 'src/shared/config/workbook-theme.css'),
+  join(process.cwd(), 'src/shared/ui/workbook-view/theme.css'),
   'utf8',
 )
 
@@ -72,7 +75,7 @@ function ruleMarksOf(wb: Workbook): Set<string> {
   )
 }
 
-describe('workbook theme', () => {
+describe('workbook view: theme', () => {
   const tags = new Set([
     ...workbooks.flatMap((wb) => [...tagsOf(wb)]),
     ...VALUE_DEPENDENT_TAGS,
@@ -88,5 +91,29 @@ describe('workbook theme', () => {
 
   it.each([...marks].sort())('styles the rule mark "%s"', (mark) => {
     expect(theme).toContain(`.${mark}`)
+  })
+})
+
+// The ids presentation rules choose must have a component in each view: a
+// missing one would silently fall back to the text editor or plain text.
+describe('workbook view: components', () => {
+  const presented = workbooks.flatMap((wb) => cellsOf(wb).map(presentation))
+  const editors = new Set(
+    presented.flatMap((p) => (p.editor === null ? [] : [p.editor])),
+  )
+  const displays = new Set(
+    presented.map((p) => p.display).filter((d) => d !== 'text'),
+  )
+  const grid = { ...defaultGridEditors, ...gridEditors }
+  const input = { ...defaultInputEditors, ...inputEditors }
+  const gridShows = { ...defaultGridDisplays, ...gridDisplays }
+
+  it.each([...editors].sort())('edits "%s" in a grid and in an input', (id) => {
+    expect(Object.keys(grid)).toContain(id)
+    expect(Object.keys(input)).toContain(id)
+  })
+
+  it.each([...displays].sort())('shows "%s" in a grid', (id) => {
+    expect(Object.keys(gridShows)).toContain(id)
   })
 })

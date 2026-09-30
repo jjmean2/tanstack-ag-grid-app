@@ -8,6 +8,8 @@ import { externalsFrom } from '../core/external'
 import { navigate } from '../core/navigation'
 import { defaultPresenter } from '../core/presentation'
 import type { Presenter } from '../core/presentation'
+import { defaultInputEditors } from './input-editors'
+import type { InputEditor } from './input-editors'
 import type { UiState } from '../core/navigation'
 import type {
   Address,
@@ -25,6 +27,7 @@ type WorkbookContextValue = {
   ui: Store<UiState>
   openScreen?: OpenScreen
   present: Presenter
+  inputEditors: Record<string, InputEditor>
 }
 
 const WorkbookContext = createContext<WorkbookContextValue | null>(null)
@@ -41,6 +44,7 @@ export function WorkbookProvider<TState extends object>({
   externals = noExternals,
   openScreen,
   presentation = defaultPresenter,
+  inputEditors,
   children,
 }: {
   store: Store<TState>
@@ -51,6 +55,9 @@ export function WorkbookProvider<TState extends object>({
   // How views show cells (editor, display, alignment, marks); the library's
   // defaults unless the app defines its rules (`definePresentation`).
   presentation?: Presenter
+  // Components for editor ids in `CellInput`, added to or replacing the
+  // defaults (`defaultInputEditors`). Pass a module-level constant.
+  inputEditors?: Record<string, InputEditor>
   children: ReactNode
 }) {
   const state = useStore(store, (s) => s)
@@ -74,9 +81,19 @@ export function WorkbookProvider<TState extends object>({
     console.error(`Workbook has formula errors:\n${message}`)
   }, [wb])
 
+  const editors = useMemo(
+    () => ({ ...defaultInputEditors, ...inputEditors }),
+    [inputEditors],
+  )
   const value = useMemo(
-    () => ({ wb, ui, openScreen, present: presentation }),
-    [wb, ui, openScreen, presentation],
+    () => ({
+      wb,
+      ui,
+      openScreen,
+      present: presentation,
+      inputEditors: editors,
+    }),
+    [wb, ui, openScreen, presentation, editors],
   )
   return <WorkbookContext value={value}>{children}</WorkbookContext>
 }

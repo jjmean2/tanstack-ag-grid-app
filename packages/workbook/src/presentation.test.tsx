@@ -24,6 +24,7 @@ import {
 } from './index'
 import type { ResolvedRow, SheetColumnDef } from './index'
 import { CellInput, WorkbookProvider } from './react'
+import type { InputEditor } from './react'
 
 type S = {
   info: { amount: number; start: string; note: string }
@@ -175,6 +176,36 @@ describe('CellInput and the presentation', () => {
     await userEvent.clear(date)
     await userEvent.type(date, '2026-03-15')
     expect(store.get().info.start).toBe('2026-03-15')
+  })
+
+  it('draws an app editor id with the component registered for it', () => {
+    const Memo: InputEditor = ({ text, control }) => (
+      <textarea
+        data-testid="memo"
+        data-cell={control['data-cell']}
+        defaultValue={text}
+      />
+    )
+    render(
+      <WorkbookProvider
+        store={createStore(state)}
+        def={def}
+        ui={createUiStore('t')}
+        presentation={definePresentation([
+          { when: (f) => f.type === 'text', then: { editor: 'memo' } },
+        ])}
+        inputEditors={{ memo: Memo }}
+      >
+        <CellInput address="s/info.note/value" />
+        <CellInput address="s/info.amount/value" />
+      </WorkbookProvider>,
+    )
+    expect(screen.getByTestId('memo')).toHaveAttribute(
+      'data-cell',
+      's/info.note/value',
+    )
+    // Other cells keep the built-in editors.
+    expect(screen.getByDisplayValue('-5').tagName).toBe('INPUT')
   })
 
   it('follows rules that make a cell read-only', () => {

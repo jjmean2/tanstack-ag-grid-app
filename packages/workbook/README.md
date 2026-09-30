@@ -50,7 +50,8 @@ src/
 ├─ react/              React 바인딩과 grid에 묶이지 않은 뷰
 │  ├─ workbook-context.tsx  WorkbookProvider · useWorkbook · useFocusAddress
 │  ├─ use-store.ts          useStore (useSyncExternalStore)
-│  ├─ cell-input.tsx        useCell · CellInput
+│  ├─ cell-input.tsx        useCell · CellInput (편집기 ID → 등록된 부품)
+│  ├─ input-editors.tsx     input 편집기 부품과 기본 등록표
 │  ├─ form-sheet.tsx        FormSheet (CSS grid)
 │  ├─ formula-bar.tsx       FormulaBar
 │  ├─ external-refs.tsx     ExternalRefs
@@ -159,14 +160,19 @@ export const presentation = definePresentation([
 ])
 
 <WorkbookProvider presentation={presentation} …>
-<SheetGridProvider editors={{ 'code-search': { component: CodeSearchEditor } }}>
+<SheetGridProvider editors={{ 'code-search': { component: CodeSearchGridEditor } }}>
+<WorkbookProvider inputEditors={{ 'code-search': CodeSearchInput }} …>
 ```
 
 - 규칙은 셀의 사실(`type`, `writable`, `formula`, `error`, `tags`, `value`)을 보고 `editor`, `display`, `align`, `marks`를 정합니다. **순서대로 적용되고, 뒤의 규칙이 이기며, `marks`는 누적**됩니다.
 - 기본값(라이브러리): 쓸 수 있는 셀이면 타입의 편집기(`T.date` → 날짜 선택기, `T.select` → 드롭다운), `action`이 있으면 버튼, 타입의 정렬.
 - 규칙은 셀을 **읽기 전용으로 만들 수는 있지만 편집 가능하게 만들 수는 없습니다.** 쓸 수 있는지는 정의(`write`)가 정합니다.
 - **표시 형식(`format`)은 규칙이 아니라 셀 타입이 정합니다.** 형식은 입력 해석, 수식 변환과 짝을 이뤄야 하므로, 형식이 다르면 다른 타입을 씁니다.
-- 편집기·표시 ID는 렌더러와 무관한 이름입니다. 각 렌더러의 등록표가 부품으로 바꿉니다(grid: `SheetGridProvider`의 `editors`, `displays`. 기본값은 `defaultGridEditors`, `defaultGridDisplays`). 모르는 ID는 텍스트 편집기, 일반 텍스트로 처리됩니다. `CellInput`은 지금 기본 ID(text, number, select, checkbox, date)만 압니다.
+- 편집기·표시 ID는 렌더러와 무관한 이름입니다. **뷰마다 등록표가 ID를 부품으로 바꿉니다.**
+  - grid: `SheetGridProvider`의 `editors`(→ AG Grid 편집기), `displays`(→ 셀 렌더러). 기본값 `defaultGridEditors`, `defaultGridDisplays`.
+  - input(`CellInput`, 서식 칸): `WorkbookProvider`의 `inputEditors`(→ `InputEditor` 컴포넌트). 기본값 `defaultInputEditors`.
+  - 등록되지 않은 ID는 텍스트 편집기, 일반 텍스트로 처리됩니다. 조용히 떨어지므로, 앱에서 "규칙이 쓰는 ID마다 모든 뷰에 부품이 있는지" 테스트하기를 권합니다.
+- 앱은 규칙, 부품 등록표, 테마를 **한 폴더에** 두고 서로 맞는지 테스트로 묶는 것을 권합니다(데모 앱의 `shared/ui/workbook-view/`).
 
 ### 표식
 

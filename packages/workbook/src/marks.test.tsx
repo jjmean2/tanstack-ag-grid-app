@@ -5,7 +5,7 @@ import { createGridColumns } from './ag-grid/columns'
 import {
   buildWorkbook,
   cellBox,
-  cellMarks,
+  defaultPresenter,
   createStore,
   createUiStore,
   defineWorkbook,
@@ -73,15 +73,15 @@ describe('marks', () => {
   const wb = buildWorkbook(def, { amount: 100 }, noop)
   const amount = wb.cell('g/amount/value')!
 
-  it('say what a cell is: type, source, editable, and its and its row’s tags', () => {
-    expect(cellMarks(amount)).toEqual([
+  it('say what a cell is: type, source, tags (its row’s and its own), then editable and alignment', () => {
+    expect(defaultPresenter(amount).marks).toEqual([
       'wb-cell',
       'wb-type-money',
       'wb-source-value',
-      'wb-editable',
-      'wb-align-right',
       'wb-tag-subtotal',
       'wb-tag-input',
+      'wb-editable',
+      'wb-align-right',
     ])
   })
 

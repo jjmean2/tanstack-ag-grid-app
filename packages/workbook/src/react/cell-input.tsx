@@ -4,7 +4,6 @@ import type { Ref } from 'react'
 import { useStore } from './use-store'
 import { cellAddress } from '../core/address'
 import { INVALID } from '../core/cell-types'
-import { cellMarks } from '../core/marks'
 import { claimPending, reportFocus } from '../core/navigation'
 import type { Address } from '../core/types'
 import { useWorkbook } from './workbook-context'
@@ -72,8 +71,12 @@ export function CellInput({
   variant?: keyof typeof layouts
   className?: string
 }) {
-  const { cell, ref, text, editable, commit, onFocus } = useCell(address)
+  const { present } = useWorkbook()
+  const { cell, ref, text, commit, onFocus } = useCell(address)
   const { type } = cell
+  // The same presentation a grid uses: which editor, and the marks.
+  const { editor, marks: cellMarks } = present(cell)
+  const editable = editor !== null
   // While focused the control shows the editable text; what is typed is a
   // draft, committed on Enter or blur and dropped on Escape.
   const [editing, setEditing] = useState(false)
@@ -86,11 +89,11 @@ export function CellInput({
     if (editing && ref.current instanceof HTMLInputElement) ref.current.select()
   }, [editing, ref])
 
-  // The same marks a grid puts on this cell, plus the input's own state.
+  // The cell's marks, plus the input's own state.
   const marks = [
     'wb-input',
     `wb-input-${variant}`,
-    ...cellMarks(cell),
+    ...cellMarks,
     invalid && 'wb-invalid',
   ]
     .filter(Boolean)
@@ -103,7 +106,7 @@ export function CellInput({
     onFocus,
   }
 
-  if (editable && type.editor === 'checkbox') {
+  if (editor === 'checkbox') {
     return (
       <input
         {...common}
@@ -116,7 +119,7 @@ export function CellInput({
     )
   }
 
-  if (editable && type.editor === 'select') {
+  if (editor === 'select') {
     return (
       <select
         {...common}
@@ -134,9 +137,24 @@ export function CellInput({
     )
   }
 
+  // The browser's date picker; it hands over 'YYYY-MM-DD', which the type
+  // parses like typed text.
+  if (editor === 'date') {
+    return (
+      <input
+        {...common}
+        ref={ref as Ref<HTMLInputElement>}
+        type="date"
+        className={classes}
+        value={typeof cell.value === 'string' ? cell.value : ''}
+        onChange={(e) => setInvalid(!commit(e.target.value))}
+      />
+    )
+  }
+
   // Numbers are edited without grouping separators, as in the grid editor.
   const editText =
-    type.editor === 'number' && typeof cell.value === 'number'
+    editor === 'number' && typeof cell.value === 'number'
       ? String(cell.value)
       : text
 
@@ -158,7 +176,7 @@ export function CellInput({
       {...common}
       ref={ref as Ref<HTMLInputElement>}
       className={classes}
-      inputMode={type.editor === 'number' ? 'decimal' : undefined}
+      inputMode={editor === 'number' ? 'decimal' : undefined}
       readOnly={!editable}
       value={editing && editable ? (draft ?? editText) : text}
       onFocus={() => {

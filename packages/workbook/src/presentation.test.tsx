@@ -1,0 +1,190 @@
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import type {
+  CellClassParams,
+  CellEditorSelectorFunc,
+  CellRendererSelectorFunc,
+  ColDef,
+  EditableCallback,
+} from 'ag-grid-community'
+
+import { createGridColumns } from './ag-grid/columns'
+import {
+  buildWorkbook,
+  createStore,
+  createUiStore,
+  definePresentation,
+  defaultPresenter,
+  defineWorkbook,
+  fields,
+  formulaCell,
+  labelCell,
+  row,
+  T,
+} from './index'
+import type { ResolvedRow, SheetColumnDef } from './index'
+import { CellInput, WorkbookProvider } from './react'
+
+type S = {
+  info: { amount: number; start: string; note: string }
+}
+const state: S = { info: { amount: -5, start: '2026-01-01', note: '' } }
+
+const columns: SheetColumnDef[] = [
+  { colId: 'label', headerName: '항목', type: T.text },
+  { colId: 'value', headerName: '값', type: T.money },
+]
+
+const def = defineWorkbook<S>([
+  {
+    id: 's',
+    title: 's',
+    tab: 't',
+    columns,
+    layout: [
+      fields('info', {
+        amount: '금액',
+        start: { label: '시작일', type: T.date },
+        note: { label: '메모', type: T.text },
+      }),
+      row('sum', { tags: 'total' }, () => ({
+        label: labelCell('합계'),
+        value: formulaCell('=[info.amount/value]*2'),
+      })),
+    ],
+  },
+])
+
+const noop = () => {}
+const wb = buildWorkbook(def, state, noop)
+const amount = wb.cell('s/info.amount/value')!
+const start = wb.cell('s/info.start/value')!
+const note = wb.cell('s/info.note/value')!
+const sum = wb.cell('s/sum/value')!
+
+describe('default presentation', () => {
+  it('uses the type’s editor and alignment when the cell can be written', () => {
+    expect(defaultPresenter(amount)).toMatchObject({
+      editor: 'number',
+      display: 'text',
+      align: 'right',
+    })
+    expect(defaultPresenter(start).editor).toBe('date')
+  })
+
+  it('shows formula cells read-only', () => {
+    expect(defaultPresenter(sum).editor).toBeNull()
+    expect(defaultPresenter(sum).marks).not.toContain('wb-editable')
+  })
+
+  it('computes a cell once', () => {
+    expect(defaultPresenter(amount)).toBe(defaultPresenter(amount))
+  })
+})
+
+describe('presentation rules', () => {
+  const present = definePresentation([
+    // An app's editor id; views that do not know it fall back to text.
+    {
+      when: (f) => f.type === 'text' && f.writable,
+      then: { editor: 'memo' },
+    },
+    // Value-dependent: a mark the theme styles.
+    {
+      when: (f) => typeof f.value === 'number' && f.value < 0,
+      then: { marks: ['wb-negative'] },
+    },
+    // Later rules win for fields; marks add up.
+    {
+      when: (f) => f.tags.includes('total'),
+      then: (current) => ({
+        align: 'center',
+        marks: [...(current.editor ? [] : ['wb-locked'])],
+      }),
+    },
+    // A rule cannot make a formula cell editable.
+    { when: (f) => f.formula, then: { editor: 'text' } },
+    // It can make a writable cell read-only.
+    { when: (f) => f.type === 'date', then: { editor: null } },
+  ])
+
+  it('choose editors, alignment and marks', () => {
+    expect(present(note).editor).toBe('memo')
+    expect(present(amount).marks).toContain('wb-negative')
+    expect(present(sum)).toMatchObject({ align: 'center', editor: null })
+    expect(present(sum).marks).toEqual(
+      expect.arrayContaining(['wb-align-center', 'wb-locked', 'wb-tag-total']),
+    )
+  })
+
+  it('never make a cell writable, but may make it read-only', () => {
+    expect(present(sum).editor).toBeNull()
+    expect(present(start).editor).toBeNull()
+    expect(present(start).marks).not.toContain('wb-editable')
+  })
+
+  it('reach the grid through the editor and display registries', () => {
+    const custom = definePresentation([
+      { when: (f) => f.type === 'money', then: { display: 'badge' } },
+    ])
+    const Badge = () => null
+    const [, value] = createGridColumns(columns, {
+      present: custom,
+      displays: { badge: Badge },
+    }) as ColDef<ResolvedRow>[]
+    const params = (rowId: string) =>
+      ({ data: wb.sheets.s!.rows.find((r) => r.id === rowId) }) as never
+    const editorOf = value.cellEditorSelector as CellEditorSelectorFunc
+    const rendererOf = value.cellRendererSelector as CellRendererSelectorFunc
+    const editable = value.editable as EditableCallback
+    const classOf = value.cellClass as (p: CellClassParams) => string[]
+
+    expect(editorOf(params('info.start'))?.component).toBe(
+      'agDateStringCellEditor',
+    )
+    expect(editorOf(params('info.amount'))?.component).toBe(
+      'agNumberCellEditor',
+    )
+    expect(rendererOf(params('info.amount'))?.component).toBe(Badge)
+    expect(editable(params('sum'))).toBe(false)
+    expect(classOf(params('info.amount'))).toContain('wb-editable')
+  })
+})
+
+describe('CellInput and the presentation', () => {
+  const renderInputs = (presentation = defaultPresenter) => {
+    const store = createStore(state)
+    render(
+      <WorkbookProvider
+        store={store}
+        def={def}
+        ui={createUiStore('t')}
+        presentation={presentation}
+      >
+        <CellInput address="s/info.start/value" />
+        <CellInput address="s/info.amount/value" />
+      </WorkbookProvider>,
+    )
+    return store
+  }
+
+  it('offers a date picker for the date editor and commits its value', async () => {
+    const store = renderInputs()
+    const date = screen.getByDisplayValue('2026-01-01')
+    expect(date).toHaveAttribute('type', 'date')
+    await userEvent.clear(date)
+    await userEvent.type(date, '2026-03-15')
+    expect(store.get().info.start).toBe('2026-03-15')
+  })
+
+  it('follows rules that make a cell read-only', () => {
+    renderInputs(
+      definePresentation([
+        { when: (f) => f.type === 'money', then: { editor: null } },
+      ]),
+    )
+    const input = screen.getByDisplayValue('-5')
+    expect(input).toHaveAttribute('readonly')
+    expect(input).not.toHaveClass('wb-editable')
+  })
+})

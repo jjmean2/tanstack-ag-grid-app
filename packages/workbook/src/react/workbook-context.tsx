@@ -6,6 +6,8 @@ import type { Store } from '../store/create-store'
 import { useStore } from './use-store'
 import { externalsFrom } from '../core/external'
 import { navigate } from '../core/navigation'
+import { defaultPresenter } from '../core/presentation'
+import type { Presenter } from '../core/presentation'
 import type { UiState } from '../core/navigation'
 import type {
   Address,
@@ -22,6 +24,7 @@ type WorkbookContextValue = {
   wb: Workbook
   ui: Store<UiState>
   openScreen?: OpenScreen
+  present: Presenter
 }
 
 const WorkbookContext = createContext<WorkbookContextValue | null>(null)
@@ -37,6 +40,7 @@ export function WorkbookProvider<TState extends object>({
   ui,
   externals = noExternals,
   openScreen,
+  presentation = defaultPresenter,
   children,
 }: {
   store: Store<TState>
@@ -44,6 +48,9 @@ export function WorkbookProvider<TState extends object>({
   ui: Store<UiState>
   externals?: Store<Record<string, ScreenExports | undefined>>
   openScreen?: OpenScreen
+  // How views show cells (editor, display, alignment, marks); the library's
+  // defaults unless the app defines its rules (`definePresentation`).
+  presentation?: Presenter
   children: ReactNode
 }) {
   const state = useStore(store, (s) => s)
@@ -67,7 +74,10 @@ export function WorkbookProvider<TState extends object>({
     console.error(`Workbook has formula errors:\n${message}`)
   }, [wb])
 
-  const value = useMemo(() => ({ wb, ui, openScreen }), [wb, ui, openScreen])
+  const value = useMemo(
+    () => ({ wb, ui, openScreen, present: presentation }),
+    [wb, ui, openScreen, presentation],
+  )
   return <WorkbookContext value={value}>{children}</WorkbookContext>
 }
 

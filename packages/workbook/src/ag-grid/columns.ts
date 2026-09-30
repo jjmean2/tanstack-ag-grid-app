@@ -1,38 +1,31 @@
 import type { ColDef, ColGroupDef } from 'ag-grid-community'
 
-import { ActionCell } from './action-cell'
 import { INVALID } from '../core/cell-types'
-import { cellMarks } from '../core/marks'
-import type { CellType } from '../core/cell-types'
+import { defaultPresenter } from '../core/presentation'
+import type { Presenter } from '../core/presentation'
 import type { ResolvedRow, SheetColumnDef, SheetLeaf } from '../core/types'
+import { defaultGridDisplays, defaultGridEditors } from './grid-config'
+import type { GridDisplay, GridEditor } from './grid-config'
 
-// Maps the semantic editor kind of a cell type to an AG Grid editor.
-const editorFor = (type: CellType) => {
-  switch (type.editor) {
-    case 'number':
-      return { component: 'agNumberCellEditor' }
-    case 'select':
-      return {
-        component: 'agSelectCellEditor',
-        params: { values: [...(type.options ?? [])] },
-      }
-    case 'checkbox':
-      return { component: 'agCheckboxCellEditor' }
-    default:
-      return { component: 'agTextCellEditor' }
-  }
+export type GridColumnsOptions = {
+  present?: Presenter
+  editors?: Record<string, GridEditor>
+  displays?: Record<string, GridDisplay>
 }
 
-// Thin adapter: every callback only looks at the resolved `row.cells[colId]`.
-// Row kinds, type overrides and formulas were all settled when the workbook
-// was built, so nothing here branches on them.
-function createLeafColDef(col: SheetLeaf): ColDef<ResolvedRow> {
+// Thin adapter: every callback only looks at the resolved `row.cells[colId]`
+// and its presentation. Row kinds, types, formulas and the app's presentation
+// rules were all settled before, so nothing here branches on them.
+function createLeafColDef(
+  col: SheetLeaf,
+  { present, editors, displays }: Required<GridColumnsOptions>,
+): ColDef<ResolvedRow> {
   const cellOf = (data: ResolvedRow | undefined) => data?.cells[col.colId]
   const typeOf = (data: ResolvedRow | undefined) =>
     cellOf(data)?.type ?? col.type
-  const writerOf = (data: ResolvedRow | undefined) => {
-    const source = cellOf(data)?.source
-    return source?.kind === 'value' ? source.write : undefined
+  const presented = (data: ResolvedRow | undefined) => {
+    const cell = cellOf(data)
+    return cell ? present(cell) : undefined
   }
 
   return {
@@ -44,7 +37,8 @@ function createLeafColDef(col: SheetLeaf): ColDef<ResolvedRow> {
     valueParser: ({ newValue, data }) => typeOf(data).parse(newValue),
     valueSetter: ({ data, newValue }) => {
       const cell = cellOf(data)
-      const write = writerOf(data)
+      const source = cell?.source
+      const write = source?.kind === 'value' ? source.write : undefined
       if (!cell || !write || newValue === INVALID) return false
       // Apply to the grid row immediately (rows are throwaway views), then
       // record it in the store, which rebuilds the workbook. Without the
@@ -55,9 +49,22 @@ function createLeafColDef(col: SheetLeaf): ColDef<ResolvedRow> {
     },
     valueFormatter: ({ value, data }) =>
       cellOf(data)?.error ?? typeOf(data).format(value),
-    cellEditorSelector: ({ data }) => editorFor(typeOf(data)),
-    cellRendererSelector: ({ data }) =>
-      cellOf(data)?.action ? { component: ActionCell } : undefined,
+    // Editor and display ids come from the presentation; the registries turn
+    // them into AG Grid components.
+    cellEditorSelector: ({ data }) => {
+      const cell = cellOf(data)
+      const id = (cell && present(cell).editor) ?? 'text'
+      const editor = editors[id] ?? editors.text
+      return {
+        component: editor.component,
+        params: cell ? editor.params?.(cell) : undefined,
+      }
+    },
+    cellRendererSelector: ({ data }) => {
+      const display = presented(data)?.display
+      const component = display === undefined ? undefined : displays[display]
+      return component ? { component } : undefined
+    },
     // AG Grid: a column that merges down can neither span across nor be
     // editable (the workbook rejects editable merged cells for that reason).
     ...(col.spanRows
@@ -68,28 +75,31 @@ function createLeafColDef(col: SheetLeaf): ColDef<ResolvedRow> {
           },
         }
       : {
-          editable: ({ data }) => writerOf(data) !== undefined,
+          editable: ({ data }) => (presented(data)?.editor ?? null) !== null,
           colSpan: ({ data }) => cellOf(data)?.span ?? 1,
         }),
     // The same marks every view uses.
-    cellClass: ({ data }) => {
-      const cell = cellOf(data)
-      return cell ? cellMarks(cell) : undefined
-    },
+    cellClass: ({ data }) => presented(data)?.marks,
   }
 }
 
 export function createGridColumns(
   defs: SheetColumnDef[],
+  options: GridColumnsOptions = {},
 ): (ColDef<ResolvedRow> | ColGroupDef<ResolvedRow>)[] {
+  const resolved: Required<GridColumnsOptions> = {
+    present: options.present ?? defaultPresenter,
+    editors: { ...defaultGridEditors, ...options.editors },
+    displays: { ...defaultGridDisplays, ...options.displays },
+  }
   return defs.map((def) => {
     if ('children' in def) {
       const group: ColGroupDef<ResolvedRow> = {
         headerName: def.headerName,
-        children: createGridColumns(def.children),
+        children: createGridColumns(def.children, resolved),
       }
       return group
     }
-    return createLeafColDef(def)
+    return createLeafColDef(def, resolved)
   })
 }

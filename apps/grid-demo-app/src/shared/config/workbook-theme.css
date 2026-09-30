@@ -12,12 +12,14 @@
  *   5. chrome      the parts views draw around cells (inputs, boxes, buttons)
  *
  * Marks: wb-cell · wb-type-<id> · wb-source-value|formula · wb-editable ·
- * wb-error · wb-action · wb-align-right · wb-tag-<tag> (cell and row tags) ·
+ * wb-error · wb-action · wb-align-right|center · wb-tag-<tag> (cell and row
+ * tags) · marks the app's presentation rules add (wb-negative, ...) ·
  * wb-row · wb-input(-field|-form) · wb-invalid · wb-form · wb-box(-text|-cell|
  * -tall) · wb-button · wb-full-width. See packages/workbook/src/core/marks.ts.
  *
- * Every tag used by a definition must have a rule in section 4; a test checks
- * it (workbook-theme.test.ts).
+ * Every tag a definition uses, and every mark a presentation rule adds, must
+ * have a rule here; a test checks it (workbook-theme.test.ts). Which editor or
+ * alignment a cell gets is not decided here but in workbook-presentation.ts.
  */
 
 /* --- 1. tokens ------------------------------------------------------------ */
@@ -31,6 +33,7 @@
   --wb-editable: #1d4ed8;
   --wb-ok: #1a7f4b;
   --wb-error: #c0392b;
+  --wb-negative: #b35131;
   --wb-error-bg: #fbeeec;
   --wb-title-bg: #dfe9e2;
   --wb-head-bg: #eef3ed;
@@ -66,6 +69,13 @@
 
 .wb-input.wb-invalid {
   background-color: var(--wb-error-bg);
+}
+
+/* Marks added by presentation rules (workbook-presentation.ts). After the
+   editable rule, with as many classes, so a negative amount shows as such
+   even where it can be edited. */
+.wb-cell.wb-negative {
+  color: var(--wb-negative);
 }
 
 /* --- 3. types ------------------------------------------------------------- */
@@ -162,10 +172,6 @@
 
 .wb-input {
   color: var(--wb-ink);
-}
-
-.wb-input.wb-cell.wb-editable {
-  color: var(--wb-editable);
 }
 
 .wb-input-field {

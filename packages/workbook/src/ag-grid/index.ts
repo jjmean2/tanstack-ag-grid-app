@@ -3,6 +3,11 @@
 
 export { SheetGrid } from './sheet-grid'
 export { useSheetGrid } from './use-sheet-grid'
+export type { GridColumnsOptions } from './columns'
 export { createGridColumns } from './columns'
-export type { SheetGridConfig } from './grid-config'
-export { SheetGridProvider } from './grid-config'
+export type { GridDisplay, GridEditor, SheetGridConfig } from './grid-config'
+export {
+  SheetGridProvider,
+  defaultGridDisplays,
+  defaultGridEditors,
+} from './grid-config'

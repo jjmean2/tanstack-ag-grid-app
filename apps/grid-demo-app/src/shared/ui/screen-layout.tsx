@@ -15,6 +15,7 @@ import {
   WorkbookProvider,
 } from '@lab/workbook/react'
 import { playgroundGridTheme } from '#/shared/config/ag-grid'
+import { presentation } from '#/shared/config/workbook-presentation'
 import { useCellSearch, useOpenScreen } from '#/shared/lib/screen/router'
 import type { ScreenSession } from '#/shared/lib/screen/use-screen-session'
 
@@ -45,6 +46,7 @@ export function ScreenLayout<TState extends object>(props: Props<TState>) {
           ui={session.ui}
           externals={session.externals}
           openScreen={openScreen}
+          presentation={presentation}
         >
           <Screen {...props} />
         </WorkbookProvider>

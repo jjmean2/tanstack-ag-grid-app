@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { buildWorkbook } from '@lab/workbook'
-import type { Workbook } from '@lab/workbook'
+import type { Cell, Workbook } from '@lab/workbook'
 import { toAdjustmentState } from '#/entities/adjustment/model/adapter'
 import { adjustmentResponse } from '#/entities/adjustment/model/data'
 import { toSession } from '#/entities/tax-session/model/adapter'
@@ -14,6 +14,7 @@ import {
 } from '#/widgets/closing-workbook/model/closing-workbook'
 import { taxWorkbook } from '#/widgets/tax-workbook/model/tax-workbook'
 import { initialVat, vatWorkbook } from '#/widgets/vat-form/model/vat-form'
+import { presentation } from './workbook-presentation'
 
 // Read as text: the test runner does not process CSS. Tests run from the app's
 // workspace root.
@@ -36,31 +37,56 @@ const workbooks: Workbook[] = [
     noop,
   ),
 ]
-const VALUE_DEPENDENT = ['pass', 'fail']
+const VALUE_DEPENDENT_TAGS = ['pass', 'fail']
+const VALUE_DEPENDENT_MARKS = ['wb-negative']
+
+function cellsOf(wb: Workbook): Cell[] {
+  return Object.values(wb.sheets).flatMap((sheet) => [
+    ...(sheet?.rows ?? []).flatMap((row) => Object.values(row.cells)),
+    ...(sheet?.form?.items ?? []).flatMap((item) =>
+      item.address ? [wb.cell(item.address)!] : [],
+    ),
+  ])
+}
 
 function tagsOf(wb: Workbook): Set<string> {
   const tags = new Set<string>()
   for (const sheet of Object.values(wb.sheets)) {
-    for (const row of sheet?.rows ?? []) {
-      row.tags.forEach((t) => tags.add(t))
-      for (const cell of Object.values(row.cells))
-        cell.tags.forEach((t) => tags.add(t))
-    }
-    for (const item of sheet?.form?.items ?? []) {
+    for (const row of sheet?.rows ?? []) row.tags.forEach((t) => tags.add(t))
+    for (const item of sheet?.form?.items ?? [])
       item.tags.forEach((t) => tags.add(t))
-      if (item.address) wb.cell(item.address)?.tags.forEach((t) => tags.add(t))
-    }
   }
+  for (const cell of cellsOf(wb)) cell.tags.forEach((t) => tags.add(t))
   return tags
 }
 
+// Marks the library puts on every cell (styled or not, as the theme likes).
+const BUILT_IN = /^wb-(cell|type-|source-|editable|error|action|align-|tag-)/
+
+// Marks this app's presentation rules add.
+function ruleMarksOf(wb: Workbook): Set<string> {
+  return new Set(
+    cellsOf(wb)
+      .flatMap((cell) => presentation(cell).marks)
+      .filter((mark) => !BUILT_IN.test(mark)),
+  )
+}
+
 describe('workbook theme', () => {
-  const used = new Set([
+  const tags = new Set([
     ...workbooks.flatMap((wb) => [...tagsOf(wb)]),
-    ...VALUE_DEPENDENT,
+    ...VALUE_DEPENDENT_TAGS,
+  ])
+  const marks = new Set([
+    ...workbooks.flatMap((wb) => [...ruleMarksOf(wb)]),
+    ...VALUE_DEPENDENT_MARKS,
   ])
 
-  it.each([...used].sort())('styles the tag "%s"', (tag) => {
+  it.each([...tags].sort())('styles the tag "%s"', (tag) => {
     expect(theme).toContain(`.wb-tag-${tag}`)
+  })
+
+  it.each([...marks].sort())('styles the rule mark "%s"', (mark) => {
+    expect(theme).toContain(`.${mark}`)
   })
 })

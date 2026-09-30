@@ -8,8 +8,10 @@ import type { Scalar } from './formula/functions'
 
 export const INVALID = Symbol('invalid input')
 
-// Semantic editor kinds; the grid adapter maps them to AG Grid editors.
-export type EditorKind = 'text' | 'number' | 'select' | 'checkbox'
+// Semantic editor kinds, a type's default; the presentation may choose another
+// and each view maps the id to its own editor (see presentation.ts).
+// A view may offer more (an app registers its own ids); these are built in.
+export type EditorKind = 'text' | 'number' | 'select' | 'checkbox' | 'date'
 
 export type CellType<TValue = unknown> = {
   id: string
@@ -81,7 +83,7 @@ const boolean: CellType<boolean> = {
 const date: CellType<string> = {
   id: 'date',
   align: 'left',
-  editor: 'text',
+  editor: 'date', // a date picker; typing is parsed the same way
   format: (v) => (typeof v === 'string' ? v : ''),
   parse: (input) => {
     const raw = String(input ?? '').trim()

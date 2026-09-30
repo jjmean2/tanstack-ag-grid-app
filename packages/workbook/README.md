@@ -37,7 +37,8 @@ src/
 │  ├─ check.ts           checkWorkbook: 대표 state로 정의 오류 점검 (테스트용)
 │  ├─ external.ts        화면 간: export 스냅샷 만들기, 외부 값 조회
 │  ├─ navigation.ts      UI state: 탭 · 포커스 · 셀 이동 요청
-│  ├─ marks.ts           표식: 셀·행에 붙는 wb-* 클래스 (모든 뷰 공통)
+│  ├─ marks.ts           표식: 셀의 사실에서 나오는 wb-* 클래스
+│  ├─ presentation.ts    표시 규칙: 셀 → 편집기·표시·정렬·표식 (모든 뷰 공통)
 │  └─ formula/           파서 · 평가기 · 함수 (SUM, IF, SUMIF, ROUND, DAYS …)
 ├─ layout/             state → 행(grid sheet) · 칸(form sheet)
 │  ├─ cells.ts           literalCell · labelCell · inputCell · boundCell · formulaCell
@@ -129,30 +130,58 @@ export const def = defineWorkbook<MyState>(
 
 계산값에 따라 달라지는 문구는 JSX에서 `useWorkbook().wb.value(address)`로 읽으면 됩니다.
 
-## 모양: 태그, 표식, 테마
+## 표시: 태그, 표시 규칙, 테마
 
-양식 정의는 **모양을 말하지 않고 의미만** 말합니다. 모양은 세 단계로 정해집니다.
+양식 정의는 **보이는 방식을 말하지 않고 의미만** 말합니다. 셀이 어떤 편집기로, 어떤 정렬로, 어떤 모양으로 보이는지는 세 단계로 정해집니다.
 
 ```
-① 의미 (정의)        tags: 'subtotal', 'input', 'pass' …        양식 작성자
-                     type: T.money,  write 유무,  수식 여부     (자동으로 알려짐)
+① 의미 (정의)          tags: 'subtotal', 'input', 'pass' …       양식 작성자
+                       type: T.money, write 유무, 수식 여부      (셀의 사실)
         │
-② 표식 (라이브러리)   wb-cell wb-type-money wb-source-value wb-editable wb-tag-subtotal …
-        │            grid 칸 · CellInput · 서식 칸이 같은 셀에 같은 표식을 붙임 (core/marks.ts)
+② 표시 규칙 (JS)       cell → { editor, display, align, marks }   기본 규칙: 라이브러리 (core/presentation.ts)
+        │              editor: 'date' | 'select' | … | null       덮어쓰기: 앱 규칙 한 파일 (definePresentation)
+        │              marks: wb-cell wb-type-money wb-editable wb-tag-subtotal …
+        ├──▶ 렌더러 등록표   'date' → AG Grid agDateStringCellEditor / <input type="date">
         ▼
-③ 모양 (앱 테마 CSS)  .wb-cell.wb-editable { color: blue }   ← 매핑은 이 파일 한 곳에
+③ 모양 (앱 테마 CSS)   .wb-cell.wb-editable { color: blue }        매핑은 이 파일 한 곳에
 ```
 
-| 표식                                                     | 뜻                                                     |
-| -------------------------------------------------------- | ------------------------------------------------------ |
-| `wb-cell`, `wb-type-<id>`                                | 셀, 그리고 셀 타입 (`wb-type-money`, `wb-type-date` …) |
-| `wb-source-value` / `wb-source-formula`                  | 값의 출처                                              |
-| `wb-editable`, `wb-error`, `wb-action`, `wb-align-right` | 편집 가능, 수식 오류, 버튼 칸, 오른쪽 정렬 타입        |
-| `wb-tag-<tag>`                                           | 정의의 태그. 셀 자신과 **그 행의 태그**가 모두 붙음    |
-| `wb-row`                                                 | grid 행 (행 태그도 붙음)                               |
-| `wb-input`, `wb-input-field` / `-form`, `wb-invalid`     | `CellInput`과 그 상태 (형식이 틀린 입력)               |
-| `wb-form`, `wb-box`, `wb-box-text` / `-cell` / `-tall`   | 서식형 sheet와 칸                                      |
-| `wb-button`, `wb-full-width`                             | 라이브러리가 그리는 버튼, 전체 폭 행                   |
+grid 칸, `CellInput`, 서식 칸은 모두 **같은 표시 결과**를 씁니다. 그래서 한 셀은 어느 뷰에서나 같은 편집기, 같은 정렬, 같은 표식을 갖습니다.
+
+### 표시 규칙
+
+```ts
+// 앱: 한 파일에서 (예: shared/config/workbook-presentation.ts)
+export const presentation = definePresentation([
+  { when: (f) => typeof f.value === 'number' && f.value < 0, then: { marks: ['wb-negative'] } },
+  { when: (f) => f.type === 'year', then: { align: 'center' } },
+  { when: (f) => f.tags.includes('code'), then: { editor: 'code-search' } }, // 앱의 편집기 ID
+])
+
+<WorkbookProvider presentation={presentation} …>
+<SheetGridProvider editors={{ 'code-search': { component: CodeSearchEditor } }}>
+```
+
+- 규칙은 셀의 사실(`type`, `writable`, `formula`, `error`, `tags`, `value`)을 보고 `editor`, `display`, `align`, `marks`를 정합니다. **순서대로 적용되고, 뒤의 규칙이 이기며, `marks`는 누적**됩니다.
+- 기본값(라이브러리): 쓸 수 있는 셀이면 타입의 편집기(`T.date` → 날짜 선택기, `T.select` → 드롭다운), `action`이 있으면 버튼, 타입의 정렬.
+- 규칙은 셀을 **읽기 전용으로 만들 수는 있지만 편집 가능하게 만들 수는 없습니다.** 쓸 수 있는지는 정의(`write`)가 정합니다.
+- **표시 형식(`format`)은 규칙이 아니라 셀 타입이 정합니다.** 형식은 입력 해석, 수식 변환과 짝을 이뤄야 하므로, 형식이 다르면 다른 타입을 씁니다.
+- 편집기·표시 ID는 렌더러와 무관한 이름입니다. 각 렌더러의 등록표가 부품으로 바꿉니다(grid: `SheetGridProvider`의 `editors`, `displays`. 기본값은 `defaultGridEditors`, `defaultGridDisplays`). 모르는 ID는 텍스트 편집기, 일반 텍스트로 처리됩니다. `CellInput`은 지금 기본 ID(text, number, select, checkbox, date)만 압니다.
+
+### 표식
+
+| 표식                                                   | 뜻                                                     |
+| ------------------------------------------------------ | ------------------------------------------------------ |
+| `wb-cell`, `wb-type-<id>`                              | 셀, 그리고 셀 타입 (`wb-type-money`, `wb-type-date` …) |
+| `wb-source-value` / `wb-source-formula`                | 값의 출처                                              |
+| `wb-editable`, `wb-error`, `wb-action`                 | 편집 가능(표시 규칙 결과), 수식 오류, 버튼 칸          |
+| `wb-align-right` / `wb-align-center`                   | 표시 규칙이 정한 정렬                                  |
+| 앱 규칙이 추가한 표식                                  | 예: `wb-negative`                                      |
+| `wb-tag-<tag>`                                         | 정의의 태그. 셀 자신과 **그 행의 태그**가 모두 붙음    |
+| `wb-row`                                               | grid 행 (행 태그도 붙음)                               |
+| `wb-input`, `wb-input-field` / `-form`, `wb-invalid`   | `CellInput`과 그 상태 (형식이 틀린 입력)               |
+| `wb-form`, `wb-box`, `wb-box-text` / `-cell` / `-tall` | 서식형 sheet와 칸                                      |
+| `wb-button`, `wb-full-width`                           | 라이브러리가 그리는 버튼, 전체 폭 행                   |
 
 태그는 셀·행·서식 칸에 붙입니다. 값에 따라 달라지면 함수로 줍니다.
 
@@ -164,6 +193,8 @@ row('gap', { tags: 'total' }, () => ({
 }))
 textBox([3, 1, 9, 1], '과세표준 및 매출세액', 'head')
 ```
+
+### 테마
 
 테마 예:
 
@@ -183,7 +214,7 @@ textBox([3, 1, 9, 1], '과세표준 및 매출세액', 'head')
 } /* 조합 */
 ```
 
-테마를 앱 한 파일에 모으고, **정의가 쓰는 모든 태그가 테마에 있는지 테스트로 확인**하는 방식을 권합니다(데모 앱의 `workbook-theme.test.ts`). 태그는 자유 문자열이라, 이 검사가 없으면 오타나 스타일 누락이 조용히 지나갑니다.
+규칙과 테마를 각각 앱 한 파일에 모으고, **정의가 쓰는 모든 태그와 규칙이 추가하는 모든 표식이 테마에 있는지 테스트로 확인**하는 방식을 권합니다(데모 앱의 `workbook-theme.test.ts`). 태그는 자유 문자열이라, 이 검사가 없으면 오타나 스타일 누락이 조용히 지나갑니다.
 
 ## 앱이 맡는 일
 

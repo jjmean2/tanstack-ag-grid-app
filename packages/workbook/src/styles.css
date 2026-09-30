@@ -3,9 +3,13 @@
    styles the marks (see src/core/marks.ts). Import this once, before the
    theme. */
 
-/* A type that aligns right, in any view. */
+/* Alignment the presentation chose, in any view. */
 .wb-align-right {
   text-align: right;
+}
+
+.wb-align-center {
+  text-align: center;
 }
 
 /* Grid: a cell holding a button, and a full width row's content. */

@@ -58,15 +58,18 @@ function focusCells(api: GridApi<ResolvedRow>, targets: CellRef[]) {
 
 // AG Grid props for one sheet of the workbook.
 export function useSheetGrid(sheetId: string): AgGridReactProps<ResolvedRow> {
-  const { wb, ui } = useWorkbook()
-  const { theme } = useSheetGridConfig()
+  const { wb, ui, present } = useWorkbook()
+  const { theme, editors, displays } = useSheetGridConfig()
   const sheet = wb.sheets[sheetId]
   const sheetColumns = sheet?.columns
   const rows = sheet?.rows
 
   const columnDefs = useMemo(
-    () => (sheetColumns ? createGridColumns(sheetColumns) : []),
-    [sheetColumns],
+    () =>
+      sheetColumns
+        ? createGridColumns(sheetColumns, { present, editors, displays })
+        : [],
+    [sheetColumns, present, editors, displays],
   )
   // An initial-only grid option; the columns of a sheet never change.
   const enableCellSpan = useMemo(

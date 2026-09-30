@@ -23,8 +23,16 @@ export {
   isExternalAddress,
 } from './core/address'
 
-// --- marks: the classes every view puts on cells, for the app's theme -----
-export { cellMarks, rowMarks, tagClass, toTags } from './core/marks'
+// --- presentation: editor, display, alignment and marks, by rules --------
+export { factMarks, rowMarks, tagClass, toTags } from './core/marks'
+export type {
+  Align,
+  CellFacts,
+  Presentation,
+  PresentationRule,
+  Presenter,
+} from './core/presentation'
+export { definePresentation, defaultPresenter } from './core/presentation'
 
 // --- defining and building a workbook -------------------------------------
 export { defineWorkbook, buildWorkbook, flattenLeafs } from './core/workbook'

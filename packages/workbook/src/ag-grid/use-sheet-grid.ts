@@ -62,12 +62,14 @@ function focusCells(
   api: GridApi<Row>,
   targets: CellRef[],
   pinned: readonly string[],
+  flash: boolean,
 ) {
   const first = targets[0]
   const { node, pinned: floating } = nodeOf(api, first.rowId, pinned)
   if (!node || node.rowIndex == null) return
   if (!floating) api.ensureIndexVisible(node.rowIndex)
   api.setFocusedCell(node.rowIndex, first.colId, floating)
+  if (!flash) return
   const rowNodes = targets
     .map((t) => nodeOf(api, t.rowId, pinned).node)
     .filter((n): n is IRowNode<Row> => n !== undefined)
@@ -158,9 +160,11 @@ export function useSheetGrid(
     if (!ready || !api || !pending) return
     const mine = pending.targets.filter((t) => t.sheetId === sheetId)
     if (mine.length === 0) return
-    if (!nodeOf(api, mine[0].rowId, pinnedIds).node) return
+    const shown = (rowId: string) => nodeOf(api, rowId, pinnedIds).node
+    if (!shown(mine[0].rowId)) return
+    if (pending.waitFor !== undefined && !shown(pending.waitFor)) return
     if (!claimPending(ui, pending.nonce)) return
-    focusCells(api, mine, pinnedIds)
+    focusCells(api, mine, pinnedIds, pending.flash)
   }, [ready, pending, sheetId, ui, pinnedIds, body, bottom])
 
   // Redraw the cells of this sheet whose highlight changed. AG Grid only

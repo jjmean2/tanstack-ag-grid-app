@@ -267,7 +267,11 @@ addRow('add', 'purchases', '+ 매입 추가') // grid 안의 추가 버튼 행 (
 | 포커스된 행 기준    | `useFocusedList()` → `{ list, rowId }` (포커스가 목록 행에 있을 때만)                                                      |
 
 - 모두 같은 목록 작업(`wb.list(address)`, `wb.listOf(cell)`)을 부르고, state를 바꾸고, 재계산하면 합계·범위·SUMIF에 반영됩니다.
-- 추가하면 새 행의 첫 편집 칸으로 포커스가 갑니다(`insertListRow`). 셀 이동 요청을 쓰므로, grid가 새 행을 그린 뒤 이동합니다.
+- 추가 후 포커스(`insertListRow`의 `focus`):
+  - `append()`와 grid의 추가 버튼은 `'new'`: 새 행으로 갑니다. 지금 있던 열이 새 행에서 편집 가능하면 그 열, 아니면 첫 편집 열입니다.
+  - `insertAbove` / `insertBelow`(툴바, 우클릭 메뉴)는 `'keep'`: 스프레드시트의 행 삽입처럼 **포커스된 셀이 그대로** 유지됩니다. 위에 추가해 행이 밀려도 같은 셀을 가리키고, 툴바 버튼을 눌렀어도 grid로 포커스가 돌아옵니다.
+  - 호출할 때 바꿀 수 있습니다: `list.insertBelow(rowId, { focus: 'new' })`.
+  - 셀 이동 요청(`ui.pending`)을 쓰며, 요청에 새 행을 기다리라는 조건(`waitFor`)이 붙어 grid가 새 행을 그린 뒤에 처리합니다. 행 추가로 인한 이동에서는 셀 강조를 하지 않습니다.
 - `create`가 없는 목록은 추가할 수 없고, `removable`·`removeCol`이 없는 목록은 삭제할 수 없습니다. 그런 목록 행에는 우클릭 메뉴 항목도 나오지 않습니다.
 
 ## 수식 참조

@@ -1,23 +1,25 @@
 import { insertListRow } from '../core/navigation'
-import type { UiState } from '../core/navigation'
+import type { InsertFocus, UiState } from '../core/navigation'
 import type { Address, WorkbookList } from '../core/types'
 import type { Store } from '../store/create-store'
 import { useStore } from './use-store'
 import { useWorkbook } from './workbook-context'
 
 // A list shown as rows (`items`), and what a person can do to it, for a
-// button anywhere on the screen: a toolbar, a menu, a key. Adding moves focus
-// to the new row. What a new item is, the definition says (`items(key,
-// { create })`); where the buttons are, the view.
+// button anywhere on the screen: a toolbar, a menu, a key. What a new item
+// is, the definition says (`items(key, { create })`); where the buttons are,
+// the view. Focus after adding (see `InsertFocus`): `append` goes to the new
+// row, to type into it; inserting next to a row keeps the focused cell, as a
+// spreadsheet does. Each takes `{ focus }` to choose otherwise.
 export type ListControls = {
   address: Address // `sheet/@list`
   label: string
   rowIds: readonly string[]
   canInsert: boolean
   canRemove: boolean
-  append: () => void
-  insertAbove: (rowId: string) => void
-  insertBelow: (rowId: string) => void
+  append: (opts?: { focus?: InsertFocus }) => void
+  insertAbove: (rowId: string, opts?: { focus?: InsertFocus }) => void
+  insertBelow: (rowId: string, opts?: { focus?: InsertFocus }) => void
   remove: (rowId: string) => void
 }
 
@@ -31,9 +33,12 @@ export function listControls(
     rowIds: list.rowIds,
     canInsert: list.canInsert,
     canRemove: list.canRemove,
-    append: () => void insertListRow(ui, list),
-    insertAbove: (rowId) => void insertListRow(ui, list, { before: rowId }),
-    insertBelow: (rowId) => void insertListRow(ui, list, { after: rowId }),
+    append: ({ focus = 'new' } = {}) =>
+      void insertListRow(ui, list, undefined, { focus }),
+    insertAbove: (rowId, { focus = 'keep' } = {}) =>
+      void insertListRow(ui, list, { before: rowId }, { focus }),
+    insertBelow: (rowId, { focus = 'keep' } = {}) =>
+      void insertListRow(ui, list, { after: rowId }, { focus }),
     remove: list.remove,
   }
 }

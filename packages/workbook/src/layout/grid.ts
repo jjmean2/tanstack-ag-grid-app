@@ -113,10 +113,12 @@ export function items<TState extends object, TKey extends ListKey<TState>>(
           })
           return item.id
         }),
-      // A new row takes focus in its first editable column.
-      focusCol: columns.find(
-        (col) => col.editable && !col.formula && col.colId !== opts.removeCol,
-      )?.colId,
+      // A new row takes focus in one of these.
+      editableCols: columns
+        .filter(
+          (col) => col.editable && !col.formula && col.colId !== opts.removeCol,
+        )
+        .map((col) => col.colId),
     }
     ctx.declareGroup(key, opts.label ?? key, list)
     return listOf(ctx.state, key).map((item): RowSpec => ({

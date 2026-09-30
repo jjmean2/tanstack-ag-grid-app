@@ -439,7 +439,7 @@ export function buildWorkbook<TState>(
     if (!ops) return undefined
     const [sheetId = '', group = ''] = address.split('/@')
     const leafs = leafsBySheet.get(sheetId) ?? []
-    const focusCol = ops.focusCol ?? leafs.at(0)?.colId ?? ''
+    const firstCol = ops.editableCols.at(0) ?? leafs.at(0)?.colId ?? ''
     const { insert } = ops
     return {
       address,
@@ -450,7 +450,15 @@ export function buildWorkbook<TState>(
         .map((row) => row.id),
       canInsert: insert !== undefined,
       canRemove: ops.remove !== undefined,
-      insert: (at) => insert && { sheetId, rowId: insert(at), colId: focusCol },
+      insert: (at, column) =>
+        insert && {
+          sheetId,
+          rowId: insert(at),
+          colId:
+            column !== undefined && ops.editableCols.includes(column)
+              ? column
+              : firstCol,
+        },
       remove: (rowId) => ops.remove?.(rowId),
     }
   }

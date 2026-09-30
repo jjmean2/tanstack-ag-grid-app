@@ -28,7 +28,7 @@ export function PurchaseToolbar() {
         type="button"
         className={button}
         disabled={!list.canInsert}
-        onClick={list.append}
+        onClick={() => list.append()}
       >
         맨 끝에 추가
       </button>

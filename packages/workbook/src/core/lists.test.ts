@@ -95,6 +95,39 @@ describe('lists', () => {
     expect(ui.get().pending?.targets).toEqual([target])
   })
 
+  it("go to the new row in the focused cell's column, if it is typed into", () => {
+    const { build, ui } = session()
+    ui.set((u) => ({
+      ...u,
+      focused: { sheetId: 's', rowId: 'a', colId: 'amount' },
+    }))
+    const target = insertListRow(ui, build().list('s/@list')!, { after: 'a' })
+    expect(target).toEqual({ sheetId: 's', rowId: 'n1', colId: 'amount' })
+    // A formula column is not typed into: the first one that is.
+    ui.set((u) => ({
+      ...u,
+      focused: { sheetId: 's', rowId: 'a', colId: 'tax' },
+    }))
+    expect(insertListRow(ui, build().list('s/@list')!)?.colId).toBe('name')
+  })
+
+  it('keep the focused cell, once the new row is shown, without flashing', () => {
+    const { build, ui } = session()
+    const here = { sheetId: 's', rowId: 'b', colId: 'amount' }
+    ui.set((u) => ({ ...u, focused: here }))
+    insertListRow(
+      ui,
+      build().list('s/@list')!,
+      { before: 'b' },
+      { focus: 'keep' },
+    )
+    expect(ui.get().pending).toMatchObject({
+      targets: [here],
+      flash: false,
+      waitFor: 'n1',
+    })
+  })
+
   it('back an add button made by addRow', () => {
     const { store, build } = session()
     const add = build().sheets.s!.rows.find((r) => r.id === 'add')!

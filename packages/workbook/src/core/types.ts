@@ -78,7 +78,8 @@ export type ListOps = {
   // returns its id. Absent when the list has no way to make an item.
   insert?: (at?: { before?: string; after?: string }) => string
   remove?: (id: string) => void // absent when items cannot be removed
-  focusCol?: string // where a new row takes focus: its first editable column
+  // Columns a person types into, in order: a new row takes focus in one.
+  editableCols: readonly string[]
 }
 
 // Turns the session state into zero or more rows.
@@ -226,7 +227,12 @@ export type WorkbookList = {
   rowIds: readonly string[] // its rows, in order
   canInsert: boolean
   canRemove: boolean
-  insert: (at?: { before?: string; after?: string }) => CellRef | undefined
+  // Returns the new row's cell to focus: in `column` if a person types into
+  // it there, else in the first column they do.
+  insert: (
+    at?: { before?: string; after?: string },
+    column?: string,
+  ) => CellRef | undefined
   remove: (rowId: string) => void // does nothing unless `canRemove`
 }
 

@@ -41,19 +41,12 @@
     "@types/node": "^22.10.2",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
-    "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^9.20.0",
     "jsdom": "^30.1.1",
     "prettier": "^3.8.1",
-    "react-devtools-core": "^8.0.0",
-    "react-devtools-inline": "^8.0.0",
-    "react-dom-experimental": "npm:react-dom@0.0.0-experimental-d083ec1d-20260922",
-    "react-experimental": "npm:react@0.0.0-experimental-d083ec1d-20260922",
-    "react-is": "^19.3.0",
     "typescript": "^6.0.2",
     "vite": "^8.0.0",
-    "vitest": "^5.0.2",
-    "ws": "^8.22.0"
+    "vitest": "^5.0.2"
   }
 }

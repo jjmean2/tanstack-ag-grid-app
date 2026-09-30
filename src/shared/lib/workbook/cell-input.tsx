@@ -53,16 +53,35 @@ export function useCell(address: Address) {
   }
 }
 
-const base =
-  'w-full border bg-white px-3 py-2 font-sans text-base font-normal text-[#17312d] outline-none focus:border-[#1f6f66] focus:ring-2 focus:ring-[#1f6f66]/20'
+// `field`: a standalone form field. `form`: fills a box of a form sheet, whose
+// borders the form draws.
+const looks = {
+  field: {
+    base: 'w-full border bg-white px-3 py-2 font-sans text-base font-normal text-[#17312d] outline-none focus:border-[#1f6f66] focus:ring-2 focus:ring-[#1f6f66]/20',
+    ok: 'border-[#c5d0c7]',
+    error: 'border-[#c0392b] text-[#c0392b]',
+    invalid: 'border-[#c0392b] bg-[#fbeeec]',
+    readOnly: 'cursor-default bg-[#f4f1e9] italic text-[#536863]',
+  },
+  form: {
+    base: 'block min-h-8 w-full self-stretch bg-transparent px-2 py-1 font-sans text-sm text-[#17312d] outline-none focus:bg-[#eef6f3] focus:ring-2 focus:ring-inset focus:ring-[#1f6f66]',
+    ok: '',
+    error: 'font-bold text-[#c0392b]',
+    invalid: 'bg-[#fbeeec]',
+    readOnly: 'cursor-default bg-[#f3f6f2]',
+  },
+}
 
 export function CellInput({
   address,
+  variant = 'field',
   className = '',
 }: {
   address: Address
+  variant?: keyof typeof looks
   className?: string
 }) {
+  const look = looks[variant]
   const { cell, ref, text, editable, commit, onFocus } = useCell(address)
   const { type } = cell
   // While focused the control shows the editable text; what is typed is a
@@ -77,15 +96,9 @@ export function CellInput({
     if (editing && ref.current instanceof HTMLInputElement) ref.current.select()
   }, [editing, ref])
 
-  const state = cell.error
-    ? 'border-[#c0392b] text-[#c0392b]'
-    : invalid
-      ? 'border-[#c0392b] bg-[#fbeeec]'
-      : 'border-[#c5d0c7]'
-  const readOnly = editable
-    ? ''
-    : 'cursor-default bg-[#f4f1e9] italic text-[#536863]'
-  const classes = `${base} ${state} ${readOnly} ${type.align === 'right' ? 'text-right' : ''} ${className}`
+  const state = cell.error ? look.error : invalid ? look.invalid : look.ok
+  const readOnly = editable ? '' : look.readOnly
+  const classes = `${look.base} ${state} ${readOnly} ${type.align === 'right' ? 'text-right' : ''} ${className}`
   const common = {
     'aria-invalid': invalid || cell.error !== undefined,
     title: cell.errorDetail,

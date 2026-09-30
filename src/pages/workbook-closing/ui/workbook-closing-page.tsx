@@ -16,6 +16,7 @@ import {
   useWorkbook,
   WorkbookProvider,
 } from '#/shared/lib/workbook/workbook-context'
+import { WorkbookErrorBoundary } from '#/shared/lib/workbook/workbook-error-boundary'
 import { PageHeader } from '#/shared/ui/page-header'
 import {
   closingWorkbook,
@@ -142,20 +143,22 @@ export function WorkbookClosingPage({ focusCell }: { focusCell?: string }) {
         description="이 화면은 당기순이익을 export합니다. 저장하면 법인세 세무조정 화면이 그 값을 [ext:closing/netIncome]으로 읽습니다. 다른 브라우저 탭에 세무조정 화면을 열어 두면 저장하는 즉시 반영됩니다."
       />
 
-      <WorkbookProvider
-        store={session.store}
-        def={closingWorkbook}
-        ui={session.ui}
-        openScreen={openScreen}
-      >
-        <Screen
+      <WorkbookErrorBoundary>
+        <WorkbookProvider
           store={session.store}
-          savedJson={saved.json}
-          savedAt={saved.at}
-          onSaved={(json, at) => setSaved({ json, at })}
-          focusCell={focusCell}
-        />
-      </WorkbookProvider>
+          def={closingWorkbook}
+          ui={session.ui}
+          openScreen={openScreen}
+        >
+          <Screen
+            store={session.store}
+            savedJson={saved.json}
+            savedAt={saved.at}
+            onSaved={(json, at) => setSaved({ json, at })}
+            focusCell={focusCell}
+          />
+        </WorkbookProvider>
+      </WorkbookErrorBoundary>
     </main>
   )
 }

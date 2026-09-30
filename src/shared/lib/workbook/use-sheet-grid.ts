@@ -5,6 +5,7 @@ import type {
   GetRowIdParams,
   GridApi,
   IRowNode,
+  IsFullWidthRowParams,
   RowClassParams,
 } from 'ag-grid-community'
 import type { AgGridReactProps } from 'ag-grid-react'
@@ -13,6 +14,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { playgroundGridTheme } from '#/shared/config/ag-grid'
 import { useStore } from '../store/use-store'
 import { createGridColumns } from './columns'
+import { FullWidthRow } from './full-width-row'
 import { flattenLeafs } from './workbook'
 import { claimPending, reportFocus } from './navigation'
 import type { CellRef, ResolvedRow } from './types'
@@ -31,6 +33,8 @@ const defaultColDef: ColDef<ResolvedRow> = {
 
 const getRowId = (p: GetRowIdParams<ResolvedRow>) => p.data.id
 const getRowClass = (p: RowClassParams<ResolvedRow>) => p.data?.className
+const isFullWidthRow = (p: IsFullWidthRowParams<ResolvedRow>) =>
+  p.rowNode.data?.fullWidth !== undefined
 
 // Moves focus to the first target and flashes all of them.
 function focusCells(api: GridApi<ResolvedRow>, targets: CellRef[]) {
@@ -90,6 +94,10 @@ export function useSheetGrid(sheetId: string): AgGridReactProps<ResolvedRow> {
       defaultColDef,
       getRowId,
       getRowClass,
+      // Titles and add buttons: structure, not cells (see `FullWidthContent`).
+      isFullWidthRow,
+      fullWidthCellRenderer: FullWidthRow,
+      embedFullWidthRows: true, // scroll horizontally with the other rows
       enableCellSpan,
       stopEditingWhenCellsLoseFocus: true,
       onFirstDataRendered: (event: FirstDataRenderedEvent<ResolvedRow>) => {

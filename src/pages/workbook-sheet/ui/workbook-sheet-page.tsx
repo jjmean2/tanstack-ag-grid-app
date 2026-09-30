@@ -18,6 +18,7 @@ import {
   useWorkbook,
   WorkbookProvider,
 } from '#/shared/lib/workbook/workbook-context'
+import { WorkbookErrorBoundary } from '#/shared/lib/workbook/workbook-error-boundary'
 import { PageHeader } from '#/shared/ui/page-header'
 import {
   issueCounts,
@@ -129,20 +130,22 @@ export function WorkbookSheetPage({ focusCell }: { focusCell?: string }) {
         description="Typed cells and fixed formulas across sheets and tabs. Select a cell to see its formula; click a reference in the formula bar to jump to that cell. The tax calculation also reads net income from the closing screen ([ext:closing/netIncome]); that reference opens the closing screen."
       />
 
-      <WorkbookProvider
-        store={store}
-        def={taxWorkbook}
-        ui={ui}
-        externals={externals}
-        openScreen={openScreen}
-      >
-        <Screen
+      <WorkbookErrorBoundary>
+        <WorkbookProvider
           store={store}
+          def={taxWorkbook}
           ui={ui}
-          initialJson={initialJson}
-          focusCell={focusCell}
-        />
-      </WorkbookProvider>
+          externals={externals}
+          openScreen={openScreen}
+        >
+          <Screen
+            store={store}
+            ui={ui}
+            initialJson={initialJson}
+            focusCell={focusCell}
+          />
+        </WorkbookProvider>
+      </WorkbookErrorBoundary>
 
       <SessionDebug store={store} />
     </main>

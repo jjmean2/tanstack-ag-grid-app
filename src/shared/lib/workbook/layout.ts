@@ -1,6 +1,15 @@
 import { T } from './cell-types'
 import type { CellType } from './cell-types'
-import type { BuildCtx, CellSpec, LayoutNode, RowSpec } from './types'
+import type {
+  BuildCtx,
+  CellSpec,
+  FormItem,
+  LayoutNode,
+  Look,
+  Place,
+  RowSpec,
+  Update,
+} from './types'
 
 type Slice = Record<string, unknown>
 type Item = { id: string } & Slice
@@ -46,6 +55,28 @@ export const inputCell = (
   extra: CellExtras = {},
 ): CellSpec => ({ source: { kind: 'value', value, write }, ...extra })
 
+// An editable cell bound to `state[key][prop]`, where `state[key]` is a plain
+// object: what `fields` does per row, for one cell (e.g. a box of a form).
+export function boundCell<
+  TState extends object,
+  TKey extends ObjectKey<TState>,
+>(
+  ctx: { state: TState; update: Update<TState> },
+  key: TKey,
+  prop: keyof TState[TKey] & string,
+  extra: CellExtras = {},
+): CellSpec {
+  const object = read(ctx.state, key) as Slice
+  return inputCell(
+    object[prop],
+    (value) =>
+      ctx.update((s) =>
+        patch(s, key, { ...(read(s, key) as Slice), [prop]: value }),
+      ),
+    extra,
+  )
+}
+
 // A fixed formula, e.g. `=SUM([@adds/tax])`. The cell's type is the result type.
 export const formulaCell = (
   formula: string,
@@ -72,27 +103,26 @@ const contentColumns = (ctx: Pick<BuildCtx<unknown>, 'columns'>) =>
 
 // --- layout nodes ----------------------------------------------------------
 
-// Section title row: the title sits in the first column and spans all columns.
+// Section title row, drawn across the whole grid (a full width row).
 export function title<TState extends object>(
   id: string,
   text: string,
 ): LayoutNode<TState> {
-  return (ctx) => {
-    const cols = contentColumns(ctx)
-    return [
-      {
-        id,
-        kind: 'title',
-        className: 'sheet-title',
-        cells: { [cols[0].colId]: labelCell(text, { span: cols.length }) },
-      },
-    ]
-  }
+  return () => [
+    {
+      id,
+      kind: 'title',
+      className: 'sheet-title',
+      cells: {},
+      fullWidth: { kind: 'title', text },
+    },
+  ]
 }
 
 // Merges the `colId` column down across every row `nodes` produce, showing
 // `text` once: a section label on the left of a block (구분). The column must
-// set `spanRows`; `key` must differ from the neighbouring blocks'.
+// set `spanRows`; `key` must differ from the neighbouring blocks'. A full
+// width row among them would cut the merge in two, so keep those outside.
 export function spanned<TState extends object>(
   key: string,
   colId: string,
@@ -102,10 +132,17 @@ export function spanned<TState extends object>(
   return (ctx) =>
     nodes
       .flatMap((node) => node(ctx))
-      .map((spec) => ({
-        ...spec,
-        cells: { ...spec.cells, [colId]: labelCell(text, { rowSpan: key }) },
-      }))
+      .map((spec) =>
+        spec.fullWidth
+          ? spec
+          : {
+              ...spec,
+              cells: {
+                ...spec.cells,
+                [colId]: labelCell(text, { rowSpan: key }),
+              },
+            },
+      )
 }
 
 // Unrolls a list in the state into data rows (one row per item), forming the
@@ -240,7 +277,7 @@ export function subtotal<TState extends object>(
   }
 }
 
-// A full-width row holding a button that appends a new item to a list.
+// A full width row holding a button that appends a new item to a list.
 export function addRow<TState extends object, TKey extends ListKey<TState>>(
   id: string,
   key: TKey,
@@ -252,16 +289,12 @@ export function addRow<TState extends object, TKey extends ListKey<TState>>(
       id,
       kind: 'action',
       className: 'sheet-add-row',
-      cells: {
-        [contentColumns(ctx)[0].colId]: labelCell('', {
-          span: contentColumns(ctx).length,
-          className: 'sheet-action',
-          action: {
-            label: text,
-            run: () =>
-              ctx.update((s) => patch(s, key, [...listOf(s, key), create()])),
-          },
-        }),
+      cells: {},
+      fullWidth: {
+        kind: 'action',
+        label: text,
+        run: () =>
+          ctx.update((s) => patch(s, key, [...listOf(s, key), create()])),
       },
     },
   ]
@@ -284,3 +317,21 @@ export function row<TState extends object>(
     },
   ]
 }
+
+// --- form sheet boxes ------------------------------------------------------
+
+// A fixed text box of a form sheet (a label, a heading, an empty shaded box).
+export const textBox = (at: Place, text: string, look?: Look): FormItem => ({
+  at,
+  text,
+  look,
+})
+
+// A cell box of a form sheet, at `<sheet>/<ref>`. `name` names its row for
+// the formula bar, e.g. `(1) 세금계산서 발급분`.
+export const cellBox = (
+  at: Place,
+  ref: string,
+  cell: CellSpec,
+  opts: { name?: string; look?: Look } = {},
+): FormItem => ({ at, ref, cell, ...opts })

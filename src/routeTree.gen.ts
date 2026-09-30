@@ -16,6 +16,7 @@ import { Route as BasicGridRouteImport } from './routes/basic-grid'
 import { Route as GridRouteImport } from './routes/grid'
 import { Route as SessionSheetRouteImport } from './routes/session-sheet'
 import { Route as WorkbookClosingRouteImport } from './routes/workbook-closing'
+import { Route as WorkbookFormRouteImport } from './routes/workbook-form'
 import { Route as WorkbookSheetRouteImport } from './routes/workbook-sheet'
 import { Route as RootLayoutAboutRouteImport } from './routes/_rootLayout/about'
 import { Route as FilesSplatRouteImport } from './routes/files/$'
@@ -55,6 +56,11 @@ const WorkbookClosingRoute = WorkbookClosingRouteImport.update({
   path: '/workbook-closing',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkbookFormRoute = WorkbookFormRouteImport.update({
+  id: '/workbook-form',
+  path: '/workbook-form',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WorkbookSheetRoute = WorkbookSheetRouteImport.update({
   id: '/workbook-sheet',
   path: '/workbook-sheet',
@@ -83,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/grid': typeof GridRoute
   '/session-sheet': typeof SessionSheetRoute
   '/workbook-closing': typeof WorkbookClosingRoute
+  '/workbook-form': typeof WorkbookFormRoute
   '/workbook-sheet': typeof WorkbookSheetRoute
   '/about': typeof RootLayoutAboutRoute
   '/files/$': typeof FilesSplatRoute
@@ -95,6 +102,7 @@ export interface FileRoutesByTo {
   '/grid': typeof GridRoute
   '/session-sheet': typeof SessionSheetRoute
   '/workbook-closing': typeof WorkbookClosingRoute
+  '/workbook-form': typeof WorkbookFormRoute
   '/workbook-sheet': typeof WorkbookSheetRoute
   '/about': typeof RootLayoutAboutRoute
   '/files/$': typeof FilesSplatRoute
@@ -109,6 +117,7 @@ export interface FileRoutesById {
   '/grid': typeof GridRoute
   '/session-sheet': typeof SessionSheetRoute
   '/workbook-closing': typeof WorkbookClosingRoute
+  '/workbook-form': typeof WorkbookFormRoute
   '/workbook-sheet': typeof WorkbookSheetRoute
   '/_rootLayout/about': typeof RootLayoutAboutRoute
   '/files/$': typeof FilesSplatRoute
@@ -123,6 +132,7 @@ export interface FileRouteTypes {
     | '/grid'
     | '/session-sheet'
     | '/workbook-closing'
+    | '/workbook-form'
     | '/workbook-sheet'
     | '/about'
     | '/files/$'
@@ -135,6 +145,7 @@ export interface FileRouteTypes {
     | '/grid'
     | '/session-sheet'
     | '/workbook-closing'
+    | '/workbook-form'
     | '/workbook-sheet'
     | '/about'
     | '/files/$'
@@ -148,6 +159,7 @@ export interface FileRouteTypes {
     | '/grid'
     | '/session-sheet'
     | '/workbook-closing'
+    | '/workbook-form'
     | '/workbook-sheet'
     | '/_rootLayout/about'
     | '/files/$'
@@ -162,6 +174,7 @@ export interface RootRouteChildren {
   GridRoute: typeof GridRoute
   SessionSheetRoute: typeof SessionSheetRoute
   WorkbookClosingRoute: typeof WorkbookClosingRoute
+  WorkbookFormRoute: typeof WorkbookFormRoute
   WorkbookSheetRoute: typeof WorkbookSheetRoute
   FilesSplatRoute: typeof FilesSplatRoute
   PlayGoodRoute: typeof PlayGoodRoute
@@ -218,6 +231,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkbookClosingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/workbook-form': {
+      id: '/workbook-form'
+      path: '/workbook-form'
+      fullPath: '/workbook-form'
+      preLoaderRoute: typeof WorkbookFormRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/workbook-sheet': {
       id: '/workbook-sheet'
       path: '/workbook-sheet'
@@ -269,6 +289,7 @@ const rootRouteChildren: RootRouteChildren = {
   GridRoute: GridRoute,
   SessionSheetRoute: SessionSheetRoute,
   WorkbookClosingRoute: WorkbookClosingRoute,
+  WorkbookFormRoute: WorkbookFormRoute,
   WorkbookSheetRoute: WorkbookSheetRoute,
   FilesSplatRoute: FilesSplatRoute,
   PlayGoodRoute: PlayGoodRoute,

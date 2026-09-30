@@ -7,6 +7,8 @@ import {
   splitAddress,
   splitExternal,
 } from './address'
+import { T } from './cell-types'
+import type { CellType } from './cell-types'
 import { FormulaError, STRUCTURAL_ERRORS } from './formula/errors'
 import { evaluate } from './formula/evaluate'
 import type { Arg, Scalar } from './formula/functions'
@@ -16,10 +18,12 @@ import type {
   Address,
   BuildCtx,
   Cell,
+  CellSpec,
   ClassFn,
   ExportedValue,
   ExternalRef,
   Externals,
+  FormSheetDef,
   FormulaPart,
   ResolvedRow,
   SheetColumnDef,
@@ -47,12 +51,6 @@ export function defineWorkbook<TState>(
       throw new Error(`Sheet id must not contain "/" or ":": ${sheet.id}`)
     if (ids.has(sheet.id)) throw new Error(`Duplicate sheet id: ${sheet.id}`)
     ids.add(sheet.id)
-    const leafs = flattenLeafs(sheet.columns)
-    const leading = leafs.findIndex((leaf) => !leaf.spanRows)
-    if (leafs.slice(leading).some((leaf) => leaf.spanRows))
-      throw new Error(
-        `Sheet "${sheet.id}": spanRows columns must come before all others`,
-      )
   }
   return { sheets, exports: opts.exports ?? {} }
 }
@@ -96,12 +94,100 @@ export function buildWorkbook<TState>(
   const sheets: Record<string, SheetView | undefined> = {}
   const formulaCells: Cell[] = []
   const classFns: { cell: Cell; fn: ClassFn }[] = []
+  const formNames = new Map<
+    string,
+    { rows: Map<string, string>; cols: Record<string, string> }
+  >()
+
+  // Makes a cell findable by formulas, lookups and views.
+  const register = (
+    address: Address,
+    ids: { sheetId: string; rowId: string; colId: string },
+    type: CellType,
+    spec: CellSpec,
+  ): Cell => {
+    if (cells.has(address)) throw new Error(`Duplicate cell ${address}`)
+    const cell: Cell = {
+      address,
+      ...ids,
+      type,
+      source: spec.source,
+      value: spec.source.kind === 'value' ? spec.source.value : undefined,
+      span: spec.span,
+      rowSpan: spec.rowSpan,
+      action: spec.action,
+    }
+    if (typeof spec.className === 'function') {
+      classFns.push({ cell, fn: spec.className })
+    } else {
+      cell.className = spec.className
+    }
+    cells.set(address, cell)
+    if (cell.source.kind === 'formula') formulaCells.push(cell)
+    return cell
+  }
+
+  // A form sheet: boxes on a grid. Checks that every box fits the columns and
+  // that no two boxes overlap, then registers its cells.
+  const buildForm = (sheet: FormSheetDef<TState>): SheetView => {
+    const items = sheet.layout.flatMap((node) =>
+      node({ state, sheetId: sheet.id, update }),
+    )
+    const taken = new Map<string, string>() // "row,col" -> the box covering it
+    const rowNames = new Map<string, string>()
+    const view = items.map((item) => {
+      const [row, col, rowSpan = 1, colSpan = 1] = item.at
+      const what = 'ref' in item ? `cell "${item.ref}"` : `text "${item.text}"`
+      const where = `${what} of form "${sheet.id}"`
+      if (row < 1 || col < 1 || col + colSpan - 1 > sheet.tracks.length)
+        throw new Error(
+          `${where} is outside its ${sheet.tracks.length} columns`,
+        )
+      for (let r = row; r < row + rowSpan; r++) {
+        for (let c = col; c < col + colSpan; c++) {
+          const other = taken.get(`${r},${c}`)
+          if (other) throw new Error(`${where} overlaps ${other}`)
+          taken.set(`${r},${c}`, what)
+        }
+      }
+      if (!('ref' in item))
+        return { at: item.at, text: item.text, look: item.look }
+
+      const parts = item.ref.split('/')
+      if (parts.length !== 2 || parts.some((p) => p === ''))
+        throw new Error(`${where}: ref must be "row/col"`)
+      const [rowId, colId] = parts
+      const address = cellAddress(sheet.id, rowId, colId)
+      register(
+        address,
+        { sheetId: sheet.id, rowId, colId },
+        item.cell.type ?? T.text,
+        item.cell,
+      )
+      if (item.name && !rowNames.has(rowId)) rowNames.set(rowId, item.name)
+      return { at: item.at, address, look: item.look }
+    })
+    formNames.set(sheet.id, { rows: rowNames, cols: sheet.colNames ?? {} })
+    return {
+      id: sheet.id,
+      title: sheet.title,
+      tab: sheet.tab,
+      columns: [],
+      rows: [],
+      form: { tracks: sheet.tracks, items: view },
+    }
+  }
 
   // 1) Build the rows of every sheet and resolve each cell's type.
   for (const sheet of def.sheets) {
+    if (sheet.kind === 'form') {
+      sheets[sheet.id] = buildForm(sheet)
+      continue
+    }
     const leafs = flattenLeafs(sheet.columns)
     leafsBySheet.set(sheet.id, leafs)
     const leafById = new Map(leafs.map((leaf) => [leaf.colId, leaf]))
+    const indexOf = new Map(leafs.map((leaf, i) => [leaf.colId, i]))
 
     const ctx: BuildCtx<TState> = {
       state,
@@ -122,6 +208,10 @@ export function buildWorkbook<TState>(
         throw new Error(`Duplicate row id "${spec.id}" in sheet "${sheet.id}"`)
       }
       seen.add(spec.id)
+      if (spec.fullWidth && Object.keys(spec.cells).length > 0)
+        throw new Error(
+          `A full width row has no cells: row "${spec.id}" of sheet "${sheet.id}"`,
+        )
 
       const rowCells: Record<string, Cell> = {}
       for (const [colId, cellSpec] of Object.entries(spec.cells)) {
@@ -135,38 +225,26 @@ export function buildWorkbook<TState>(
         if (cellSpec.rowSpan !== undefined && !leaf.spanRows)
           throw new Error(`rowSpan needs a spanRows column: ${where}`)
         // AG Grid: a column that merges down can neither be edited nor span.
+        // Nor may another cell's span cover it.
+        const span = cellSpec.span ?? 1
         if (leaf.spanRows) {
           if (cellSpec.source.kind === 'value' && cellSpec.source.write)
             throw new Error(`A spanRows column cannot be editable: ${where}`)
-          if ((cellSpec.span ?? 1) > 1)
+          if (span > 1)
             throw new Error(`A spanRows column cannot span across: ${where}`)
         }
+        const from = indexOf.get(colId)! + 1
+        if (leafs.slice(from, from + span - 1).some((l) => l.spanRows))
+          throw new Error(`A span cannot cover a spanRows column: ${where}`)
 
-        const address = cellAddress(sheet.id, spec.id, colId)
-        const cell: Cell = {
-          address,
-          sheetId: sheet.id,
-          rowId: spec.id,
-          colId,
+        const cell = register(
+          cellAddress(sheet.id, spec.id, colId),
+          { sheetId: sheet.id, rowId: spec.id, colId },
           // The type is chosen here: cell > row > column.
-          type: cellSpec.type ?? spec.type ?? leaf.type,
-          source: cellSpec.source,
-          value:
-            cellSpec.source.kind === 'value'
-              ? cellSpec.source.value
-              : undefined,
-          span: cellSpec.span,
-          rowSpan: cellSpec.rowSpan,
-          action: cellSpec.action,
-        }
-        if (typeof cellSpec.className === 'function') {
-          classFns.push({ cell, fn: cellSpec.className })
-        } else {
-          cell.className = cellSpec.className
-        }
-        cells.set(address, cell)
+          cellSpec.type ?? spec.type ?? leaf.type,
+          cellSpec,
+        )
         rowCells[colId] = cell
-        if (cell.source.kind === 'formula') formulaCells.push(cell)
         if (spec.group) {
           const key = groupAddress(sheet.id, spec.group, colId)
           const list = members.get(key)
@@ -180,6 +258,7 @@ export function buildWorkbook<TState>(
         className: spec.className,
         group: spec.group,
         cells: rowCells,
+        fullWidth: spec.fullWidth,
       }
     })
 
@@ -332,14 +411,19 @@ export function buildWorkbook<TState>(
           : `${screen} › ${name}`
       }
       const { sheetId, rowId, colId } = splitAddress(address)
+      const form = formNames.get(sheetId)
       const header =
-        leafsBySheet.get(sheetId)?.find((leaf) => leaf.colId === colId)
-          ?.headerName || colId
+        form?.cols[colId] ??
+        (leafsBySheet.get(sheetId)?.find((leaf) => leaf.colId === colId)
+          ?.headerName ||
+          colId)
       const sameSheet = from?.sheetId === sheetId
       if (sameSheet && from.rowId === rowId) return header
-      const rowLabel = rowId.startsWith('@')
-        ? (declaredGroups.get(`${sheetId}/${rowId}`) ?? rowId.slice(1))
-        : rowLabelOf(sheetId, rowId)
+      const rowLabel = form
+        ? (form.rows.get(rowId) ?? rowId)
+        : rowId.startsWith('@')
+          ? (declaredGroups.get(`${sheetId}/${rowId}`) ?? rowId.slice(1))
+          : rowLabelOf(sheetId, rowId)
       const sheetPart = sameSheet ? [] : [sheets[sheetId]?.title ?? sheetId]
       return [...sheetPart, rowLabel, header].join(' › ')
     },

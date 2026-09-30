@@ -55,6 +55,7 @@
   color: #c0392b;
 }
 
+.ag-row.sheet-add-row,
 .ag-row.sheet-add-row .ag-cell {
   background-color: #fbfaf5;
 }

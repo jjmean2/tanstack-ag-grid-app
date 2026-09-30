@@ -32,6 +32,13 @@ export type CellSpec = {
   action?: { label: string; run: () => void } // renders a button
 }
 
+// A row drawn across the whole grid instead of in columns (an AG Grid full
+// width row): structure such as a section title or an add button. It has no
+// cells, so nothing can reference it and it never crosses a merged column.
+export type FullWidthContent =
+  | { kind: 'title'; text: string }
+  | { kind: 'action'; label: string; run: () => void }
+
 export type RowSpec = {
   id: string
   kind: string // informational (styling, debugging); never branched on by the grid
@@ -39,6 +46,7 @@ export type RowSpec = {
   group?: string // makes the row part of a list that formulas can reference
   type?: CellType // row-level type override
   cells: Record<string, CellSpec> // key = colId; a missing key renders an empty cell
+  fullWidth?: FullWidthContent // then `cells` must be empty
 }
 
 export type FormulaPart = { text: string; target?: Address }
@@ -68,6 +76,7 @@ export type ResolvedRow = {
   className?: string
   group?: string
   cells: Record<string, Cell>
+  fullWidth?: FullWidthContent
 }
 
 export type SheetLeaf = {
@@ -79,8 +88,8 @@ export type SheetLeaf = {
   editable?: boolean // data rows of this column are editable
   formula?: string // data rows of this column are this formula (`[.col]` = same row)
   // Cells of this column can merge down (`CellSpec.rowSpan`), e.g. a section
-  // label on the left of a block. Only leading columns: full-width rows start
-  // to their right, as a column cannot both merge down and span across.
+  // label on the left of a block. AG Grid: such a column can neither span
+  // across nor be edited, and no other cell's span may cover it.
   spanRows?: boolean
 }
 
@@ -104,12 +113,62 @@ export type BuildCtx<TState> = {
 // A layout node produces zero or more rows from the session state.
 export type LayoutNode<TState> = (ctx: BuildCtx<TState>) => RowSpec[]
 
-export type SheetDef<TState> = {
+// A list-like sheet: rows × columns, drawn by AG Grid (`SheetGrid`).
+export type GridSheetDef<TState> = {
+  kind?: 'grid'
   id: string
   title: string
   tab: string // the tab that shows this sheet (used by reference navigation)
   columns: SheetColumnDef[]
   layout: LayoutNode<TState>[]
+}
+
+// --- form sheets -----------------------------------------------------------
+
+// A box of a form sheet's grid: 1-based row and column, and how many rows and
+// columns it covers. Boxes may be any rectangle; they must not overlap.
+export type Place = [
+  row: number,
+  col: number,
+  rowSpan?: number,
+  colSpan?: number,
+]
+
+// How a box looks; the renderer maps it to styles.
+export type Look = 'title' | 'head' | 'label' | 'num' | 'shade' | 'strong'
+
+export type FormItem =
+  // Fixed text (not a cell: nothing references it).
+  | { at: Place; text: string; look?: Look }
+  // A cell, at the address `<sheet>/<ref>` (`ref` = `row/col`). `name` is the
+  // row's readable name, used by the formula bar.
+  | { at: Place; ref: string; cell: CellSpec; name?: string; look?: Look }
+
+export type FormCtx<TState> = {
+  state: TState
+  sheetId: string
+  update: Update<TState>
+}
+
+export type FormNode<TState> = (ctx: FormCtx<TState>) => FormItem[]
+
+// A form-like sheet: boxes placed on a grid, as on a paper form, drawn with
+// CSS grid (`FormSheet`). Its cells are workbook cells like any other.
+export type FormSheetDef<TState> = {
+  kind: 'form'
+  id: string
+  title: string
+  tab: string
+  tracks: string[] // column sizes, as CSS grid tracks
+  colNames?: Record<string, string> // readable names of column ids
+  layout: FormNode<TState>[]
+}
+
+export type SheetDef<TState> = GridSheetDef<TState> | FormSheetDef<TState>
+
+export type FormView = {
+  tracks: string[]
+  items: { at: Place; text?: string; address?: Address; look?: Look }[]
 }
 
 export type WorkbookDef<TState> = {
@@ -161,8 +220,9 @@ export type SheetView = {
   id: string
   title: string
   tab: string
-  columns: SheetColumnDef[]
-  rows: ResolvedRow[]
+  columns: SheetColumnDef[] // empty for a form sheet
+  rows: ResolvedRow[] // empty for a form sheet
+  form?: FormView // form sheets only
 }
 
 export type Workbook = {

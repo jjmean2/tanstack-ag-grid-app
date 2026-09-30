@@ -12,7 +12,7 @@ import {
   subtotal,
   title,
 } from './layout'
-import type { ResolvedRow, SheetColumnDef, SheetDef } from './types'
+import type { GridSheetDef, ResolvedRow, SheetColumnDef } from './types'
 import { buildWorkbook, defineWorkbook } from './workbook'
 
 type Item = { id: string; name: string; amount: number }
@@ -24,7 +24,10 @@ const columns: SheetColumnDef[] = [
   { colId: 'amount', headerName: '금액', type: T.money, editable: true },
 ]
 
-const sheet = (layout: SheetDef<S>['layout'], cols = columns): SheetDef<S> => ({
+const sheet = (
+  layout: GridSheetDef<S>['layout'],
+  cols = columns,
+): GridSheetDef<S> => ({
   id: 's',
   title: 's',
   tab: 's',
@@ -47,8 +50,8 @@ describe('layout with a spanRows column', () => {
         title('t', '제목'),
         spanned('blk', 'section', '구분1', [
           items('list'),
-          addRow('add', 'list', () => ({ id: 'x' }), '+'),
           subtotal('sum', '소계', 'list', ['amount']),
+          addRow('add', 'list', () => ({ id: 'x' }), '+'),
         ]),
       ]),
     ]),
@@ -56,22 +59,29 @@ describe('layout with a spanRows column', () => {
     noop,
   )
   const rows = wb.sheets.s!.rows
+  const byId = (id: string) => rows.find((r) => r.id === id)!
 
   it('merges the block: every row gets the label with one key', () => {
-    expect(rows.slice(1).map((r) => r.cells.section.rowSpan)).toEqual([
-      'blk',
-      'blk',
-      'blk',
-      'blk',
-    ])
-    expect(rows[1].cells.section.value).toBe('구분1')
+    expect(
+      ['a', 'b', 'sum'].map((id) => byId(id).cells.section.rowSpan),
+    ).toEqual(['blk', 'blk', 'blk'])
+    expect(byId('a').cells.section.value).toBe('구분1')
   })
 
-  it('keeps full-width rows to the right of it', () => {
-    expect(rows[0].cells.section).toBeUndefined()
-    expect(rows[0].cells.name.span).toBe(2)
-    expect(rows.find((r) => r.id === 'add')?.cells.name.span).toBe(2)
-    expect(rows.find((r) => r.id === 'sum')?.cells.name.value).toBe('소계')
+  it('makes titles and add buttons full width rows without cells', () => {
+    expect(byId('t')).toMatchObject({
+      cells: {},
+      fullWidth: { kind: 'title', text: '제목' },
+    })
+    // Left out of the merge, which it would otherwise cut in two.
+    expect(byId('add')).toMatchObject({
+      cells: {},
+      fullWidth: { kind: 'action', label: '+' },
+    })
+  })
+
+  it('puts subtotal labels in the first column past the merged one', () => {
+    expect(byId('sum').cells.name.value).toBe('소계')
   })
 
   it('names rows by their first column past the merged one', () => {
@@ -84,13 +94,47 @@ describe('layout with a spanRows column', () => {
 })
 
 describe('definition checks', () => {
-  const build = (def: SheetDef<S>) =>
+  const build = (def: GridSheetDef<S>) =>
     buildWorkbook(defineWorkbook<S>([def]), state, noop)
 
-  it('rejects spanRows columns that are not leading', () => {
+  const middle = [columns[1], columns[0], columns[2]] // 항목 | 구분 | 금액
+
+  it('allows a spanRows column in the middle', () => {
+    const wb = build(
+      sheet(
+        [spanned('k', 'section', '구분', [items('list'), title('t', '제목')])],
+        middle,
+      ),
+    )
+    expect(wb.cell('s/a/section')?.rowSpan).toBe('k')
+  })
+
+  it('rejects a span that would cover a spanRows column', () => {
     expect(() =>
-      defineWorkbook<S>([sheet([], [columns[1], columns[0], columns[2]])]),
-    ).toThrow(/must come before/)
+      build(
+        sheet(
+          [row('r', {}, () => ({ name: labelCell('x', { span: 2 }) }))],
+          middle,
+        ),
+      ),
+    ).toThrow(/cannot cover a spanRows column/)
+  })
+
+  it('rejects cells in a full width row', () => {
+    expect(() =>
+      build(
+        sheet([
+          () => [
+            {
+              id: 'r',
+              kind: 'title',
+              cells: { name: labelCell('x') },
+              fullWidth: { kind: 'title', text: 'x' },
+            },
+          ],
+        ]),
+      ),
+    ).toThrow(/full width row has no cells/)
   })
 
   it('rejects rowSpan outside a spanRows column', () => {

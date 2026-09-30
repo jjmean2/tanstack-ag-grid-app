@@ -1,13 +1,13 @@
-import { T } from '#/shared/lib/workbook/cell-types'
 import {
+  defineWorkbook,
   fields,
   formulaCell,
   labelCell,
   row,
+  T,
   title,
-} from '#/shared/lib/workbook/layout'
-import type { SheetColumnDef } from '#/shared/lib/workbook/types'
-import { defineWorkbook } from '#/shared/lib/workbook/workbook'
+} from '@labs/workbook'
+import type { SheetColumnDef } from '@labs/workbook'
 
 // The closing screen: an income statement whose net income the tax screen
 // reads as `[ext:closing/netIncome]`.

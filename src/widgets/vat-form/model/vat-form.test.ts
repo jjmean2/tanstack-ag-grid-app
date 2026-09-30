@@ -1,5 +1,4 @@
-import { checkWorkbook } from '#/shared/lib/workbook/check'
-import { buildWorkbook } from '#/shared/lib/workbook/workbook'
+import { buildWorkbook, checkWorkbook } from '@labs/workbook'
 import { initialVat, vatWorkbook } from './vat-form'
 import type { VatState } from './vat-form'
 

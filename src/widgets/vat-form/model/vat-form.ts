@@ -1,13 +1,14 @@
-import { T } from '#/shared/lib/workbook/cell-types'
 import {
   addRow,
   boundCell,
   cellBox,
+  defineWorkbook,
   formulaCell,
   items,
   subtotal,
+  T,
   textBox,
-} from '#/shared/lib/workbook/layout'
+} from '@labs/workbook'
 import type {
   CellSpec,
   FormCtx,
@@ -15,8 +16,7 @@ import type {
   Look,
   Place,
   SheetColumnDef,
-} from '#/shared/lib/workbook/types'
-import { defineWorkbook } from '#/shared/lib/workbook/workbook'
+} from '@labs/workbook'
 
 // A made-up return whose layout borrows from a paper VAT return: numbered
 // lines, labels merged down and across, shaded boxes. Not a real legal form.

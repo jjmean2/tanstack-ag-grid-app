@@ -2,6 +2,29 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/')({ component: Home })
 
+const workbookDemos = [
+  {
+    to: '/adjustment-sheet',
+    title: '소득금액조정',
+    text: 'The smallest workbook: one sheet, subtotals, an input and a check.',
+  },
+  {
+    to: '/workbook-sheet',
+    title: '법인세 세무조정',
+    text: 'Tabs over one session, inputs as cells, merged sections, a value from another screen.',
+  },
+  {
+    to: '/workbook-closing',
+    title: '결산',
+    text: 'A screen that saves and exports values other screens reference.',
+  },
+  {
+    to: '/workbook-form',
+    title: '매출·매입 세액 신고서 (예시)',
+    text: 'A form sheet laid out like a paper form, fed by a list grid.',
+  },
+] as const
+
 function Home() {
   return (
     <main className="grid min-h-screen grid-cols-1 content-between gap-12 bg-[radial-gradient(circle_at_85%_15%,#d5e7d9_0,transparent_27rem),linear-gradient(130deg,#f4f1e9_0%,#ebe7dc_100%)] p-8 text-[#17312d] sm:p-12 lg:grid-cols-[minmax(0,1fr)_minmax(220px,300px)] lg:items-end lg:p-20">
@@ -28,6 +51,22 @@ function Home() {
         >
           Open the basic grid <span aria-hidden="true">↗</span>
         </Link>
+
+        <nav className="mt-12 grid gap-2 font-sans" aria-label="Workbook demos">
+          <p className="text-xs font-bold uppercase tracking-wider text-[#b35131]">
+            Workbook demos
+          </p>
+          {workbookDemos.map((demo) => (
+            <Link
+              key={demo.to}
+              to={demo.to}
+              className="grid gap-0.5 no-underline hover:text-[#1f6f66]"
+            >
+              <strong>{demo.title} ↗</strong>
+              <span className="text-sm text-[#536863]">{demo.text}</span>
+            </Link>
+          ))}
+        </nav>
       </div>
       <div className="border-t border-[#9aaba0] py-5 font-sans">
         <span className="text-xs font-extrabold text-[#b35131]">01</span>

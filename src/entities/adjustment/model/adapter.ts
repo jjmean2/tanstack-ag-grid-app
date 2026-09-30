@@ -1,23 +1,28 @@
-import type { AdjustmentItem, AdjustmentResponse } from './types'
+import type {
+  AdjustmentItem,
+  AdjustmentResponse,
+  AdjustmentState,
+} from './types'
 
 const DISPOSITION_LABEL: Record<string, string> = {
   ETC_OUT: '기타사외유출',
   RESERVE: '유보',
 }
 
-export function toItems(res: AdjustmentResponse): AdjustmentItem[] {
-  return res.items.map((i) => ({
-    id: i.id,
-    group: i.groupCd === 'ADD' ? 'add' : 'sub',
-    account: i.accountName,
-    bookAmount: i.bookAmt,
-    taxAmount: i.taxAmt,
-    disposition: DISPOSITION_LABEL[i.dispCd] ?? '',
-    note: i.memo,
-  }))
-}
+const toItem = (i: AdjustmentResponse['items'][number]): AdjustmentItem => ({
+  id: i.id,
+  account: i.accountName,
+  book: i.bookAmt,
+  tax: i.taxAmt,
+  disposition: DISPOSITION_LABEL[i.dispCd] ?? '',
+  note: i.memo,
+})
 
-// Single values from the server that feed user-input cells. Key = `${rowId}.${colId}`.
-export function toInitialInputs(res: AdjustmentResponse) {
-  return { 'reported.taxAmount': res.reportedAmt }
+// Server -> client state.
+export function toAdjustmentState(res: AdjustmentResponse): AdjustmentState {
+  return {
+    adds: res.items.filter((i) => i.groupCd === 'ADD').map(toItem),
+    subs: res.items.filter((i) => i.groupCd === 'SUB').map(toItem),
+    reported: res.reportedAmt,
+  }
 }

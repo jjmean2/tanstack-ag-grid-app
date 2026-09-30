@@ -17,6 +17,15 @@
       ],
       "@/*": [
         "./src/*"
+      ],
+      "@labs/workbook": [
+        "./packages/workbook/src/index.ts"
+      ],
+      "@labs/workbook/react": [
+        "./packages/workbook/src/react/index.ts"
+      ],
+      "@labs/workbook/ag-grid": [
+        "./packages/workbook/src/ag-grid/index.ts"
       ]
     },
     "lib": [

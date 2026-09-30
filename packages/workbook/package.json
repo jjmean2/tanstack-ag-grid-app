@@ -1,0 +1,32 @@
+{
+  "name": "@labs/workbook",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Spreadsheet-like forms over a client state: typed cells, fixed formulas, grid and form sheets, links across screens.",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./react": "./src/react/index.ts",
+    "./ag-grid": "./src/ag-grid/index.ts",
+    "./ag-grid/styles.css": "./src/ag-grid/styles.css"
+  },
+  "peerDependencies": {
+    "ag-grid-community": ">=36.2.0",
+    "ag-grid-react": ">=36.2.0",
+    "react": ">=19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "ag-grid-community": {
+      "optional": true
+    },
+    "ag-grid-react": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  }
+}

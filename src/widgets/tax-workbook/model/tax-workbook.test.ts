@@ -1,9 +1,12 @@
 import { toSession } from '#/entities/tax-session/model/adapter'
 import { taxSessionResponse } from '#/entities/tax-session/model/data'
 import type { TaxSession } from '#/entities/tax-session/model/types'
-import { checkWorkbook } from '#/shared/lib/workbook/check'
-import { externalsFrom, screenExports } from '#/shared/lib/workbook/external'
-import { buildWorkbook } from '#/shared/lib/workbook/workbook'
+import {
+  buildWorkbook,
+  checkWorkbook,
+  externalsFrom,
+  screenExports,
+} from '@labs/workbook'
 import {
   closingWorkbook,
   initialClosing,

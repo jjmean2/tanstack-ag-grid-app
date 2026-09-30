@@ -1,14 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { WorkbookSheetPage } from '#/pages/workbook-sheet/ui/workbook-sheet-page'
-import { validateCellSearch } from '#/shared/lib/workbook/use-open-screen'
+import { validateCellSearch } from '#/shared/lib/screen/router'
 
 export const Route = createFileRoute('/workbook-sheet')({
   validateSearch: validateCellSearch,
-  component: RouteComponent,
+  component: WorkbookSheetPage,
 })
-
-function RouteComponent() {
-  const { cell } = Route.useSearch()
-  return <WorkbookSheetPage focusCell={cell} />
-}

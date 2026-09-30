@@ -12,7 +12,15 @@ const isTest = process.env.VITEST === 'true'
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
   plugins: [
-    !isTest && devtools(),
+    !isTest &&
+      devtools({
+        // The "go to source" attribute would reach AgGridReact as an unknown
+        // grid option (AG Grid warnings #307/#310).
+        injectSource: {
+          enabled: true,
+          ignore: { components: ['AgGridReact'] },
+        },
+      }),
     tailwindcss(),
     tanstackRouter({
       target: 'react',
@@ -24,7 +32,10 @@ const config = defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
-    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    include: [
+      'src/**/*.{test,spec}.{ts,tsx}',
+      'packages/*/src/**/*.{test,spec}.{ts,tsx}',
+    ],
     css: false,
   },
 })

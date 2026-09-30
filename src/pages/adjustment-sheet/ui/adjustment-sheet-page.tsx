@@ -1,19 +1,54 @@
+import { useWorkbook } from '@labs/workbook/react'
+import { SheetGrid } from '@labs/workbook/ag-grid'
+import { toAdjustmentState } from '#/entities/adjustment/model/adapter'
 import { adjustmentResponse } from '#/entities/adjustment/model/data'
+import type { AdjustmentState } from '#/entities/adjustment/model/types'
+import { useScreenSession } from '#/shared/lib/screen/use-screen-session'
 import { PageHeader } from '#/shared/ui/page-header'
-import { AdjustmentSheet } from '#/widgets/adjustment-sheet/ui/adjustment-sheet'
+import { ScreenLayout } from '#/shared/ui/screen-layout'
+import { Stat } from '#/shared/ui/stat'
+import { adjustmentWorkbook } from '#/widgets/adjustment-sheet/model/adjustment-workbook'
+
+const tabs = [
+  {
+    id: 'adj',
+    label: '소득금액조정',
+    render: () => <SheetGrid sheetId="adj" />,
+  },
+]
+
+function Gap() {
+  const { wb } = useWorkbook()
+  const gap = wb.value('adj/gap/tax')
+  return (
+    <Stat
+      label="신고서상 금액과의 차이"
+      value={gap}
+      tone={gap === 0 ? 'ok' : 'error'}
+    />
+  )
+}
 
 export function AdjustmentSheetPage() {
+  const session = useScreenSession<AdjustmentState>({
+    id: 'adjustment',
+    initial: () => toAdjustmentState(adjustmentResponse),
+    tab: 'adj',
+  })
+
   return (
     <main className="min-h-screen bg-[#f4f1e9] p-6 text-[#17312d] sm:p-10 lg:p-16">
       <PageHeader
-        eyebrow="AG Grid playground"
+        eyebrow="Workbook · 가장 작은 예제"
         title="Adjustment sheet"
-        description="An Excel-style worksheet: column groups, section titles, subtotals, an input cell and a difference check between the data rows."
+        description="An Excel-style worksheet as one workbook sheet: column groups, section titles, subtotals, an input cell and a difference check, all as formulas over the client state."
       />
-
-      <section className="mx-auto max-w-375 overflow-hidden border border-[#c5d0c7] bg-[#fffdf8] shadow-[0_1rem_3rem_rgb(38_65_55/8%)]">
-        <AdjustmentSheet res={adjustmentResponse} />
-      </section>
+      <ScreenLayout
+        session={session}
+        def={adjustmentWorkbook}
+        tabs={tabs}
+        toolbar={<Gap />}
+      />
     </main>
   )
 }

@@ -1,10 +1,8 @@
 import { newAdjustmentItem } from '#/entities/tax-session/model/adapter'
 import type { TabId, TaxSession } from '#/entities/tax-session/model/types'
-import { splitAddress } from '#/shared/lib/workbook/address'
-import { T } from '#/shared/lib/workbook/cell-types'
-import type { CellType } from '#/shared/lib/workbook/cell-types'
 import {
   addRow,
+  defineWorkbook,
   fields,
   formulaCell,
   inputCell,
@@ -12,11 +10,12 @@ import {
   labelCell,
   row,
   spanned,
+  splitAddress,
   subtotal,
+  T,
   title,
-} from '#/shared/lib/workbook/layout'
-import type { SheetColumnDef, Workbook } from '#/shared/lib/workbook/types'
-import { defineWorkbook } from '#/shared/lib/workbook/workbook'
+} from '@labs/workbook'
+import type { CellType, SheetColumnDef, Workbook } from '@labs/workbook'
 
 // A workbook is a set of sheets (one per grid). Each sheet has columns (which
 // give a default cell type) and a layout (the rows, top to bottom). Formulas

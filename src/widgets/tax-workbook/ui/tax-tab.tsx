@@ -1,4 +1,4 @@
-import { SheetGrid } from '#/shared/lib/workbook/sheet-grid'
+import { SheetGrid } from '@labs/workbook/ag-grid'
 
 export function TaxTab() {
   return (

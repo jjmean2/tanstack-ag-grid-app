@@ -1,0 +1,56 @@
+/* Row and cell classes that grid sheets produce (layout helpers set them;
+   see `className` on rows and cells). Imported by the app once. */
+.ag-row.sheet-title,
+.ag-row.sheet-title .ag-cell {
+  background-color: #dfe9e2;
+  font-weight: 700;
+}
+
+.ag-row.sheet-subtotal .ag-cell {
+  background-color: #f1f5f1;
+  font-weight: 700;
+}
+
+.ag-row.sheet-total .ag-cell {
+  background-color: #e6eee8;
+  border-top: 1px solid #9aaba0;
+  font-weight: 700;
+}
+
+.ag-cell.sheet-input {
+  background-color: #fff8db;
+}
+
+.ag-cell.sheet-ok {
+  color: #1a7f4b;
+}
+
+.ag-cell.sheet-error {
+  color: #c0392b;
+}
+
+.ag-row.sheet-add-row,
+.ag-row.sheet-add-row .ag-cell {
+  background-color: #fbfaf5;
+}
+
+.ag-cell.sheet-action {
+  display: flex;
+  align-items: center;
+}
+
+/* Formula cells get a small marker in the top-right corner; errors are red. */
+.ag-cell.sheet-formula::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  border-style: solid;
+  border-width: 0 7px 7px 0;
+  border-color: transparent #1f6f66 transparent transparent;
+}
+
+.ag-cell.sheet-cell-error {
+  color: #c0392b;
+  font-weight: 700;
+}

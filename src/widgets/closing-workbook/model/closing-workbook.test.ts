@@ -1,4 +1,4 @@
-import { checkWorkbook } from '#/shared/lib/workbook/check'
+import { checkWorkbook } from '@labs/workbook'
 import { closingWorkbook, initialClosing } from './closing-workbook'
 
 describe('closing workbook definition', () => {

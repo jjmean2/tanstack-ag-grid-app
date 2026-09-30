@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 
-import { CellInput } from '#/shared/lib/workbook/cell-input'
-import { SheetGrid } from '#/shared/lib/workbook/sheet-grid'
+import { CellInput } from '@labs/workbook/react'
+import { SheetGrid } from '@labs/workbook/ag-grid'
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (

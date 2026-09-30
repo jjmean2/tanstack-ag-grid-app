@@ -10,6 +10,8 @@ skills-lock.json
 
 # Generated code
 **/routeTree.gen.ts
+**/next-env.d.ts
+**/.next/
 
 # Agent skills installed from upstream (tracked by skills-lock.json);
 # .claude/skills links to them.

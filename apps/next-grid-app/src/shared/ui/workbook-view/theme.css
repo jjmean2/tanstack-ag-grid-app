@@ -1,0 +1,518 @@
+/* Workbook theme: how this app's workbook views look. The decisions (which
+ * editor, display, marks) and the components behind them are in
+ * cell-views.tsx; view.test.ts checks that every tag and mark has a look here.
+ * The library's styles.css gives the structure (layout, spacing); this file
+ * gives everything else, the library views carry no other styling.
+ *
+ * The library puts the same marks on a cell in every view — a grid cell, an
+ * input, a form box — and this file is the one place that maps marks to looks.
+ * A new styling requirement is a new rule in the matching section:
+ *
+ *   1. tokens      colours and sizes, named once
+ *   2. states      what the library knows about every cell (editable, formula,
+ *                  error) and what an input knows about itself (invalid)
+ *   3. types       per cell type id (wb-type-money, wb-type-date, ...)
+ *   4. tags        the vocabulary definitions use (subtotal, input, ok, head …)
+ *   5. chrome      the parts views draw around cells (inputs, boxes, buttons)
+ *
+ * Marks: wb-cell · wb-type-<id> · wb-source-value|formula · wb-overridden ·
+ * wb-editable · wb-error · wb-action · wb-align-right|center · wb-tag-<tag> (cell and row
+ * tags) · marks the app's presentation rules add (wb-negative, ...) · classes of the
+ * app's components (wb-status) ·
+ * wb-row · wb-input(-field|-form) · wb-invalid · wb-form · wb-box(-text|-cell|
+ * -tall) · wb-button · wb-full-width · wb-formula-bar(-…) · wb-ref(-external) ·
+ * wb-referenced · wb-hl-1…6 · wb-hl-top|right|bottom|left (the focused
+ * formula's references, and the sides of their outline) ·
+ * wb-external-ref(s-…) · wb-error-boundary(-…). See
+ * packages/workbook/src/core/marks.ts.
+ *
+ * Every tag a definition uses, and every mark a presentation rule adds, must
+ * have a rule here; view.test.ts checks it.
+ */
+
+/* --- 1. tokens ------------------------------------------------------------ */
+
+:root {
+  /* Sizes and type, shared by the grids and the form sheets: AG Grid's theme
+     takes these (shared/config/ag-grid.ts), and the form rules below use
+     them, so a change here restyles both. Colours are the themes'
+     (shared/ui/theme/themes.css). */
+  --wb-font-size: 14px;
+  --wb-row-height: 42px;
+  --wb-cell-padding: 16px; /* left and right in a cell */
+  --wb-head-weight: 700;
+  --wb-radius: 8px; /* outer corners */
+  --wb-sans: ui-sans-serif, system-ui, sans-serif;
+  --wb-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* --- 2. states ------------------------------------------------------------ */
+
+/* Backgrounds, in a grid, an input or a form box alike: white where nothing
+   can be typed, light blue where a value can, light green where a formula can
+   be typed over. Text keeps its colour. Subtotal and total rows (section 4)
+   are the header colour where nothing can be typed. */
+.wb-cell {
+  background-color: var(--wb-fixed-bg);
+}
+
+.wb-cell.wb-editable {
+  background-color: var(--wb-editable-bg);
+}
+
+.wb-cell.wb-editable.wb-overridable {
+  background-color: var(--wb-overridable-bg);
+}
+
+/* Formula cells: a small marker in the top-right corner of a grid cell. */
+.ag-cell.wb-source-formula::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  border-style: solid;
+  border-width: 0 7px 7px 0;
+  border-color: transparent var(--wb-accent) transparent transparent;
+}
+
+/* A formula cell showing a person's value: italic, and in a grid the corner
+   marker in another colour. */
+.wb-cell.wb-overridden {
+  font-style: italic;
+}
+
+.ag-cell.wb-overridden::after {
+  border-color: transparent var(--wb-overridden) transparent transparent;
+}
+
+.wb-cell.wb-error {
+  color: var(--wb-error);
+  font-weight: 700;
+}
+
+/* The cells the focused formula references, and the matching reference in
+   the formula bar, in the same colour (wb-hl-<n> picks it). */
+.wb-hl-1 {
+  --wb-hl: var(--wb-hl-1);
+}
+.wb-hl-2 {
+  --wb-hl: var(--wb-hl-2);
+}
+.wb-hl-3 {
+  --wb-hl: var(--wb-hl-3);
+}
+.wb-hl-4 {
+  --wb-hl: var(--wb-hl-4);
+}
+.wb-hl-5 {
+  --wb-hl: var(--wb-hl-5);
+}
+.wb-hl-6 {
+  --wb-hl: var(--wb-hl-6);
+}
+
+/* A line on each side of the outline (wb-hl-top|right|bottom|left): a range
+   reads as one rectangle, as AG Grid draws a selected range. Each side mark
+   sets a width; two inset shadows draw the left/top and right/bottom ones. */
+.wb-hl-top {
+  --wb-hl-t: 2px;
+}
+.wb-hl-right {
+  --wb-hl-r: 2px;
+}
+.wb-hl-bottom {
+  --wb-hl-b: 2px;
+}
+.wb-hl-left {
+  --wb-hl-l: 2px;
+}
+
+.wb-cell.wb-referenced {
+  box-shadow:
+    inset var(--wb-hl-l, 0px) var(--wb-hl-t, 0px) 0 0 var(--wb-hl),
+    inset calc(-1 * var(--wb-hl-r, 0px)) calc(-1 * var(--wb-hl-b, 0px)) 0 0
+      var(--wb-hl);
+}
+
+/* In a grid, the row separator runs in a 1px gap below each cell, which
+   would break the sides of an outline at every row. So there the lines are a
+   layer over the cell's own 1px (transparent) border, reaching 1px further
+   down over the gap unless the cell is the bottom of its outline. The cell
+   lets it paint those 2px outside its padding box (and still clips its text,
+   so the ellipsis stays). Browsers without overflow-clip-margin show the
+   1px breaks. */
+.ag-cell.wb-referenced {
+  overflow: clip;
+  overflow-clip-margin: 2px;
+  box-shadow: none;
+}
+
+.ag-cell.wb-referenced::before {
+  content: '';
+  position: absolute;
+  inset: -1px -1px -2px;
+  border-color: var(--wb-hl);
+  border-style: solid;
+  border-width: var(--wb-hl-t, 0px) var(--wb-hl-r, 0px) var(--wb-hl-b, 0px)
+    var(--wb-hl-l, 0px);
+  pointer-events: none;
+}
+
+.ag-cell.wb-referenced.wb-hl-bottom::before {
+  bottom: -1px;
+}
+
+.wb-ref.wb-referenced {
+  border-color: var(--wb-hl);
+  background-color: color-mix(in srgb, var(--wb-hl) 12%, var(--wb-fixed-bg));
+  color: var(--wb-hl);
+}
+
+.wb-input.wb-invalid {
+  background-color: var(--wb-error-bg);
+}
+
+/* Marks added by presentation rules (cell-views.tsx). A negative amount is
+   red wherever it is (its parentheses are the money type's format). */
+.wb-cell.wb-negative {
+  color: var(--wb-negative);
+}
+
+/* --- 3. types ------------------------------------------------------------- */
+
+/* Numbers line up by digit. */
+.wb-type-money,
+.wb-type-number,
+.wb-type-integer,
+.wb-type-percent {
+  font-variant-numeric: tabular-nums;
+}
+
+.wb-type-date {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+/* --- 4. tags -------------------------------------------------------------- */
+
+/* Rows of grid sheets (on the row and on each of its cells). */
+.wb-tag-title {
+  background-color: var(--wb-title-bg);
+  font-weight: 700;
+}
+
+/* Subtotal and total rows: the header colour. After the white of fixed
+   cells, with as many classes, so it wins over it; a cell that can be typed
+   in keeps its own colour (more classes). */
+.wb-tag-subtotal,
+.wb-tag-total,
+.wb-tag-strong,
+.wb-cell.wb-tag-subtotal,
+.wb-cell.wb-tag-total,
+.wb-cell.wb-tag-strong {
+  background-color: var(--wb-head-bg);
+  font-weight: 700;
+}
+
+.ag-row.wb-tag-total {
+  border-top: 1px solid var(--wb-line);
+}
+
+.wb-tag-add-row {
+  background-color: var(--wb-add-row-bg);
+}
+
+/* A check's result (e.g. a difference that must be zero). The 'status'
+   display draws the verdict as a badge (components.tsx). */
+.wb-status {
+  border-radius: 999px;
+  padding: 0.125rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.wb-tag-pass .wb-status {
+  background-color: var(--wb-ok-bg);
+}
+
+.wb-tag-fail .wb-status {
+  background-color: var(--wb-error-bg);
+}
+
+/* A check's result (e.g. a difference that must be zero). */
+.wb-tag-pass {
+  color: var(--wb-ok);
+}
+
+.wb-tag-fail {
+  color: var(--wb-error);
+}
+
+/* Form sheet boxes. */
+/* Like the grid's header cells. */
+.wb-tag-head {
+  justify-content: center;
+  background-color: var(--wb-head-bg);
+  font-weight: var(--wb-head-weight);
+  text-align: center;
+}
+
+/* Plain text, left: the default look of a text box, named so forms can say it. */
+.wb-tag-label {
+  justify-content: flex-start;
+}
+
+.wb-tag-num {
+  justify-content: center;
+  color: var(--wb-muted);
+  font-family: ui-monospace, monospace;
+  font-size: 0.75rem;
+}
+
+.wb-tag-shade {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--wb-shade-1) 0,
+    var(--wb-shade-1) 4px,
+    var(--wb-shade-2) 4px,
+    var(--wb-shade-2) 8px
+  );
+}
+
+/* --- 5. chrome ------------------------------------------------------------ */
+
+.wb-input {
+  color: var(--wb-ink);
+}
+
+.wb-input-field {
+  border-color: var(--wb-line-soft);
+  font-family: var(--wb-sans);
+  font-size: 1rem;
+}
+
+.wb-input-field:focus {
+  border-color: var(--wb-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--wb-accent) 20%, transparent);
+}
+
+.wb-input-field:not(.wb-editable) {
+  cursor: default;
+}
+
+.wb-input-field.wb-invalid,
+.wb-input-field.wb-error {
+  border-color: var(--wb-error);
+}
+
+/* An error shows as such on an input too. */
+.wb-input.wb-error {
+  color: var(--wb-error);
+}
+
+/* A form's cell: the height, padding and type of a grid cell (whose row
+   height counts the line below it, as the box's border does here). */
+.wb-input-form {
+  min-height: calc(var(--wb-row-height) - 1px);
+  padding: 0 var(--wb-cell-padding);
+  font-family: var(--wb-sans);
+  font-size: var(--wb-font-size);
+}
+
+.wb-input-form:focus {
+  background-color: var(--wb-focus-bg);
+  box-shadow: inset 0 0 0 2px var(--wb-accent);
+}
+
+.wb-input-form:not(.wb-editable) {
+  cursor: default;
+}
+
+input[type='checkbox'].wb-input {
+  accent-color: var(--wb-accent);
+}
+
+/* A form sheet looks like a grid: its lines, rounded outer corners, row
+   height, cell padding and type (tokens above, shared with AG Grid). */
+.wb-form {
+  overflow: hidden;
+  border-color: var(--wb-grid-line);
+  border-radius: var(--wb-radius);
+  background-color: var(--wb-fixed-bg);
+  color: var(--wb-ink);
+  font-family: var(--wb-sans);
+  font-size: var(--wb-font-size);
+}
+
+.wb-box {
+  min-height: var(--wb-row-height); /* with its bottom line */
+  border-color: var(--wb-grid-line);
+}
+
+.wb-box-text {
+  padding: 0 var(--wb-cell-padding);
+}
+
+.wb-full-width {
+  color: var(--wb-ink);
+  font-family: var(--wb-sans);
+  font-size: 0.875rem;
+}
+
+.wb-button {
+  cursor: pointer;
+  border: 1px solid var(--wb-line);
+  border-radius: 0.25rem;
+  background-color: var(--wb-button-bg);
+  padding: 0.125rem 0.5rem;
+  color: var(--wb-ink);
+  font-family: var(--wb-sans);
+  font-size: 0.75rem;
+}
+
+.wb-button:hover {
+  background-color: var(--wb-head-bg);
+}
+
+/* --- 6. panels ------------------------------------------------------------ */
+
+/* Panels sit above the screen's tabs, as wide as they are. */
+.wb-formula-bar,
+.wb-external-refs,
+.wb-error-boundary {
+  max-width: 1500px;
+  margin: 0 auto 1rem;
+  border: 1px solid var(--wb-line-soft);
+  background-color: var(--wb-panel-bg);
+  color: var(--wb-ink);
+  font-family: var(--wb-sans);
+  font-size: 0.875rem;
+}
+
+.wb-formula-bar-label {
+  color: var(--wb-muted);
+  font-weight: 700;
+}
+
+.wb-formula-bar-fx {
+  color: var(--wb-external);
+  font-family: var(--wb-mono);
+  font-size: 1rem;
+  font-style: italic;
+  font-weight: 700;
+}
+
+.wb-formula-bar-content,
+.wb-formula-bar-value {
+  font-family: var(--wb-mono);
+  font-size: 0.85rem;
+}
+
+.wb-formula-bar-value {
+  font-weight: 700;
+}
+
+.wb-formula-bar-note,
+.wb-formula-bar-toggle {
+  color: var(--wb-muted);
+  font-family: var(--wb-sans);
+}
+
+.wb-formula-bar-toggle {
+  font-size: 0.75rem;
+}
+
+.wb-formula-bar-value.wb-error,
+.wb-external-ref-value.wb-error,
+.wb-external-ref-missing {
+  color: var(--wb-error);
+}
+
+/* A reference in a formula: to this workbook's cells, or another screen's. */
+.wb-ref {
+  border-color: var(--wb-ref);
+  background-color: var(--wb-ref-bg);
+  color: var(--wb-ref);
+  font-family: var(--wb-sans);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.wb-ref:hover {
+  background-color: var(--wb-ref-hover-bg);
+}
+
+.wb-ref.wb-ref-external {
+  border-color: var(--wb-external);
+  background-color: var(--wb-external-bg);
+  color: var(--wb-external);
+}
+
+.wb-ref.wb-ref-external:hover {
+  background-color: var(--wb-external-hover-bg);
+}
+
+.wb-external-refs,
+.wb-error-boundary {
+  border-color: var(--wb-external-line);
+  background-color: var(--wb-external-panel-bg);
+}
+
+.wb-external-refs-title {
+  color: var(--wb-external);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.wb-external-ref-link {
+  color: var(--wb-external);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline dotted;
+  text-underline-offset: 4px;
+}
+
+.wb-external-ref-link:hover {
+  text-decoration-style: solid;
+}
+
+.wb-external-ref-value {
+  font-family: var(--wb-mono);
+  font-weight: 700;
+}
+
+.wb-external-ref-meta,
+.wb-external-ref-missing {
+  font-size: 0.75rem;
+}
+
+.wb-external-ref-meta {
+  color: var(--wb-muted);
+}
+
+.wb-external-ref-missing {
+  font-weight: 700;
+}
+
+.wb-error-boundary-title {
+  color: var(--wb-error);
+  font-size: 1rem;
+}
+
+.wb-error-boundary-text {
+  margin: 0;
+  color: var(--wb-muted);
+}
+
+.wb-error-boundary-detail {
+  background-color: var(--wb-button-bg);
+  font-size: 0.75rem;
+}
+
+.wb-error-boundary .wb-button {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+}

@@ -1,26 +1,51 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+@import '../shared/ui/theme/themes.css';
+@import '@lab/workbook/styles.css';
+@import '../shared/ui/workbook-view/theme.css';
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/* The theme's colours as Tailwind colours (bg-app-bg, text-app-muted, …):
+   `inline`, so classes read the variables and follow a theme switch. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-app-bg: var(--app-bg);
+  --color-app-surface: var(--app-surface);
+  --color-app-subtle: var(--app-subtle);
+  --color-app-ink: var(--app-ink);
+  --color-app-muted: var(--app-muted);
+  --color-app-line: var(--app-line);
+  --color-app-line-strong: var(--app-line-strong);
+  --color-app-accent: var(--app-accent);
+  --color-app-accent-strong: var(--app-accent-strong);
+  --color-app-accent-soft: var(--app-accent-soft);
+  --color-app-on-accent: var(--app-on-accent);
+  --color-app-warm: var(--app-warm);
+  --color-app-warm-soft: var(--app-warm-soft);
+  --color-app-error: var(--app-error);
+  --color-app-error-soft: var(--app-error-soft);
+  --color-app-ok: var(--app-ok);
+  --color-app-hover: var(--app-hover);
+  --color-app-selected: var(--app-selected);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  *,
+  ::before,
+  ::after {
+    box-sizing: border-box;
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  html,
+  body {
+    min-height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--app-bg);
+    color: var(--app-ink);
+    font-family: var(--app-font-body);
+  }
+
+  a {
+    color: inherit;
+  }
 }

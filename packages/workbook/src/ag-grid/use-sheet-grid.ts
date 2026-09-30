@@ -38,7 +38,7 @@ const defaultColDef: ColDef<Row> = {
   suppressMovable: true,
   suppressHeaderMenuButton: true,
   resizable: true,
-  headerClass: '[&_.ag-header-cell-label]:justify-center',
+  headerClass: 'wb-header', // headings centred (styles.css)
 }
 
 const NONE: readonly string[] = []

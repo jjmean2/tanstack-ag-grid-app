@@ -1,69 +1,60 @@
-import Image from "next/image";
+import Link from 'next/link'
+
+import { SCREENS } from '@/shared/config/screens'
+
+const demos = [
+  {
+    screen: 'adjustment',
+    text: 'The smallest workbook: one sheet, subtotals, an input and a check.',
+  },
+  {
+    screen: 'tax',
+    text: 'Tabs over one session, inputs as cells, merged sections, a value from another screen.',
+  },
+  {
+    screen: 'closing',
+    text: 'A screen that saves and exports values other screens reference.',
+  },
+  {
+    screen: 'vat',
+    text: 'A form sheet laid out like a paper form, fed by a list grid.',
+  },
+  {
+    screen: 'large',
+    text: 'Three ledgers of thousands of rows, scrolled with row virtualisation.',
+  },
+] as const
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="grid min-h-screen content-end bg-[radial-gradient(circle_at_85%_15%,var(--app-accent-soft)_0,transparent_27rem),linear-gradient(130deg,var(--app-bg)_0%,var(--app-subtle)_100%)] p-8 text-app-ink sm:p-12 lg:p-20">
+      <div className="max-w-[720px]">
+        <p className="mb-4 font-mono text-[0.72rem] font-bold uppercase tracking-[0.08em] text-app-warm">
+          Next.js + AG Grid
+        </p>
+        <h1 className="max-w-[680px] text-[clamp(3.5rem,8vw,7.5rem)] font-normal leading-[0.9] tracking-[-0.04em]">
+          Make dense data feel calm.
+        </h1>
+        <p className="my-8 max-w-[480px] font-sans text-[1.05rem] leading-[1.6] text-app-muted">
+          The @lab/workbook demos on the Next.js App Router: the same workbooks,
+          views and themes as the Vite app, with Next&apos;s routing.
+        </p>
+        <nav className="mt-12 grid gap-2 font-sans" aria-label="Workbook demos">
+          <p className="text-xs font-bold uppercase tracking-wider text-app-warm">
+            Workbook demos
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+          {demos.map((demo) => (
+            <Link
+              key={demo.screen}
+              href={SCREENS[demo.screen].path}
+              className="grid gap-0.5 no-underline hover:text-app-accent"
+            >
+              <strong>{SCREENS[demo.screen].title} ↗</strong>
+              <span className="text-sm text-app-muted">{demo.text}</span>
+            </Link>
+          ))}
+        </nav>
+      </div>
+    </main>
+  )
 }

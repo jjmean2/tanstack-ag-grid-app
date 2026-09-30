@@ -15,6 +15,11 @@
 
 /* --- grid (AG Grid) --------------------------------------------------------- */
 
+/* Column headings, centred like a paper form's. */
+.wb-header .ag-header-cell-label {
+  justify-content: center;
+}
+
 .ag-cell.wb-action {
   display: flex;
   align-items: center;

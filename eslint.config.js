@@ -18,6 +18,13 @@ export default [
     },
   },
   {
-    ignores: ['eslint.config.js', 'prettier.config.js'],
+    ignores: [
+      'eslint.config.js',
+      'prettier.config.js',
+      // Next.js: its build output, and files it writes or reads as plain JS
+      '**/.next/**',
+      '**/next-env.d.ts',
+      '**/postcss.config.mjs',
+    ],
   },
 ]

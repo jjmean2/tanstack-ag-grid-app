@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm --filter @lab/grid-demo-app dev",
+    "dev:next": "pnpm --filter @lab/next-grid-app dev",
     "build": "pnpm --filter @lab/grid-demo-app build",
     "test": "pnpm --recursive test",
     "typecheck": "pnpm --recursive typecheck",

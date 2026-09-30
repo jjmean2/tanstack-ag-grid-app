@@ -22,6 +22,14 @@ export const playgroundGridTheme = themeQuartz.withParams({
   rowHeight: 'var(--wb-row-height)',
   cellHorizontalPadding: 'var(--wb-cell-padding)',
   wrapperBorderRadius: 'var(--wb-radius)',
+  // One line between cells, across and down, as the form sheets draw them:
+  // columnBorder in the body, a full-height one between header cells. The
+  // short line AG Grid draws between header cells is the resize handle's
+  // mark; it is hidden (dragging the edge still resizes a resizable column).
+  columnBorder: true,
+  headerColumnBorder: true,
+  headerColumnBorderHeight: '100%',
+  headerColumnResizeHandleColor: 'transparent',
   rowHoverColor: '#edf6f1',
   selectedRowBackgroundColor: '#dcefe8',
 })

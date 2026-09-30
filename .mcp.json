@@ -3,9 +3,7 @@
     "ag-mcp": {
       "type": "stdio",
       "command": "npx",
-      "args": [
-        "ag-mcp"
-      ],
+      "args": ["ag-mcp"],
       "env": {}
     }
   }

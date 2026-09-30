@@ -1,0 +1,244 @@
+/* Workbook theme: how this app shows workbook cells.
+ *
+ * The library puts the same marks on a cell in every view — a grid cell, an
+ * input, a form box — and this file is the one place that maps marks to looks.
+ * A new styling requirement is a new rule in the matching section:
+ *
+ *   1. tokens      colours and sizes, named once
+ *   2. states      what the library knows about every cell (editable, formula,
+ *                  error) and what an input knows about itself (invalid)
+ *   3. types       per cell type id (wb-type-money, wb-type-date, ...)
+ *   4. tags        the vocabulary definitions use (subtotal, input, ok, head …)
+ *   5. chrome      the parts views draw around cells (inputs, boxes, buttons)
+ *
+ * Marks: wb-cell · wb-type-<id> · wb-source-value|formula · wb-editable ·
+ * wb-error · wb-action · wb-align-right · wb-tag-<tag> (cell and row tags) ·
+ * wb-row · wb-input(-field|-form) · wb-invalid · wb-form · wb-box(-text|-cell|
+ * -tall) · wb-button · wb-full-width. See packages/workbook/src/core/marks.ts.
+ *
+ * Every tag used by a definition must have a rule in section 4; a test checks
+ * it (workbook-theme.test.ts).
+ */
+
+/* --- 1. tokens ------------------------------------------------------------ */
+
+:root {
+  --wb-ink: #17312d;
+  --wb-muted: #536863;
+  --wb-line: #9aaba0;
+  --wb-line-soft: #c5d0c7;
+  --wb-accent: #1f6f66;
+  --wb-editable: #1d4ed8;
+  --wb-ok: #1a7f4b;
+  --wb-error: #c0392b;
+  --wb-error-bg: #fbeeec;
+  --wb-title-bg: #dfe9e2;
+  --wb-head-bg: #eef3ed;
+  --wb-subtotal-bg: #f1f5f1;
+  --wb-total-bg: #e6eee8;
+  --wb-input-bg: #fff8db;
+  --wb-readonly-bg: #f3f6f2;
+  --wb-add-row-bg: #fbfaf5;
+}
+
+/* --- 2. states ------------------------------------------------------------ */
+
+/* Anything the user can change reads blue, in a grid, an input or a form. */
+.wb-cell.wb-editable {
+  color: var(--wb-editable);
+}
+
+/* Formula cells: a small marker in the top-right corner of a grid cell. */
+.ag-cell.wb-source-formula::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  border-style: solid;
+  border-width: 0 7px 7px 0;
+  border-color: transparent var(--wb-accent) transparent transparent;
+}
+
+.wb-cell.wb-error {
+  color: var(--wb-error);
+  font-weight: 700;
+}
+
+.wb-input.wb-invalid {
+  background-color: var(--wb-error-bg);
+}
+
+/* --- 3. types ------------------------------------------------------------- */
+
+/* Numbers line up by digit. */
+.wb-type-money,
+.wb-type-number,
+.wb-type-integer,
+.wb-type-percent {
+  font-variant-numeric: tabular-nums;
+}
+
+.wb-type-date {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+/* --- 4. tags -------------------------------------------------------------- */
+
+/* Rows of grid sheets (on the row and on each of its cells). */
+.wb-tag-title {
+  background-color: var(--wb-title-bg);
+  font-weight: 700;
+}
+
+.wb-tag-subtotal {
+  background-color: var(--wb-subtotal-bg);
+  font-weight: 700;
+}
+
+.wb-tag-total {
+  background-color: var(--wb-total-bg);
+  font-weight: 700;
+}
+
+.ag-row.wb-tag-total {
+  border-top: 1px solid var(--wb-line);
+}
+
+.wb-tag-add-row {
+  background-color: var(--wb-add-row-bg);
+}
+
+/* Cells. */
+.wb-tag-input {
+  background-color: var(--wb-input-bg);
+}
+
+/* A check's result (e.g. a difference that must be zero). */
+.wb-tag-pass {
+  color: var(--wb-ok);
+}
+
+.wb-tag-fail {
+  color: var(--wb-error);
+}
+
+/* Form sheet boxes. */
+.wb-tag-head {
+  justify-content: center;
+  background-color: var(--wb-head-bg);
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Plain text, left: the default look of a text box, named so forms can say it. */
+.wb-tag-label {
+  justify-content: flex-start;
+}
+
+.wb-tag-num {
+  justify-content: center;
+  color: var(--wb-muted);
+  font-family: ui-monospace, monospace;
+  font-size: 0.75rem;
+}
+
+.wb-tag-shade {
+  background-image: repeating-linear-gradient(
+    135deg,
+    #eceee9 0,
+    #eceee9 4px,
+    #e2e5df 4px,
+    #e2e5df 8px
+  );
+}
+
+.wb-tag-strong {
+  background-color: var(--wb-subtotal-bg);
+  font-weight: 700;
+}
+
+/* --- 5. chrome ------------------------------------------------------------ */
+
+.wb-input {
+  color: var(--wb-ink);
+}
+
+.wb-input.wb-cell.wb-editable {
+  color: var(--wb-editable);
+}
+
+.wb-input-field {
+  border-color: var(--wb-line-soft);
+  background-color: white;
+}
+
+.wb-input-field:focus {
+  border-color: var(--wb-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--wb-accent) 20%, transparent);
+}
+
+.wb-input-field:not(.wb-editable) {
+  cursor: default;
+  background-color: #f4f1e9;
+  color: var(--wb-muted);
+  font-style: italic;
+}
+
+.wb-input-field.wb-invalid,
+.wb-input-field.wb-error {
+  border-color: var(--wb-error);
+}
+
+/* An error shows as such even on a read-only input (the rule above would
+   otherwise win: same specificity, later in the file). */
+.wb-input.wb-error {
+  color: var(--wb-error);
+}
+
+.wb-input-form:focus {
+  background-color: #eef6f3;
+  box-shadow: inset 0 0 0 2px var(--wb-accent);
+}
+
+.wb-input-form:not(.wb-editable) {
+  cursor: default;
+  background-color: var(--wb-readonly-bg);
+}
+
+input[type='checkbox'].wb-input {
+  accent-color: var(--wb-accent);
+}
+
+.wb-form {
+  border-color: var(--wb-line);
+  background-color: white;
+  color: var(--wb-ink);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.wb-box {
+  border-color: var(--wb-line);
+  font-size: 0.875rem;
+}
+
+.wb-full-width {
+  color: var(--wb-ink);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.875rem;
+}
+
+.wb-button {
+  cursor: pointer;
+  border: 1px solid var(--wb-line);
+  border-radius: 0.25rem;
+  background-color: white;
+  padding: 0.125rem 0.5rem;
+  color: var(--wb-ink);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.75rem;
+}
+
+.wb-button:hover {
+  background-color: var(--wb-head-bg);
+}

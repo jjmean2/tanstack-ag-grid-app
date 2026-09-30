@@ -13,7 +13,7 @@ import type {
   CellSpec,
   FormCtx,
   FormItem,
-  Look,
+  Tags,
   Place,
   SheetColumnDef,
 } from '@lab/workbook'
@@ -115,20 +115,20 @@ function line(
   label: string,
   num: string,
   boxes: { amount: CellSpec | null; rate: string | null; tax: CellSpec | null },
-  look?: Look,
+  tags?: Tags,
 ): FormItem[] {
   const name = `${num} ${label}`
   return [
-    textBox(labelAt, label, look ?? 'label'),
+    textBox(labelAt, label, tags ?? 'label'),
     textBox([row, 4], num, 'num'),
     boxes.amount
-      ? cellBox([row, 5], `${id}/amount`, boxes.amount, { name, look })
+      ? cellBox([row, 5], `${id}/amount`, boxes.amount, { name, tags })
       : textBox([row, 5], '', 'shade'),
     boxes.rate === null
       ? textBox([row, 6], '', 'shade')
       : textBox([row, 6], boxes.rate, 'num'),
     boxes.tax
-      ? cellBox([row, 7], `${id}/tax`, boxes.tax, { name, look })
+      ? cellBox([row, 7], `${id}/tax`, boxes.tax, { name, tags })
       : textBox([row, 7], '', 'shade'),
   ]
 }
@@ -336,7 +336,7 @@ const settlement = ({ state, update }: FormCtx<VatState>): FormItem[] => [
   textBox([19, 5, 1, 2], '', 'shade'),
   cellBox([19, 7], 'pay/tax', formulaCell('=[s9/tax]-[p16/tax]', money), {
     name: '납부(환급)세액',
-    look: 'strong',
+    tags: 'strong',
   }),
 
   textBox([20, 1, 3, 2], '경감·공제세액', 'head'),
@@ -368,7 +368,7 @@ const settlement = ({ state, update }: FormCtx<VatState>): FormItem[] => [
   textBox([23, 5, 1, 2], '', 'shade'),
   cellBox([23, 7], 'final/tax', formulaCell('=[pay/tax]-[c19/tax]', money), {
     name: '차가감 납부할 세액',
-    look: 'strong',
+    tags: 'strong',
   }),
 ]
 
@@ -442,7 +442,7 @@ export const vatWorkbook = defineWorkbook<VatState>([
     layout: [
       addRow('add', 'purchases', newPurchase, '+ 매입 추가'),
       items('purchases', { removeCol: 'actions', label: '매입 명세' }),
-      subtotal('total', '합 계', 'purchases', ['amount', 'tax'], 'sheet-total'),
+      subtotal('total', '합 계', 'purchases', ['amount', 'tax'], 'total'),
     ],
   },
 ])

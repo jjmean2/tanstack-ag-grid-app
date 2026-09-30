@@ -8,6 +8,7 @@ import {
   splitExternal,
 } from './address'
 import { T } from './cell-types'
+import { toTags } from './marks'
 import type { CellType } from './cell-types'
 import { FormulaError, STRUCTURAL_ERRORS } from './formula/errors'
 import { evaluate } from './formula/evaluate'
@@ -19,7 +20,7 @@ import type {
   BuildCtx,
   Cell,
   CellSpec,
-  ClassFn,
+  TagFn,
   ExportedValue,
   ExternalRef,
   Externals,
@@ -93,7 +94,7 @@ export function buildWorkbook<TState>(
   const leafsBySheet = new Map<string, SheetLeaf[]>()
   const sheets: Record<string, SheetView | undefined> = {}
   const formulaCells: Cell[] = []
-  const classFns: { cell: Cell; fn: ClassFn }[] = []
+  const tagFns: { cell: Cell; fn: TagFn }[] = []
   const formNames = new Map<
     string,
     { rows: Map<string, string>; cols: Record<string, string> }
@@ -105,6 +106,7 @@ export function buildWorkbook<TState>(
     ids: { sheetId: string; rowId: string; colId: string },
     type: CellType,
     spec: CellSpec,
+    rowTags: string[] = [],
   ): Cell => {
     if (cells.has(address)) throw new Error(`Duplicate cell ${address}`)
     const cell: Cell = {
@@ -115,13 +117,13 @@ export function buildWorkbook<TState>(
       value: spec.source.kind === 'value' ? spec.source.value : undefined,
       span: spec.span,
       rowSpan: spec.rowSpan,
+      tags: [],
+      rowTags,
       action: spec.action,
     }
-    if (typeof spec.className === 'function') {
-      classFns.push({ cell, fn: spec.className })
-    } else {
-      cell.className = spec.className
-    }
+    // Tags that depend on evaluated values are chosen after evaluation.
+    if (typeof spec.tags === 'function') tagFns.push({ cell, fn: spec.tags })
+    else cell.tags = toTags(spec.tags)
     cells.set(address, cell)
     if (cell.source.kind === 'formula') formulaCells.push(cell)
     return cell
@@ -151,7 +153,7 @@ export function buildWorkbook<TState>(
         }
       }
       if (!('ref' in item))
-        return { at: item.at, text: item.text, look: item.look }
+        return { at: item.at, text: item.text, tags: toTags(item.tags) }
 
       const parts = item.ref.split('/')
       if (parts.length !== 2 || parts.some((p) => p === ''))
@@ -165,7 +167,7 @@ export function buildWorkbook<TState>(
         item.cell,
       )
       if (item.name && !rowNames.has(rowId)) rowNames.set(rowId, item.name)
-      return { at: item.at, address, look: item.look }
+      return { at: item.at, address, tags: toTags(item.tags) }
     })
     formNames.set(sheet.id, { rows: rowNames, cols: sheet.colNames ?? {} })
     return {
@@ -213,6 +215,7 @@ export function buildWorkbook<TState>(
           `A full width row has no cells: row "${spec.id}" of sheet "${sheet.id}"`,
         )
 
+      const rowTags = toTags(spec.tags)
       const rowCells: Record<string, Cell> = {}
       for (const [colId, cellSpec] of Object.entries(spec.cells)) {
         const leaf = leafById.get(colId)
@@ -243,6 +246,7 @@ export function buildWorkbook<TState>(
           // The type is chosen here: cell > row > column.
           cellSpec.type ?? spec.type ?? leaf.type,
           cellSpec,
+          rowTags,
         )
         rowCells[colId] = cell
         if (spec.group) {
@@ -255,7 +259,7 @@ export function buildWorkbook<TState>(
       return {
         id: spec.id,
         kind: spec.kind,
-        className: spec.className,
+        tags: rowTags,
         group: spec.group,
         cells: rowCells,
         fullWidth: spec.fullWidth,
@@ -355,10 +359,10 @@ export function buildWorkbook<TState>(
     }
   }
 
-  // 3) Classes that depend on evaluated values.
+  // 3) Tags that depend on evaluated values.
   const get = (address: Address) => cells.get(address)?.value
-  for (const { cell, fn } of classFns) {
-    cell.className = fn({ value: cell.value, error: cell.error, get })
+  for (const { cell, fn } of tagFns) {
+    cell.tags = toTags(fn({ value: cell.value, error: cell.error, get }))
   }
 
   // --- lookups ---------------------------------------------------------------

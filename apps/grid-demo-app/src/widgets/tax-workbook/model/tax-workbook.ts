@@ -128,20 +128,19 @@ export const taxWorkbook = defineWorkbook<TaxSession>([
       ]),
 
       spanned('check', 'section', 'Ⅲ. 검증', [
-        subtotal('total', '합 계', ['adds', 'subs'], amountCols, 'sheet-total'),
+        subtotal('total', '합 계', ['adds', 'subs'], amountCols, 'total'),
         row('reported', {}, (ctx) => ({
           account: labelCell('신고서상 금액'),
           tax: inputCell(
             ctx.state.reported,
             (value) => ctx.update((s) => ({ ...s, reported: Number(value) })),
-            { className: 'sheet-input' },
+            { tags: 'input' },
           ),
         })),
-        row('gap', { className: 'sheet-total' }, () => ({
+        row('gap', { tags: 'total' }, () => ({
           account: labelCell('차 이'),
           tax: formulaCell('=[total/tax]-[reported/tax]', {
-            className: ({ value }) =>
-              value === 0 ? 'sheet-ok' : 'sheet-error',
+            tags: ({ value }) => (value === 0 ? 'pass' : 'fail'),
           }),
           // A text result in a column whose type is `select`: a cell-level override.
           disposition: formulaCell(
@@ -149,8 +148,7 @@ export const taxWorkbook = defineWorkbook<TaxSession>([
             {
               type: T.text,
               span: 2,
-              className: ({ get }) =>
-                get('adj/gap/tax') === 0 ? 'sheet-ok' : 'sheet-error',
+              tags: ({ get }) => (get('adj/gap/tax') === 0 ? 'pass' : 'fail'),
             },
           ),
         })),
@@ -190,7 +188,7 @@ export const taxWorkbook = defineWorkbook<TaxSession>([
         research: '연구·인력개발비 공제',
         employment: '고용증대 공제',
       }),
-      row('credit-total', { className: 'sheet-subtotal' }, () => ({
+      row('credit-total', { tags: 'subtotal' }, () => ({
         label: labelCell('공제 합계'),
         value: formulaCell('=SUM([@credits/value])'),
       })),
@@ -208,7 +206,7 @@ export const taxWorkbook = defineWorkbook<TaxSession>([
         label: labelCell('결산서상 당기순이익 (결산 화면)'),
         value: formulaCell('=[ext:closing/netIncome]'),
       })),
-      row('base', { className: 'sheet-subtotal' }, () => ({
+      row('base', { tags: 'subtotal' }, () => ({
         label: labelCell('과세표준 (당기순이익 + 익금산입 − 손금산입)'),
         value: formulaCell(
           '=[net-income/value]+[adj/s-add/tax]-[adj/s-sub/tax]',
@@ -243,7 +241,7 @@ export const taxWorkbook = defineWorkbook<TaxSession>([
           '=IF([inputs/options.sme/value],ROUND(MAX([computed/value]-[credit/value],0)*[inputs/rates.sme/value]/100,0),0)',
         ),
       })),
-      row('decided', { className: 'sheet-subtotal' }, () => ({
+      row('decided', { tags: 'subtotal' }, () => ({
         label: labelCell('결정세액'),
         value: formulaCell(
           '=MAX([computed/value]-[credit/value]-[reduction/value],0)',
@@ -255,7 +253,7 @@ export const taxWorkbook = defineWorkbook<TaxSession>([
           '=ROUND([decided/value]*[inputs/rates.local/value]/100,0)',
         ),
       })),
-      row('burden', { className: 'sheet-total' }, () => ({
+      row('burden', { tags: 'total' }, () => ({
         label: labelCell('총부담세액'),
         value: formulaCell('=[decided/value]+[local/value]'),
       })),

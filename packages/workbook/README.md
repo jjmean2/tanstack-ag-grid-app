@@ -14,12 +14,12 @@ store (입력값만) ──(정의: sheets · layout · 수식)──▶ buildWo
 
 ## 진입점
 
-| import                             | 내용                                                                                  | 의존           |
-| ---------------------------------- | ------------------------------------------------------------------------------------- | -------------- |
-| `@lab/workbook`                    | 모델, 수식, 정의·계산, layout 헬퍼, store, 저장소                                     | 없음 (순수 TS) |
-| `@lab/workbook/react`              | Provider, `useCell`/`CellInput`, `FormSheet`, 수식 바, 외부 참조 패널, error boundary | React          |
-| `@lab/workbook/ag-grid`            | `SheetGrid`, `SheetGridProvider`                                                      | React, AG Grid |
-| `@lab/workbook/ag-grid/styles.css` | grid sheet의 행·셀 클래스 (`sheet-title` 등)                                          | —              |
+| import                     | 내용                                                                                  | 의존           |
+| -------------------------- | ------------------------------------------------------------------------------------- | -------------- |
+| `@lab/workbook`            | 모델, 수식, 정의·계산, layout 헬퍼, store, 저장소                                     | 없음 (순수 TS) |
+| `@lab/workbook/react`      | Provider, `useCell`/`CellInput`, `FormSheet`, 수식 바, 외부 참조 패널, error boundary | React          |
+| `@lab/workbook/ag-grid`    | `SheetGrid`, `SheetGridProvider`                                                      | React, AG Grid |
+| `@lab/workbook/styles.css` | 구조 스타일만 (정렬, 배치). 색과 모양은 앱 테마가 표식으로 정함                       | —              |
 
 의존 방향은 **core ← react ← ag-grid** 한 방향입니다. 패키지는 앱 코드를 import하지 않습니다. 둘 다 [boundaries.test.ts](src/boundaries.test.ts)가 검사합니다.
 
@@ -28,6 +28,7 @@ store (입력값만) ──(정의: sheets · layout · 수식)──▶ buildWo
 ```
 src/
 ├─ index.ts            @lab/workbook 공개 API
+├─ styles.css          구조 스타일 (@lab/workbook/styles.css)
 ├─ core/               모델과 계산 (React·AG Grid 없음)
 │  ├─ types.ts           WorkbookDef · SheetDef(grid | form) · CellSpec · Cell · Workbook …
 │  ├─ address.ts         주소: sheet/row/col · sheet/@group/col · ext:screen/name
@@ -36,6 +37,7 @@ src/
 │  ├─ check.ts           checkWorkbook: 대표 state로 정의 오류 점검 (테스트용)
 │  ├─ external.ts        화면 간: export 스냅샷 만들기, 외부 값 조회
 │  ├─ navigation.ts      UI state: 탭 · 포커스 · 셀 이동 요청
+│  ├─ marks.ts           표식: 셀·행에 붙는 wb-* 클래스 (모든 뷰 공통)
 │  └─ formula/           파서 · 평가기 · 함수 (SUM, IF, SUMIF, ROUND, DAYS …)
 ├─ layout/             state → 행(grid sheet) · 칸(form sheet)
 │  ├─ cells.ts           literalCell · labelCell · inputCell · boundCell · formulaCell
@@ -56,8 +58,7 @@ src/
    ├─ use-sheet-grid.ts     SheetView → AG Grid props
    ├─ columns.ts            Cell → ColDef (콜백은 셀만 읽음)
    ├─ full-width-row.tsx    제목·추가 버튼 행
-   ├─ grid-config.tsx       SheetGridProvider (테마 주입)
-   └─ styles.css
+   └─ grid-config.tsx       SheetGridProvider (테마 주입)
 ```
 
 ## 양식 하나 만들기
@@ -128,11 +129,67 @@ export const def = defineWorkbook<MyState>(
 
 계산값에 따라 달라지는 문구는 JSX에서 `useWorkbook().wb.value(address)`로 읽으면 됩니다.
 
+## 모양: 태그, 표식, 테마
+
+양식 정의는 **모양을 말하지 않고 의미만** 말합니다. 모양은 세 단계로 정해집니다.
+
+```
+① 의미 (정의)        tags: 'subtotal', 'input', 'pass' …        양식 작성자
+                     type: T.money,  write 유무,  수식 여부     (자동으로 알려짐)
+        │
+② 표식 (라이브러리)   wb-cell wb-type-money wb-source-value wb-editable wb-tag-subtotal …
+        │            grid 칸 · CellInput · 서식 칸이 같은 셀에 같은 표식을 붙임 (core/marks.ts)
+        ▼
+③ 모양 (앱 테마 CSS)  .wb-cell.wb-editable { color: blue }   ← 매핑은 이 파일 한 곳에
+```
+
+| 표식                                                     | 뜻                                                     |
+| -------------------------------------------------------- | ------------------------------------------------------ |
+| `wb-cell`, `wb-type-<id>`                                | 셀, 그리고 셀 타입 (`wb-type-money`, `wb-type-date` …) |
+| `wb-source-value` / `wb-source-formula`                  | 값의 출처                                              |
+| `wb-editable`, `wb-error`, `wb-action`, `wb-align-right` | 편집 가능, 수식 오류, 버튼 칸, 오른쪽 정렬 타입        |
+| `wb-tag-<tag>`                                           | 정의의 태그. 셀 자신과 **그 행의 태그**가 모두 붙음    |
+| `wb-row`                                                 | grid 행 (행 태그도 붙음)                               |
+| `wb-input`, `wb-input-field` / `-form`, `wb-invalid`     | `CellInput`과 그 상태 (형식이 틀린 입력)               |
+| `wb-form`, `wb-box`, `wb-box-text` / `-cell` / `-tall`   | 서식형 sheet와 칸                                      |
+| `wb-button`, `wb-full-width`                             | 라이브러리가 그리는 버튼, 전체 폭 행                   |
+
+태그는 셀·행·서식 칸에 붙입니다. 값에 따라 달라지면 함수로 줍니다.
+
+```ts
+row('gap', { tags: 'total' }, () => ({
+  tax: formulaCell('=[total/tax]-[reported/tax]', {
+    tags: ({ value }) => (value === 0 ? 'pass' : 'fail'),
+  }),
+}))
+textBox([3, 1, 9, 1], '과세표준 및 매출세액', 'head')
+```
+
+테마 예:
+
+```css
+.wb-cell.wb-editable {
+  color: var(--wb-editable);
+} /* 규칙: 편집 가능하면 파란색 */
+.wb-type-money {
+  font-variant-numeric: tabular-nums;
+} /* 규칙: 금액은 자릿수 정렬 */
+.wb-tag-subtotal {
+  background: var(--wb-subtotal-bg);
+  font-weight: 700;
+} /* 태그 */
+.wb-editable.wb-type-date {
+  text-decoration: underline dotted;
+} /* 조합 */
+```
+
+테마를 앱 한 파일에 모으고, **정의가 쓰는 모든 태그가 테마에 있는지 테스트로 확인**하는 방식을 권합니다(데모 앱의 `workbook-theme.test.ts`). 태그는 자유 문자열이라, 이 검사가 없으면 오타나 스타일 누락이 조용히 지나갑니다.
+
 ## 앱이 맡는 일
 
 - **AG Grid 모듈 등록**: `ModuleRegistry.registerModules([...])`. grid sheet에는 client-side row model, 행 병합(`CellSpanModule`), 편집기 모듈이 필요합니다.
 - **테마**: `<SheetGridProvider theme={...}>`로 감쌉니다. 없으면 AG Grid 기본 테마입니다.
-- **CSS**: `@lab/workbook/ag-grid/styles.css`를 한 번 import합니다.
+- **CSS**: `@lab/workbook/styles.css`(구조)를 import하고, 그 뒤에 앱의 **테마**(표식 → 모양)를 둡니다. 아래 "모양: 태그, 표식, 테마"를 보세요.
 - **Tailwind**: `react/`와 `ag-grid/`의 컴포넌트는 Tailwind 클래스를 씁니다. Tailwind는 `node_modules`를 스캔하지 않으므로, 앱 CSS에 `@source '../node_modules/@lab/workbook/src';`처럼 등록해야 합니다.
 - **React와 AG Grid는 한 벌**: 둘 다 peer dependency입니다. AG Grid는 모듈 등록이 사본마다 따로라서, 두 벌이면 등록한 기능이 보이지 않습니다. 앱의 Vite 설정에 `resolve.dedupe`를 두는 것을 권합니다.
 - **라우팅**: 라이브러리는 route를 모릅니다. 다른 화면을 여는 방법은 `WorkbookProvider`의 `openScreen`으로 주입합니다.

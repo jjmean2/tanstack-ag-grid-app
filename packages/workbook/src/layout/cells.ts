@@ -4,7 +4,7 @@ import { patch, read } from './state'
 import type { ObjectKey, Slice } from './state'
 
 // Cell specs: where a cell's value comes from (see `CellSource`), plus extras
-// such as a type override, a span or a class.
+// such as a type override, a span or tags.
 
 export type CellExtras = Omit<CellSpec, 'source'>
 

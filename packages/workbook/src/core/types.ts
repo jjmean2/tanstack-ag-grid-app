@@ -13,12 +13,17 @@ export type CellSource =
   | { kind: 'value'; value: unknown; write?: (value: unknown) => void } // editable when `write` is set
   | { kind: 'formula'; formula: string } // fixed, read-only
 
-// Chooses a class from the evaluated values (e.g. red when a check fails).
-export type ClassFn = (result: {
+// Tags: words that say what a cell or row *is* (`subtotal`, `input`, `ok`),
+// never how it looks. Every view marks them the same way (`wb-tag-<tag>`, see
+// `marks.ts`) and the app's theme maps them to styles.
+export type Tags = string | readonly string[]
+
+// Chooses tags from the evaluated values (e.g. `error` when a check fails).
+export type TagFn = (result: {
   value: unknown
   error?: string
   get: (address: Address) => unknown
-}) => string | undefined
+}) => Tags | undefined
 
 // What a layout node produces, before types are resolved and formulas run.
 export type CellSpec = {
@@ -28,7 +33,7 @@ export type CellSpec = {
   // Vertically adjacent cells of a `spanRows` column with the same key merge
   // into one (the top one is shown). Read-only cells only.
   rowSpan?: string
-  className?: string | ClassFn
+  tags?: Tags | TagFn
   action?: { label: string; run: () => void } // renders a button
 }
 
@@ -41,8 +46,8 @@ export type FullWidthContent =
 
 export type RowSpec = {
   id: string
-  kind: string // informational (styling, debugging); never branched on by the grid
-  className?: string
+  kind: string // informational (debugging); never branched on by the grid
+  tags?: Tags // apply to the whole row, and to every cell of it
   group?: string // makes the row part of a list that formulas can reference
   type?: CellType // row-level type override
   cells: Record<string, CellSpec> // key = colId; a missing key renders an empty cell
@@ -64,7 +69,8 @@ export type Cell = {
   errorDetail?: string
   span?: number
   rowSpan?: string
-  className?: string
+  tags: string[] // the cell's own tags, resolved
+  rowTags: string[] // tags of the row it belongs to (grid sheets)
   action?: { label: string; run: () => void }
   // Formula cells: the text, split so references can be shown as links.
   formula?: { text: string; parts: FormulaPart[] }
@@ -73,7 +79,7 @@ export type Cell = {
 export type ResolvedRow = {
   id: string
   kind: string
-  className?: string
+  tags: string[]
   group?: string
   cells: Record<string, Cell>
   fullWidth?: FullWidthContent
@@ -134,15 +140,12 @@ export type Place = [
   colSpan?: number,
 ]
 
-// How a box looks; the renderer maps it to styles.
-export type Look = 'title' | 'head' | 'label' | 'num' | 'shade' | 'strong'
-
 export type FormItem =
   // Fixed text (not a cell: nothing references it).
-  | { at: Place; text: string; look?: Look }
+  | { at: Place; text: string; tags?: Tags }
   // A cell, at the address `<sheet>/<ref>` (`ref` = `row/col`). `name` is the
   // row's readable name, used by the formula bar.
-  | { at: Place; ref: string; cell: CellSpec; name?: string; look?: Look }
+  | { at: Place; ref: string; cell: CellSpec; name?: string; tags?: Tags }
 
 export type FormCtx<TState> = {
   state: TState
@@ -168,7 +171,9 @@ export type SheetDef<TState> = GridSheetDef<TState> | FormSheetDef<TState>
 
 export type FormView = {
   tracks: string[]
-  items: { at: Place; text?: string; address?: Address; look?: Look }[]
+  // `tags` are the box's (a heading, a shaded box); a cell box's cell carries
+  // its own.
+  items: { at: Place; text?: string; address?: Address; tags: string[] }[]
 }
 
 export type WorkbookDef<TState> = {

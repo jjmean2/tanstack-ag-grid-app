@@ -1,5 +1,11 @@
 import type { CellType } from '../core/cell-types'
-import type { BuildCtx, CellSpec, LayoutNode, RowSpec } from '../core/types'
+import type {
+  BuildCtx,
+  CellSpec,
+  LayoutNode,
+  RowSpec,
+  Tags,
+} from '../core/types'
 import { formulaCell, inputCell, labelCell, literalCell } from './cells'
 import { listOf, patch, read } from './state'
 import type { ListKey, ObjectKey, Slice } from './state'
@@ -25,7 +31,7 @@ export function title<TState extends object>(
     {
       id,
       kind: 'title',
-      className: 'sheet-title',
+      tags: 'title',
       cells: {},
       fullWidth: { kind: 'title', text },
     },
@@ -77,7 +83,6 @@ export function items<TState extends object, TKey extends ListKey<TState>>(
             return [
               col.colId,
               labelCell('', {
-                className: 'sheet-action',
                 action: {
                   label: '삭제',
                   run: () =>
@@ -165,7 +170,7 @@ export function subtotal<TState extends object>(
   text: string,
   keys: ListKey<TState> | ListKey<TState>[],
   sumCols: string[],
-  className = 'sheet-subtotal',
+  tags: Tags = 'subtotal',
 ): LayoutNode<TState> {
   return (ctx) => {
     const groups = Array.isArray(keys) ? keys : [keys]
@@ -173,7 +178,7 @@ export function subtotal<TState extends object>(
       {
         id,
         kind: 'subtotal',
-        className,
+        tags,
         cells: {
           [contentColumns(ctx)[0].colId]: labelCell(text),
           ...Object.fromEntries(
@@ -201,7 +206,7 @@ export function addRow<TState extends object, TKey extends ListKey<TState>>(
     {
       id,
       kind: 'action',
-      className: 'sheet-add-row',
+      tags: 'add-row',
       cells: {},
       fullWidth: {
         kind: 'action',
@@ -217,14 +222,14 @@ export function addRow<TState extends object, TKey extends ListKey<TState>>(
 // the row that does not set its own (label cells should use `labelCell`).
 export function row<TState extends object>(
   id: string,
-  opts: { className?: string; type?: CellType },
+  opts: { tags?: Tags; type?: CellType },
   cells: (ctx: Parameters<LayoutNode<TState>>[0]) => Record<string, CellSpec>,
 ): LayoutNode<TState> {
   return (ctx) => [
     {
       id,
       kind: 'custom',
-      className: opts.className,
+      tags: opts.tags,
       type: opts.type,
       cells: cells(ctx),
     },

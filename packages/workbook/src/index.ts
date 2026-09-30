@@ -23,6 +23,9 @@ export {
   isExternalAddress,
 } from './core/address'
 
+// --- marks: the classes every view puts on cells, for the app's theme -----
+export { cellMarks, rowMarks, tagClass, toTags } from './core/marks'
+
 // --- defining and building a workbook -------------------------------------
 export { defineWorkbook, buildWorkbook, flattenLeafs } from './core/workbook'
 export { checkWorkbook } from './core/check'

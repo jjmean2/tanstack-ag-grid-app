@@ -2,6 +2,7 @@ import type { ColDef, ColGroupDef } from 'ag-grid-community'
 
 import { ActionCell } from './action-cell'
 import { INVALID } from '../core/cell-types'
+import { cellMarks } from '../core/marks'
 import type { CellType } from '../core/cell-types'
 import type { ResolvedRow, SheetColumnDef, SheetLeaf } from '../core/types'
 
@@ -70,14 +71,10 @@ function createLeafColDef(col: SheetLeaf): ColDef<ResolvedRow> {
           editable: ({ data }) => writerOf(data) !== undefined,
           colSpan: ({ data }) => cellOf(data)?.span ?? 1,
         }),
+    // The same marks every view uses.
     cellClass: ({ data }) => {
       const cell = cellOf(data)
-      return [
-        typeOf(data).align === 'right' && 'text-right',
-        cell?.className,
-        cell?.source.kind === 'formula' && 'sheet-formula',
-        cell?.error && 'sheet-cell-error',
-      ].filter((c): c is string => typeof c === 'string' && c !== '')
+      return cell ? cellMarks(cell) : undefined
     },
   }
 }

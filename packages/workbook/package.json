@@ -11,7 +11,7 @@
     ".": "./src/index.ts",
     "./react": "./src/react/index.ts",
     "./ag-grid": "./src/ag-grid/index.ts",
-    "./ag-grid/styles.css": "./src/ag-grid/styles.css"
+    "./styles.css": "./src/styles.css"
   },
   "scripts": {
     "test": "vitest run",

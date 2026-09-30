@@ -61,27 +61,26 @@ export const adjustmentWorkbook = defineWorkbook<AdjustmentState>([
       items('subs', { label: '손금산입 항목' }),
       subtotal('s-sub', '소 계', 'subs', amounts),
 
-      subtotal('total', '합 계', ['adds', 'subs'], amounts, 'sheet-total'),
+      subtotal('total', '합 계', ['adds', 'subs'], amounts, 'total'),
 
       row('reported', {}, (ctx) => ({
         account: labelCell('신고서상 금액'),
         tax: inputCell(
           ctx.state.reported,
           (value) => ctx.update((s) => ({ ...s, reported: Number(value) })),
-          { className: 'sheet-input' },
+          { tags: 'input' },
         ),
       })),
-      row('gap', { className: 'sheet-total' }, () => ({
+      row('gap', { tags: 'total' }, () => ({
         account: labelCell('차 이'),
         tax: formulaCell('=[total/tax]-[reported/tax]', {
-          className: ({ value }) => (value === 0 ? 'sheet-ok' : 'sheet-error'),
+          tags: ({ value }) => (value === 0 ? 'pass' : 'fail'),
         }),
         disposition: formulaCell(
           '=IF([gap/tax]=0,"일치","불일치 - 검토 필요")',
           {
             span: 2,
-            className: ({ get }) =>
-              get('adj/gap/tax') === 0 ? 'sheet-ok' : 'sheet-error',
+            tags: ({ get }) => (get('adj/gap/tax') === 0 ? 'pass' : 'fail'),
           },
         ),
       })),

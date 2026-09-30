@@ -1,0 +1,37 @@
+/* @lab/workbook — structure only. Everything a user would call "the look"
+   (colours, weights, backgrounds, markers) belongs to the app's theme, which
+   styles the marks (see src/core/marks.ts). Import this once, before the
+   theme. */
+
+/* A type that aligns right, in any view. */
+.wb-align-right {
+  text-align: right;
+}
+
+/* Grid: a cell holding a button, and a full width row's content. */
+.ag-cell.wb-action {
+  display: flex;
+  align-items: center;
+}
+
+.wb-full-width {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  padding: 0 1rem;
+}
+
+/* Form sheets: text boxes are padded; a cell box is filled by its input; a
+   label down several rows is centred. */
+.wb-box-text {
+  padding: 0 0.5rem;
+}
+
+.wb-box-cell {
+  padding: 0;
+}
+
+.wb-box-tall {
+  justify-content: center;
+  text-align: center;
+}

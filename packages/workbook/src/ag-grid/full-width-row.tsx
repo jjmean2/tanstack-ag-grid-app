@@ -14,19 +14,11 @@ export function FullWidthRow({
   if (!content || pinned) return null
 
   if (content.kind === 'title') {
-    return (
-      <div className="flex h-full items-center px-4 font-sans text-sm font-bold text-[#17312d]">
-        {content.text}
-      </div>
-    )
+    return <div className="wb-full-width">{content.text}</div>
   }
   return (
-    <div className="flex h-full items-center px-4">
-      <button
-        type="button"
-        className="cursor-pointer rounded border border-[#9aaba0] bg-white px-2 py-0.5 font-sans text-xs text-[#17312d] hover:bg-[#eef3ed]"
-        onClick={() => content.run()}
-      >
+    <div className="wb-full-width">
+      <button type="button" className="wb-button" onClick={() => content.run()}>
         {content.label}
       </button>
     </div>

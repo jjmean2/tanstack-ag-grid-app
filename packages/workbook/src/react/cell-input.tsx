@@ -4,6 +4,7 @@ import type { Ref } from 'react'
 import { useStore } from './use-store'
 import { cellAddress } from '../core/address'
 import { INVALID } from '../core/cell-types'
+import { cellMarks } from '../core/marks'
 import { claimPending, reportFocus } from '../core/navigation'
 import type { Address } from '../core/types'
 import { useWorkbook } from './workbook-context'
@@ -53,23 +54,13 @@ export function useCell(address: Address) {
   }
 }
 
+// Layout only; colours and states come from the app's theme through the marks
+// (`wb-input`, `wb-input-<variant>`, the cell's marks, `wb-invalid`).
 // `field`: a standalone form field. `form`: fills a box of a form sheet, whose
 // borders the form draws.
-const looks = {
-  field: {
-    base: 'w-full border bg-white px-3 py-2 font-sans text-base font-normal text-[#17312d] outline-none focus:border-[#1f6f66] focus:ring-2 focus:ring-[#1f6f66]/20',
-    ok: 'border-[#c5d0c7]',
-    error: 'border-[#c0392b] text-[#c0392b]',
-    invalid: 'border-[#c0392b] bg-[#fbeeec]',
-    readOnly: 'cursor-default bg-[#f4f1e9] italic text-[#536863]',
-  },
-  form: {
-    base: 'block min-h-8 w-full self-stretch bg-transparent px-2 py-1 font-sans text-sm text-[#17312d] outline-none focus:bg-[#eef6f3] focus:ring-2 focus:ring-inset focus:ring-[#1f6f66]',
-    ok: '',
-    error: 'font-bold text-[#c0392b]',
-    invalid: 'bg-[#fbeeec]',
-    readOnly: 'cursor-default bg-[#f3f6f2]',
-  },
+const layouts = {
+  field: 'w-full border px-3 py-2 font-sans text-base font-normal outline-none',
+  form: 'block min-h-8 w-full self-stretch bg-transparent px-2 py-1 font-sans text-sm outline-none',
 }
 
 export function CellInput({
@@ -78,10 +69,9 @@ export function CellInput({
   className = '',
 }: {
   address: Address
-  variant?: keyof typeof looks
+  variant?: keyof typeof layouts
   className?: string
 }) {
-  const look = looks[variant]
   const { cell, ref, text, editable, commit, onFocus } = useCell(address)
   const { type } = cell
   // While focused the control shows the editable text; what is typed is a
@@ -96,9 +86,16 @@ export function CellInput({
     if (editing && ref.current instanceof HTMLInputElement) ref.current.select()
   }, [editing, ref])
 
-  const state = cell.error ? look.error : invalid ? look.invalid : look.ok
-  const readOnly = editable ? '' : look.readOnly
-  const classes = `${look.base} ${state} ${readOnly} ${type.align === 'right' ? 'text-right' : ''} ${className}`
+  // The same marks a grid puts on this cell, plus the input's own state.
+  const marks = [
+    'wb-input',
+    `wb-input-${variant}`,
+    ...cellMarks(cell),
+    invalid && 'wb-invalid',
+  ]
+    .filter(Boolean)
+    .join(' ')
+  const classes = `${layouts[variant]} ${marks} ${className}`
   const common = {
     'aria-invalid': invalid || cell.error !== undefined,
     title: cell.errorDetail,
@@ -112,7 +109,7 @@ export function CellInput({
         {...common}
         ref={ref as Ref<HTMLInputElement>}
         type="checkbox"
-        className="size-5 accent-[#1f6f66]"
+        className={`size-5 ${marks} ${className}`}
         checked={Boolean(cell.value)}
         onChange={(e) => commit(e.target.checked)}
       />

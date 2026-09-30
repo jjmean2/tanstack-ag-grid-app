@@ -15,6 +15,7 @@ import { useStore } from '../react/use-store'
 import { createGridColumns } from './columns'
 import { useSheetGridConfig } from './grid-config'
 import { FullWidthRow } from './full-width-row'
+import { rowMarks } from '../core/marks'
 import { flattenLeafs } from '../core/workbook'
 import { claimPending, reportFocus } from '../core/navigation'
 import type { CellRef, ResolvedRow } from '../core/types'
@@ -32,7 +33,8 @@ const defaultColDef: ColDef<ResolvedRow> = {
 }
 
 const getRowId = (p: GetRowIdParams<ResolvedRow>) => p.data.id
-const getRowClass = (p: RowClassParams<ResolvedRow>) => p.data?.className
+const getRowClass = (p: RowClassParams<ResolvedRow>) =>
+  p.data ? rowMarks(p.data) : undefined
 const isFullWidthRow = (p: IsFullWidthRowParams<ResolvedRow>) =>
   p.rowNode.data?.fullWidth !== undefined
 

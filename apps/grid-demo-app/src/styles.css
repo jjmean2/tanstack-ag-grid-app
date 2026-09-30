@@ -1,5 +1,6 @@
 @import 'tailwindcss';
-@import '@lab/workbook/ag-grid/styles.css';
+@import '@lab/workbook/styles.css';
+@import './shared/config/workbook-theme.css';
 
 /* The workbook's React and AG Grid views use Tailwind classes; Tailwind skips
    node_modules unless a source is registered. */

@@ -51,11 +51,11 @@ export const closingWorkbook = defineWorkbook<ClosingState>(
           cogs: '매출원가',
           sga: '판매비와관리비',
         }),
-        row('gross', { className: 'sheet-subtotal' }, () => ({
+        row('gross', { tags: 'subtotal' }, () => ({
           label: labelCell('매출총이익'),
           value: formulaCell('=[pl.revenue/value]-[pl.cogs/value]'),
         })),
-        row('operating', { className: 'sheet-subtotal' }, () => ({
+        row('operating', { tags: 'subtotal' }, () => ({
           label: labelCell('영업이익'),
           value: formulaCell('=[gross/value]-[pl.sga/value]'),
         })),
@@ -64,7 +64,7 @@ export const closingWorkbook = defineWorkbook<ClosingState>(
           otherIncome: '영업외수익',
           otherExpense: '영업외비용',
         }),
-        row('net', { className: 'sheet-total' }, () => ({
+        row('net', { tags: 'total' }, () => ({
           label: labelCell('당기순이익'),
           value: formulaCell(
             '=[operating/value]+[pl.otherIncome/value]-[pl.otherExpense/value]',

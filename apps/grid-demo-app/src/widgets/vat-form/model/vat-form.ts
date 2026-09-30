@@ -156,7 +156,6 @@ const line = (
   tags?: Tags,
 ): RowsNode<VatState> => named(id, LINES[id].join(' '), cells, tags)
 
-const sum = (refs: string[]) => `=SUM(${refs.map((r) => `[${r}]`).join(',')})`
 // Tax at `rate`% of the line's amount.
 const tax = (rate: number) => formulaCell(`=ROUND([.amount]*${rate}/100,0)`)
 
@@ -223,18 +222,9 @@ const ret: RowsNode<VatState>[] = [
   line(
     's9',
     () => ({
-      amount: formulaCell(
-        sum(
-          ['s1', 's2', 's3', 's4', 's5', 's6', 's7'].map((l) => `${l}/amount`),
-        ),
-      ),
-      tax: formulaCell(
-        sum(
-          ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8'].map(
-            (l) => `${l}/tax`,
-          ),
-        ),
-      ),
+      // Ranges over the lines above, as on paper: (1)~(7), (1)~(8).
+      amount: formulaCell('=SUM([s1/amount]:[s7/amount])'),
+      tax: formulaCell('=SUM([s1/tax]:[s8/tax])'),
     }),
     'strong',
   ),
@@ -250,12 +240,9 @@ const ret: RowsNode<VatState>[] = [
   line(
     'p14',
     () => ({
-      amount: formulaCell(
-        sum(['p10', 'p11', 'p12', 'p13'].map((l) => `${l}/amount`)),
-      ),
-      tax: formulaCell(
-        sum(['p10', 'p11', 'p12', 'p13'].map((l) => `${l}/tax`)),
-      ),
+      // (10)~(13), both columns at once would be [p10/amount]:[p13/tax].
+      amount: formulaCell('=SUM([p10/amount]:[p13/amount])'),
+      tax: formulaCell('=SUM([p10/tax]:[p13/tax])'),
     }),
     'strong',
   ),

@@ -40,7 +40,8 @@ export function FormulaBar({
   const [showRaw, setShowRaw] = useState(false)
 
   const describe = (ref: FormulaBarRef) => {
-    if (ref.kind === 'group') return texts.cells(ref.count ?? 0)
+    if (ref.kind === 'group' || ref.kind === 'range')
+      return texts.cells(ref.count ?? 0)
     if (ref.kind === 'external')
       return ref.value !== undefined && ref.savedAt
         ? texts.saved(ref.value, ref.savedAt)

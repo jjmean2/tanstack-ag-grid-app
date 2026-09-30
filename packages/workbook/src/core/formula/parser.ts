@@ -6,11 +6,15 @@ import { FormulaError } from './errors'
 //   [.col]            a cell in the same row
 //   [sheet/@group/col] / [@group/col]   every data row of a group (a list)
 //   [ext:screen/name] a value exported by another screen
+// and, joined by `:`, a rectangle between two cells of one sheet (as in a
+// spreadsheet's A1:B9):
+//   [row/col]:[row/col]   [sheet/row/col]:[sheet/row/col]
 export type RefSyntax = {
-  raw: string
+  raw: string // as written; for a range, both corners and the `:`
   start: number
   end: number
   parts: string[]
+  to?: RefSyntax // a range: its far corner (this one is the near corner)
 }
 
 export type Node =
@@ -25,7 +29,17 @@ export type Node =
 export type Parsed = { text: string; ast: Node; refs: RefSyntax[] }
 
 type Token = {
-  kind: 'num' | 'str' | 'ref' | 'id' | 'op' | 'lp' | 'rp' | 'comma' | 'eof'
+  kind:
+    | 'num'
+    | 'str'
+    | 'ref'
+    | 'id'
+    | 'op'
+    | 'lp'
+    | 'rp'
+    | 'comma'
+    | 'colon'
+    | 'eof'
   text: string
   value?: number | string
   start: number
@@ -112,6 +126,11 @@ function tokenize(text: string): Token[] {
       tokens.push({ kind: 'op', text: ch, start, end: i })
       continue
     }
+    if (ch === ':') {
+      i += 1
+      tokens.push({ kind: 'colon', text: ch, start, end: i })
+      continue
+    }
     if (ch === '(' || ch === ')' || ch === ',') {
       i += 1
       tokens.push({
@@ -163,7 +182,10 @@ class Parser {
   private pos = 0
   readonly refs: RefSyntax[] = []
 
-  constructor(private readonly tokens: Token[]) {}
+  constructor(
+    private readonly tokens: Token[],
+    private readonly text: string,
+  ) {}
 
   private peek() {
     return this.tokens[this.pos]
@@ -203,7 +225,20 @@ class Parser {
       case 'str':
         return { t: 'str', v: token.value as string }
       case 'ref': {
-        const ref = toRef(token)
+        let ref = toRef(token)
+        // `[a]:[b]`: a range. The colon binds before any operator.
+        if (this.peek().kind === 'colon') {
+          this.next()
+          const end = this.next()
+          if (end.kind !== 'ref') fail('a range is "[cell]:[cell]"')
+          const to = toRef(end)
+          ref = {
+            ...ref,
+            raw: this.text.slice(ref.start, to.end),
+            end: to.end,
+            to,
+          }
+        }
         this.refs.push(ref)
         return { t: 'ref', ref }
       }
@@ -257,7 +292,7 @@ export function parseFormula(text: string): Parsed | FormulaError {
   if (hit) return hit
   let result: Parsed | FormulaError
   try {
-    const parser = new Parser(tokenize(text))
+    const parser = new Parser(tokenize(text), text)
     const ast = parser.parseAll()
     result = { text, ast, refs: parser.refs }
   } catch (error) {

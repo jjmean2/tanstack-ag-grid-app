@@ -9,7 +9,7 @@ const SOURCE = {
 }
 
 const refValue = (ref: FormulaBarRef) =>
-  ref.kind === 'group'
+  ref.kind === 'group' || ref.kind === 'range'
     ? `${ref.count ?? 0}개`
     : ref.missing
       ? '없음'

@@ -2,6 +2,7 @@ import {
   cellAddress,
   isExternalAddress,
   isGroupAddress,
+  isRangeAddress,
   splitExternal,
 } from '../core/address'
 import { navigate } from '../core/navigation'
@@ -15,15 +16,15 @@ import { useWorkbook } from './workbook-context'
 
 // A reference in a formula, resolved.
 export type FormulaBarRef = {
-  address: Address // what it points at: a cell, a list column, another screen
-  kind: 'cell' | 'group' | 'external'
+  address: Address // a cell, a list column, a range, another screen
+  kind: 'cell' | 'group' | 'range' | 'external'
   label: string // named from the focused cell ("금액" in the same row, …)
   fullLabel: string // "신고 내용 › (1) 세금계산서 발급분 › 금액"
   // The referenced value as shown (or its error code); undefined for a list
   // column, a missing cell, or another screen that has not saved it.
   value?: string
   error: boolean
-  count?: number // a list column: how many cells
+  count?: number // a list column or a range: how many cells
   savedAt?: string // another screen: when it saved the value (ISO)
   missing: boolean // no such cell, or not saved by the other screen
   // Moves focus to the cell (or list) in this workbook, or opens the other
@@ -81,11 +82,11 @@ export function useFormulaBar(): FormulaBarState {
       }
     }
     const follow = () => navigate(ui, wb, address)
-    if (isGroupAddress(address)) {
+    if (isRangeAddress(address) || isGroupAddress(address)) {
       const count = wb.cells(address).length
       return {
         ...common,
-        kind: 'group',
+        kind: isRangeAddress(address) ? 'range' : 'group',
         count,
         error: false,
         missing: count === 0,

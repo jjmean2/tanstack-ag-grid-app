@@ -16,6 +16,22 @@ export const splitAddress = (address: Address) => {
 export const isGroupAddress = (address: Address) =>
   splitAddress(address).rowId.startsWith('@')
 
+// A rectangle between two cells of one sheet: `sheet/row/col:row/col`. Row
+// and column ids therefore never contain ":" (checked when building).
+export const rangeAddress = (from: Address, to: Address) => {
+  const { rowId, colId } = splitAddress(to)
+  return `${from}:${rowId}/${colId}`
+}
+
+export const isRangeAddress = (address: Address) =>
+  !isExternalAddress(address) && address.includes(':')
+
+// The two corner cells of a range.
+export const splitRange = (address: Address) => {
+  const [from = '', to = ''] = address.split(':')
+  return { from, to: `${splitAddress(from).sheetId}/${to}` }
+}
+
 const EXT = 'ext:'
 
 export const externalAddress = (screen: string, name: string) =>
@@ -45,6 +61,24 @@ export function resolveRef(
     row.startsWith('@')
       ? groupAddress(sheetId, row.slice(1), colId)
       : cellAddress(sheetId, row, colId)
+
+  if (ref.to) {
+    // A range: two single cells of one sheet.
+    const corner = (r: RefSyntax) => {
+      const address = resolveRef({ ...r, to: undefined }, from)
+      if (isExternalAddress(address) || isGroupAddress(address))
+        throw new FormulaError(
+          '#PARSE!',
+          `a range is between two cells: ${ref.raw}`,
+        )
+      return address
+    }
+    const a = corner(ref)
+    const b = corner(ref.to)
+    if (splitAddress(a).sheetId !== splitAddress(b).sheetId)
+      throw new FormulaError('#REF!', `a range is within one sheet: ${ref.raw}`)
+    return rangeAddress(a, b)
+  }
 
   if (parts.length === 1)
     return cellAddress(from.sheetId, from.rowId, parts[0].slice(1))

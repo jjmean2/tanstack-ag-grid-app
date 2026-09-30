@@ -3,9 +3,11 @@ import {
   groupAddress,
   isExternalAddress,
   isGroupAddress,
+  isRangeAddress,
   resolveRef,
   splitAddress,
   splitExternal,
+  splitRange,
 } from './address'
 import { toTags } from './marks'
 import type { CellType } from './cell-types'
@@ -50,6 +52,11 @@ export function defineWorkbook<TState>(
   for (const sheet of sheets) {
     if (/[/:]/.test(sheet.id))
       throw new Error(`Sheet id must not contain "/" or ":": ${sheet.id}`)
+    for (const leaf of leafColumns(sheet.columns))
+      if (/[/:]/.test(leaf.colId))
+        throw new Error(
+          `Column id must not contain "/" or ":": ${sheet.id}/${leaf.colId}`,
+        )
     if (ids.has(sheet.id)) throw new Error(`Duplicate sheet id: ${sheet.id}`)
     ids.add(sheet.id)
   }
@@ -159,8 +166,9 @@ export function buildWorkbook<TState>(
 
     const seen = new Set<string>()
     const rows = specs.map((spec): Row => {
-      if (spec.id.includes('/'))
-        throw new Error(`Row id must not contain "/": ${spec.id}`)
+      // "/" separates the parts of an address, ":" the corners of a range.
+      if (/[/:]/.test(spec.id))
+        throw new Error(`Row id must not contain "/" or ":": ${spec.id}`)
       if (seen.has(spec.id)) {
         throw new Error(`Duplicate row id "${spec.id}" in sheet "${sheet.id}"`)
       }
@@ -251,6 +259,41 @@ export function buildWorkbook<TState>(
     return (members.get(address) ?? []).map(valueOfCell)
   }
 
+  // A range's cells, row by row: rows between its corners in the order the
+  // sheet shows them (full width rows have no cells and are left out), columns
+  // between them in column order. A position with no cell is undefined.
+  const rowOrder = new Map<string, Map<string, number>>()
+  const rangeCells = (address: Address): (Cell | undefined)[] => {
+    const { from, to } = splitRange(address)
+    const a = splitAddress(from)
+    const b = splitAddress(to)
+    const sheet = sheets[a.sheetId]
+    const leafs = leafsBySheet.get(a.sheetId)
+    if (!sheet || !leafs) throw new FormulaError('#REF!', address)
+    let order = rowOrder.get(sheet.id)
+    if (!order) {
+      order = new Map(sheet.rows.map((row, i) => [row.id, i]))
+      rowOrder.set(sheet.id, order)
+    }
+    const rows = [order.get(a.rowId), order.get(b.rowId)]
+    const cols = [a.colId, b.colId].map((id) =>
+      leafs.findIndex((leaf) => leaf.colId === id),
+    )
+    if (rows.some((i) => i === undefined) || cols.some((i) => i < 0))
+      throw new FormulaError('#REF!', address)
+    const [r1, r2] = (rows as number[]).sort((x, y) => x - y)
+    const [c1, c2] = cols.sort((x, y) => x - y)
+    const colIds = leafs.slice(c1, c2 + 1).map((leaf) => leaf.colId)
+    return sheet.rows
+      .slice(r1, r2 + 1)
+      .filter((row) => !row.fullWidth)
+      .flatMap((row) => colIds.map((colId) => row.cells[colId]))
+  }
+  // Empty positions are blanks, so lists of one range line up with another's
+  // (SUMIF over two ranges of the same rows).
+  const readRange = (address: Address): Scalar[] =>
+    rangeCells(address).map((cell) => (cell ? valueOfCell(cell) : null))
+
   // Another screen's exported value, as it saved it.
   const external = (address: Address): ExternalValue | undefined => {
     if (!isExternalAddress(address)) return undefined
@@ -280,6 +323,7 @@ export function buildWorkbook<TState>(
   const readRef = (ref: Parameters<typeof resolveRef>[0], from: Cell): Arg => {
     const address = resolveRef(ref, from)
     if (isExternalAddress(address)) return readExternal(address)
+    if (isRangeAddress(address)) return readRange(address)
     if (isGroupAddress(address)) return readGroup(address)
     const target = cells.get(address)
     if (!target) throw new FormulaError('#REF!', address)
@@ -389,6 +433,13 @@ export function buildWorkbook<TState>(
     sheets,
     cell: (address) => cells.get(address),
     cells: (address) => {
+      if (isRangeAddress(address)) {
+        try {
+          return rangeCells(address).filter((c): c is Cell => c !== undefined)
+        } catch {
+          return []
+        }
+      }
       if (isGroupAddress(address)) return members.get(address) ?? []
       const cell = cells.get(address)
       return cell ? [cell] : []
@@ -405,6 +456,12 @@ export function buildWorkbook<TState>(
         return value
           ? `${value.screenTitle} › ${value.label}`
           : `${screen} › ${name}`
+      }
+      if (isRangeAddress(address)) {
+        // "first ~ last", naming the sheet once.
+        const { from: a, to: b } = splitRange(address)
+        const sheetId = splitAddress(a).sheetId
+        return `${workbook.labelOf(a, from)} ~ ${workbook.labelOf(b, { sheetId, rowId: '' })}`
       }
       const { sheetId, rowId, colId } = splitAddress(address)
       const header =
